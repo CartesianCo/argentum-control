@@ -27,6 +27,8 @@ class avrdude:
   def flashFile(self, firmwareFileName):
     commandString = self.assembleCommand(firmwareFileName)
 
+    print commandString
+
     subprocess.Popen(commandString.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
   def assembleCommand(self, firmwareFileName):

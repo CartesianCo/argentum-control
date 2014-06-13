@@ -11,8 +11,8 @@ import sys
 from PyQt4 import QtGui, QtCore
 
 from serial.tools.list_ports import comports
-
 from ArgentumPrinterController import ArgentumPrinterController
+from avrdude import avrdude
 
 import subprocess
 
@@ -183,8 +183,8 @@ class Argentum(QtGui.QMainWindow):
         self.outputView.append(output)
 
     def monitor(self):
-        if(self.printer.serialDevice.inWaiting()):
-            self.appendOutput(self.printer.serialDevice.readline())
+        #if self.printer.connected and self.printer.serialDevice.inWaiting():
+        #    self.appendOutput(self.printer.serialDevice.readline())
 
         #self.after(100, self.monitor)
         QtCore.QTimer.singleShot(100, self.monitor)
@@ -192,31 +192,16 @@ class Argentum(QtGui.QMainWindow):
     ### Button Functions ###
 
     def flashActionTriggered(self):
-        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Firmware File', '~')
-        inputFileName = str(inputFileName)
+        firmwareFileName = QtGui.QFileDialog.getOpenFileName(self, 'Firmware File', '~')
+        firmwareFileName = str(firmwareFileName)
 
-        if inputFileName:
-            print('avrdude executing')
-            port = self.portName
-            baud = '57600'
-            firmwareFileName = inputFileName #'blink.hex'
-            boardType = 'atmega328p'
-            protocol = 'arduino'
+        if firmwareFileName:
+            self.printer.disconnect()
 
-            commandString = './avrdude -C avrdude.conf -v -p {} -c {} -P {} -b {} -D -U flash:w:{}:i'.format(
-                boardType, protocol, port, baud, firmwareFileName)
+            programmer = avrdude(port=self.printer.port)
+            programmer.flashFile(firmwareFileName)
 
-            self.appendOutput(commandString)
-
-            self.serial.close()
-
-            flashSubProcess = subprocess.Popen(commandString.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            self.initialiseComms(self.portName)
-
-            output = flashSubProcess.communicate()
-
-            self.appendOutput(output[0])
-            self.appendOutput(output[1])
+            self.printer.connect()
 
     def enableConnectionSpecificControls(self, enabled):
         self.flashAction.setEnabled(enabled)
@@ -234,7 +219,7 @@ class Argentum(QtGui.QMainWindow):
         else:
             port = str(self.portListCombo.currentText())
 
-            if self.printer.connect(portName=port):
+            if self.printer.connect(port=port):
                 self.connectButton.setText('Disconnect')
                 self.portListCombo.setEnabled(False)
 
@@ -268,38 +253,25 @@ class Argentum(QtGui.QMainWindow):
 
     def stopButtonPushed(self):
         self.sendStopCommand()
-        #self.sendPauseCommand()
 
     def homeButtonPushed(self):
         self.printer.move(0, 0)
 
     def sendButtonPushed(self):
         command = self.commandField.text() + '\n'
-
-        #self.sendCommand(command)
         self.printer.command(command)
 
     def sendPrintCommand(self):
-        #self.sendCommand('p\n')
         self.printer.start()
 
     def sendPauseCommand(self):
-        #self.sendCommand('P\n')
         self.printer.pause()
 
     def sendResumeCommand(self):
-        #self.sendCommand('R\n')
         self.printer.resume()
 
     def sendStopCommand(self):
-        #self.sendCommand('S\n')
-        #self.sendPauseCommand()
         self.printer.stop()
-
-        #inputter = InputDialog(self, title="comments", label="comments", text="")
-        #inputter.exec_()
-        #comment = inputter.text.text()
-        #print comment
 
     def sendMovementCommand(self, x, y):
         self.printer.move(x, y)

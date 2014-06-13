@@ -1,29 +1,24 @@
 from PrinterController import PrinterController
-
 from serial import Serial
 
 class ArgentumPrinterController(PrinterController):
     serialDevice = None
-    portName = None
+    port = None
     connected = False
 
-    def __init__(self, portName=None):
-        self.portName = portName
+    def __init__(self, port=None):
+        self.port = port
 
-    def connect(self, portName=None):
-        if portName:
-            self.portName = portName
-
-        #print('Attempting to open communication on port {}'.format(self.portName))
+    def connect(self, port=None):
+        if port:
+            self.port = port
 
         try:
-            self.serialDevice = Serial(self.portName)
+            self.serialDevice = Serial(self.port)
             self.connected = True
 
             return True
         except:
-            #print('Error opening port {}'.format(self.portName))
-
             return False
 
     def disconnect(self):
@@ -38,10 +33,10 @@ class ArgentumPrinterController(PrinterController):
             self.serialDevice.write(command)
 
     def move(self, x, y):
-        if(x):
+        if x is not None:
             self.command('M X {}'.format(x))
 
-        if(y):
+        if y is not None:
             self.command('M Y {}'.format(y))
 
     def fire(self, address, primitive):
