@@ -2,11 +2,19 @@ from PIL import Image
 ### Image Processing Functions
 
 class ImageProcessor:
-    # Define Constants
-    HEADOFFSET = 1365        # Distance between the same line of primitives on two different heads (in pixels)
-    PRIMITIVEOFFSET = 12     # Distance between two different primitives on the same head (in pixels)
-    VOFFSET = 0              # Vertical distance between the two printheads
-    SPN = 3.386666           # Steps per nozzle (actually per half nozzle as we are doing 600 dpi)
+    # Distance between the same line of primitives on two different heads (in pixels)
+    # Distance between the two cartridges in pixels
+    HEADOFFSET = 1365
+
+    # Distance between two different primitives on the same head (in pixels)
+    # Distance between the two rows of nozzles
+    PRIMITIVEOFFSET = 12
+
+    # Vertical distance between the two printheads
+    VOFFSET = 0
+
+    # Steps per nozzle (actually per half nozzle as we are doing 600 dpi)
+    SPN = 3.386666
 
     # Movement offset in pixels. This is how far down we move between lines.
     # Can be changed to any odd number less than 103. A larger number means the
@@ -59,6 +67,11 @@ class ImageProcessor:
             (self.PRIMITIVEOFFSET, (int(208/self.mOffset) * self.mOffset)/2 + self.VOFFSET)
         )
 
+        # (HEADOFFSET, 104) = (1365, 104)
+        # (HEADOFFSET + PRIMITIVEOFFSET, 104) = (1377, 104)
+        # (0, VOFFSET + 104) = (0, 104)
+        # (PRIMITIVEOFFSET, VOFFSET + 104) = (12, 104)
+
         for i in range(4):
             outputImages[i].paste(inputs[i%2], pasteLocations[i])
             #outputImages[i].show()
@@ -77,17 +90,12 @@ class ImageProcessor:
 
 
     def writeCommands(self, outputStream):
-
         width, height = outputImages[0].size
         height -= (int(208/self.mOffset) * self.mOffset) # Ignore empty pixels added to the bottom of the file.
-        print height
-        # Move right 400 steps
-        #outputStream.write('M X 3000\n')
 
         yposition = 0
 
-        for y in range(height/self.mOffset*2 + 1):
-
+        for y in xrange(height/self.mOffset*2 + 1):
             # Print out progress
             print '{} out of {}.'.format(y + 1, height/self.mOffset*2 + 1)
 
@@ -95,11 +103,18 @@ class ImageProcessor:
             xposition = 0
 
             # Iterate through the width of the image(s)
-            for x in range(width):
+            for x in xrange(width):
 
-                firings = [[self.calculateFiring(x, y, a, 0), self.calculateFiring(x, y, a, 1)] for a in range(13)]
 
-                if not any([any(firings[i]) for i in range(len(firings))]):
+                firings = [
+                        [
+                            self.calculateFiring(x, y, a, 0),
+                            self.calculateFiring(x, y, a, 1)
+                        ]
+                    for a in range(13)
+                ]
+
+                if not any([any(firings[i]) for i in xrange(len(firings))]):
                     #move += (int((x + 1) * SPN) - xposition - move)
                     move = (int((x + 1) * self.SPN) - xposition)
                     continue
@@ -115,78 +130,78 @@ class ImageProcessor:
                             continue
 
                         for i in range(2):
-                            #outputStream.write(chr(1))
-                            #outputStream.write(chr(firings[a][i]))
-                            #outputStream.write(chr(a + 1))
-                            #outputStream.write(chr(0))
-
                             address = ((a + 1) & 0b00000001) << 3
                             address += ((a + 1) & 0b00000010) << 1
                             address += ((a + 1) & 0b00000100) >> 1
                             address += ((a + 1) & 0b00001000) >> 3
 
-                            if 1 == 1:
-                                outputStream.write(chr(1)) # Fire command
-                                outputStream.write(chr(firings[a][i])) # Relevant firing data, i.e. which primitive to fire
-                                outputStream.write(chr(address)) # The address we are firing on
-                                outputStream.write(chr(0))
-
-                            if 1 == 0:
-
-                                if y % 4 == 0:
-                                    outputStream.write(chr(1)) # Fire command
-                                    outputStream.write(chr(firings[a][i])) # Relevant firing data, i.e. which primitive to fire
-                                    outputStream.write(chr(address)) # The address we are firing on
-                                    outputStream.write(chr(0))
-
+                            outputStream.write(chr(1)) # Fire command
+                            outputStream.write(chr(firings[a][i])) # Relevant firing data, i.e. which primitive to fire
+                            outputStream.write(chr(address)) # The address we are firing on
+                            outputStream.write(chr(0))
 
             # Move back
-            #print xposition
-            #if xposition != 0:
-                #outputStream.write('M X %d\n' % -xposition)
-                #print xposition
-                #xposition = 0
             if xposition != 0:
                 outputStream.write('M X 0\n')
                 xposition = 0
 
             # Move down
-
             movey = int(self.mOffset * (y + 1) * self.SPN) - yposition
             outputStream.write('M Y %d\n' % -movey)
             yposition += movey
 
 
         # Reset X and Y positions
-
         outputStream.write('M Y 0\n')
         outputStream.write('M X 0\n')
 
-
-
-
         outputStream.close()
 
-
-
     def calculateFiring(self, xPos, yPos, addr, side):
-
         # Lookup tables to convert address to position
-        positions = ((0, 10, 7, 4, 1, 11, 8, 5, 2, 12, 9, 6, 3), (9, 6, 3, 0, 10, 7, 4, 1, 11, 8, 5, 2, 12))
+        positions = (
+            (0, 10, 7, 4, 1, 11, 8, 5, 2, 12, 9, 6, 3),
+            (9, 6, 3, 0, 10, 7, 4, 1, 11, 8, 5, 2, 12)
+        )
+
+        # 13 nozzles in a primitive, these are the number of the nozzles, in the
+        # correct firing order. The second grouping is for the even side? it is
+        # simply offset by the first 3 nozzles, which is strange. I would have
+        # assumed it to be just; the reverse of the first one, to maintain
+        # maximum physical distance between firing nozzles.
+
+        # The second one IS for the even side, and by shifting the order 3
+        # settings, you can use the same index to get the correct firing for
+        # each primitive.
 
         firing = 0
 
         x = xPos
+
+        # Calculate the y offset for the given address
+
+        # odd side?
         y = (yPos * self.mOffset)/2 + (positions[0][addr] * 2)
-        if yPos % 2: y += 1
+
+        # ensure that yPos is even
+        if yPos % 2:
+            y += 1
+
         for i in range(4):
+            # if this pixel is on, set the corresponding bit in firing
             if pixelMatrices[side*2][x, y][2] <= 200:
                 firing += 1 << (i*2)
             y += 26
 
+
         y = (yPos * self.mOffset)/2 + (positions[1][addr] * 2)
-        if yPos % 2: y += 1
+
+        # ensure that yPos is even
+        if yPos % 2:
+            y += 1
+
         for i in range(4):
+            # if this pixel is on, set the corresponding bit in firing
             if pixelMatrices[side*2 + 1][x, y][2] <= 200:
                 firing += 1 << (i*2 + 1)
             y += 26
@@ -199,27 +214,41 @@ class ImageProcessor:
     def splitImageTwos(self, image):
         width, height = image.size
 
+        # If the height of the input image isn't a multiple of 4, round it up.
         if height % 4 != 0:
+            # (height % 4) will be the remainder left over
+            # so 4 - remainder will be the difference required
             height += (4 - (height % 4))
 
+        # New images to store the split rows
+        # Each image has half the height, since we're splitting the image
+        # vertically
         odd = Image.new('RGBA', (width, height/2), (255, 255, 255, 255))
         even = Image.new('RGBA', (width, height/2), (255, 255, 255, 255))
 
+        # References to the pixel data
         evenMatrix = even.load()
         oddMatrix = odd.load()
         inputMatrix = image.load()
 
-        for y in range((height / 4) - 1):
-            for x in range(width):
+        # Divide by 4 because we're copying two rows at a time (why?)
+        # Subtract 1 because of zero-offset
+        for y in xrange((height / 4) - 1):
+            for x in xrange(width):
                 oddMatrix[x, y*2] = inputMatrix[x, y*4]
                 oddMatrix[x, y*2+1] = inputMatrix[x, y*4+1]
+
                 evenMatrix[x, y*2] = inputMatrix[x, y*4+2]
                 evenMatrix[x, y*2+1] = inputMatrix[x, y*4+3]
 
+        # Handle the final row(s) specially
+        # This shouldn't be necessary, since we know how many extras
+        # (non-existant) we added.
         y = (height / 4) - 1
-        for x in range(width):
+        for x in xrange(width):
             if y*4 < image.size[1]: oddMatrix[x, y*2] = inputMatrix[x, y*4]
             if y*4 + 1 < image.size[1]: oddMatrix[x, y*2+1] = inputMatrix[x, y*4+1]
+
             if y*4 + 2 < image.size[1]: evenMatrix[x, y*2] = inputMatrix[x, y*4+2]
             if y*4 + 3 < image.size[1]: evenMatrix[x, y*2+1] = inputMatrix[x, y*4+3]
 

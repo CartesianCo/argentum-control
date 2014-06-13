@@ -16,10 +16,6 @@ from avrdude import avrdude
 
 from imageproc import ImageProcessor
 
-import subprocess
-
-from PIL import Image
-
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
@@ -223,8 +219,6 @@ class Argentum(QtGui.QMainWindow):
 
                 self.enableConnectionSpecificControls(True)
 
-                #self.appendOutput('Opened port [{}]'.format(port))
-
     def processFileButtonPushed(self):
         self.appendOutput('Process File')
 
@@ -292,15 +286,15 @@ class Argentum(QtGui.QMainWindow):
             if self._state == 0:
                 self._state = 1
                 self.setAutoRepeatInterval(50)
-                print 'press'
+                print('press')
             else:
-                print 'repeat'
+                print('repeat')
         elif self._state == 1:
             self._state = 0
             self.setAutoRepeatInterval(1000)
-            print 'release'
-        else:
-            print 'click'
+            #print 'release'
+        #else:
+            #print 'click'
 
 class InputDialog(QtGui.QDialog):
    '''
