@@ -35,27 +35,3 @@ class avrdude:
     )
 
     return commandString
-
-"""
-print('avrdude executing')
-port = self.portName
-baud = '57600'
-firmwareFileName = inputFileName #'blink.hex'
-boardType = 'atmega328p'
-protocol = 'arduino'
-
-commandString = './avrdude -C avrdude.conf -v -p {} -c {} -P {} -b {} -D -U flash:w:{}:i'.format(
-    boardType, protocol, port, baud, firmwareFileName)
-
-self.appendOutput(commandString)
-
-self.serial.close()
-
-flashSubProcess = subprocess.Popen(commandString.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-self.initialiseComms(self.portName)
-
-output = flashSubProcess.communicate()
-
-self.appendOutput(output[0])
-self.appendOutput(output[1])
-"""
