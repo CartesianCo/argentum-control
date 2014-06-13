@@ -171,7 +171,7 @@ class Argentum(QtGui.QMainWindow):
             outputFileName = QtGui.QFileDialog.getSaveFileName(self, 'Output file', 'Output.hex', '.hex')
 
             ip = ImageProcessor()
-            ip.sliceImage(outputFileName, inputFileName)
+            ip.sliceImage(inputFileName, outputFileName)
 
     def appendOutput(self, output):
         self.outputView.append(output)

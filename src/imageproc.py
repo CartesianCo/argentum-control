@@ -26,7 +26,7 @@ class ImageProcessor:
     # long to implement.
     fps = 1
 
-    def sliceImage(self, outputFileName, inputFileName):
+    def sliceImage(self, inputFileName, outputFileName):
         #directory = direct
         # Global variables to hold the images we are working with
         global outputImages
@@ -136,8 +136,8 @@ class ImageProcessor:
                             address += ((a + 1) & 0b00001000) >> 3
 
                             outputStream.write(chr(1)) # Fire command
-                            outputStream.write(chr(firings[a][i])) # Relevant firing data, i.e. which primitive to fire
-                            outputStream.write(chr(address)) # The address we are firing on
+                            outputStream.write(chr(firings[a][i])) # Relevant firing data, i.e. which primitive(s) to fire
+                            outputStream.write(chr(address)) # The address we're firing within the primitive(s)
                             outputStream.write(chr(0))
 
             # Move back
@@ -220,19 +220,18 @@ class ImageProcessor:
             # so 4 - remainder will be the difference required
             height += (4 - (height % 4))
 
-        # New images to store the split rows
-        # Each image has half the height, since we're splitting the image
-        # vertically
+        # New images to store the split rows. Each image has half the height,
+        # since we're splitting the image vertically.
         odd = Image.new('RGBA', (width, height/2), (255, 255, 255, 255))
         even = Image.new('RGBA', (width, height/2), (255, 255, 255, 255))
 
-        # References to the pixel data
+        # References to the pixel data.
         evenMatrix = even.load()
         oddMatrix = odd.load()
         inputMatrix = image.load()
 
         # Divide by 4 because we're copying two rows at a time (why?)
-        # Subtract 1 because of zero-offset
+        # Subtract 1 because of zero-offset.
         for y in xrange((height / 4) - 1):
             for x in xrange(width):
                 oddMatrix[x, y*2] = inputMatrix[x, y*4]
