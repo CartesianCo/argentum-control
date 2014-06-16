@@ -50,7 +50,8 @@ class ArgentumEmulator(Printer):
     def fire(self, cartridge, primitive, column):
         validation = super(ArgentumEmulator, self).fire(cartridge, primitive, column)
 
-
+        #if not validation:
+        #    return validation
 
         y = 0;
 

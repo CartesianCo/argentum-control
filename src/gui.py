@@ -16,6 +16,8 @@ from avrdude import avrdude
 
 from imageproc import ImageProcessor
 
+from Alchemist import OptionsDialog
+
 import esky
 
 class Argentum(QtGui.QMainWindow):
@@ -145,13 +147,18 @@ class Argentum(QtGui.QMainWindow):
 
         # Menu Bar Stuff
 
-        self.flashAction = QtGui.QAction('Flash Arduino', self)
+        self.flashAction = QtGui.QAction('&Flash Arduino', self)
         self.flashAction.triggered.connect(self.flashActionTriggered)
         self.flashAction.setEnabled(False)
+
+        self.optionsAction = QtGui.QAction('Printer &Options', self)
+        self.optionsAction.triggered.connect(self.optionsActionTriggered)
+        #self.optionsAction.setEnabled(False)
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('Utilities')
         fileMenu.addAction(self.flashAction)
+        fileMenu.addAction(self.optionsAction)
 
         self.statusBar().showMessage('Ready')
 
@@ -205,8 +212,20 @@ class Argentum(QtGui.QMainWindow):
 
             self.printer.connect()
 
+    def optionsActionTriggered(self):
+        options = {
+            'stepSizeX': 120,
+            'stepSizeY': 120,
+            'xAxis':    '',
+            'yAxis':    ''
+        }
+
+        optionsDialog = OptionsDialog(self, options=options)
+        optionsDialog.exec_()
+
     def enableConnectionSpecificControls(self, enabled):
         self.flashAction.setEnabled(enabled)
+        #self.optionsAction.setEnabled(enabled)
 
         self.portListCombo.setEnabled(not enabled)
 
@@ -304,39 +323,9 @@ class Argentum(QtGui.QMainWindow):
         #else:
             #print 'click'
 
-class InputDialog(QtGui.QDialog):
-   '''
-   this is for when you need to get some user input text
-   '''
-   def __init__(self, parent=None, title='user input', label='comment', text=''):
+    def updateOptions(self, val):
+        print(val)
 
-       QtGui.QWidget.__init__(self, parent)
-
-       #--Layout Stuff---------------------------#
-       mainLayout = QtGui.QVBoxLayout()
-
-       layout = QtGui.QHBoxLayout()
-       self.label = QtGui.QLabel()
-       self.label.setText(label)
-       layout.addWidget(self.label)
-
-       self.text = QtGui.QLineEdit(text)
-       layout.addWidget(self.text)
-
-       mainLayout.addLayout(layout)
-
-       #--The Button------------------------------#
-       layout = QtGui.QHBoxLayout()
-       button = QtGui.QPushButton("okay") #string or icon
-       #self.connect(button, QtCore.SIGNAL("clicked()"), self.close)
-       button.clicked.connect(self.close)
-       layout.addWidget(button)
-
-       mainLayout.addLayout(layout)
-       self.setLayout(mainLayout)
-
-       self.resize(400, 60)
-       self.setWindowTitle(title)
 
 def main():
 
