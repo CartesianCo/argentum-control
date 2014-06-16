@@ -56,7 +56,7 @@ class ImageProcessor:
         height += (int(208/self.mOffset) * self.mOffset)
         #height += (104*2)
 
-        # Create the output images and put them into a tuple for easy referencing
+        # Create the output images and put them into a list for easy referencing
         outputImages = [Image.new('RGBA', (width,height), (255,255,255,255)) for i in range(4)]
 
         # Paste the split input image into correct locations on output images
@@ -87,8 +87,6 @@ class ImageProcessor:
         # Construct image from Output.hex
         #simulateImage()
 
-
-
     def writeCommands(self, outputStream):
         width, height = outputImages[0].size
         height -= (int(208/self.mOffset) * self.mOffset) # Ignore empty pixels added to the bottom of the file.
@@ -104,8 +102,7 @@ class ImageProcessor:
 
             # Iterate through the width of the image(s)
             for x in xrange(width):
-
-
+                
                 firings = [
                         [
                             self.calculateFiring(x, y, a, 0),

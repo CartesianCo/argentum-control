@@ -16,6 +16,8 @@ from avrdude import avrdude
 
 from imageproc import ImageProcessor
 
+import esky
+
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
@@ -26,6 +28,12 @@ class Argentum(QtGui.QMainWindow):
 
         self.XStepSize = 150
         self.YStepSize = 200
+
+        try:
+            app = esky.Esky(sys.executable,"http://update.shiel.io")
+            app.auto_update()
+        except:
+            pass
 
         self.initUI()
 
