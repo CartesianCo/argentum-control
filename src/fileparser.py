@@ -3,6 +3,43 @@
 import sys
 import io
 
+class Command(object):
+    IncrementalMove = ord('M')
+    Firing = 1
+
+    type = None
+
+
+class IncrementalMove(Command):
+    type = Command.IncrementalMove
+
+    # Command Specific Variables
+    axis = None
+    steps = None
+
+    def __init__(self, axis=None, steps=None):
+        self.axis = axis
+        self.steps = steps
+
+
+class Firing(Command):
+    type = Command.Firing
+
+    # Command Specific Variables
+    primitive1 = None
+    address1 = None
+
+    primitive2 = None
+    address2 = None
+
+    def __init__(self, primitive1, address1, primitive2, address2):
+        self.primitive1 = primitive1
+        self.address1 = address1
+
+        self.primitive2 = primitive2
+        self.address2 = address2
+
+
 class PrintFile:
     file = None
     fileName = None
@@ -48,14 +85,40 @@ class PrintFile:
     def readFiringCommand(self):
         packet = self.file.read(8) # Burn 7 bytes for now
 
-        print('{},{} - {},{}'.format(ord(packet[1]), ord(packet[2]), ord(packet[5]), ord(packet[6])))
+        #print('{},{} - {},{}'.format(ord(packet[1]), ord(packet[2]), ord(packet[5]), ord(packet[6])))
 
-        return packet
+        return Firing(
+            ord(packet[1]),
+            ord(packet[2]),
+            ord(packet[5]),
+            ord(packet[6])
+        )
+
+        #return packet
 
     def readMovementCommand(self):
         packet = self.file.readline()
 
-        return packet
+        packet = packet.split()
+
+        axis = str(packet[1])
+        increment = int(packet[2])
+
+        return IncrementalMove(axis=axis, steps=increment)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def next(self):
+        packet = self.nextCommand()
+
+        if packet:
+            return packet
+        else:
+            raise StopIteration
 
     def nextCommand(self):
         byte = self.peekByte()
@@ -67,7 +130,7 @@ class PrintFile:
 
         while True:
             if opCode in self.opCodes:
-                print(self.opCodes[opCode]['name'])
+                #print(self.opCodes[opCode]['name'])
 
                 handler = self.handlerForOpCode(opCode)
 
@@ -147,14 +210,15 @@ if __name__ == '__main__':
     inputFileName = sys.argv[1]
     #inputFile = io.open(inputFileName, mode='rb')
 
-    pf = PrintFile(inputFileName)
+    printFile = PrintFile(inputFileName)
 
-    while pf.nextCommand():
-        pass
+    for packet in printFile:
+        print packet
+
     #pf.nextCommand()
 
-    parser = PrintFileParser(inputFileName)
-    parser.parse()
+    #parser = PrintFileParser(inputFileName)
+    #parser.parse()
 
     #print('Positions: {}'.format(parser.positions))
     #print('Maximums: {}'.format(parser.maximums))
