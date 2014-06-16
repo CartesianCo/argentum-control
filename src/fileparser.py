@@ -3,22 +3,92 @@
 import sys
 import io
 
+class HandlerBase(object):
+    OP_FIRING = 1
+    OP_MOVE = ord('M')
+
+    def __init__(self):
+        raise NotImplementedError('Subclass me.')
+
+    def install(self, parser):
+        commands = [
+            {
+                'name': 'OP_FIRING',
+                'opcode': 1,
+                'handler': self.__firingCommand__
+            },
+            {
+                'name': 'OP_INCREMENTAL_MOVE',
+                'opcode': ord('M'),
+                'handler': self.__incrementalMovementCommand__
+            }
+        ]
+
+        print('Getting installed into {}'.format(parser))
+
+        for command in commands:
+            opcode = command['opcode']
+            handler = command['handler']
+
+            parser.registerOpCode(opcode, handler=handler)
+
+    def __incrementalMovementCommand__(self, source):
+        # Read until the next newline (\n).
+        packet = source.readline()
+        packet = packet.split()
+
+        axis = str(packet[1])
+        steps = int(packet[2])
+
+        self.incrementalMovementCommand(axis, steps)
+
+        return True
+
+    def incrementalMovementCommand(self, axis, steps):
+        raise NotImplementedError
+
+    def __firingCommand__(self, source):
+        packet = source.read(8)
+
+        primitive1 = ord(packet[1])
+        address1 = ord(packet[2])
+
+        primitive2 = ord(packet[5])
+        address2 = ord(packet[6])
+
+        self.firingCommand(primitive1, address1, primitive2, address2)
+
+        return True
+
+    def firingCommand(self, primitives1, address1, primitives2, address2):
+        raise NotImplementedError
+
+
+class TestHandler(HandlerBase):
+    def __init__(self):
+        pass
+
+    def incrementalMovementCommand(self, axis, steps):
+        print('incrementalMovementCommand on {} axis for {} steps.'.format(axis, steps))
+
+    def firingCommand(self, primitives1, address1, primitives2, address2):
+        print('firingCommand1 on primitives {} (bitmask) and address {}.'.format(primitives1, address1))
+        print('firingCommand2 on primitives {} (bitmask) and address {}.'.format(primitives2, address2))
+
 class PrintFile:
     file = None
     fileName = None
     fileSize = 0
 
-    OP_FIRING = 1
-    OP_MOVE = ord('M')
-    CMD_TERMINATOR = '\n'
-
     opCodes = {}
 
-    def __init__(self, fileName):
-        self.registerOpCode(self.OP_FIRING, handler=self.readFiringCommand)
-        self.registerOpCode(self.OP_MOVE, handler=self.readMovementCommand)
-
+    def __init__(self, fileName, commandHandler=None):
         self.fileName = fileName
+
+        self.commandHandler = commandHandler
+
+        if commandHandler:
+            commandHandler.install(self)
 
         self.file = io.open(self.fileName, mode='rb')
 
@@ -35,6 +105,9 @@ class PrintFile:
 
         self.opCodes[code] = description
 
+    def handlerForOpCode(self, opcode):
+        return self.opCodes[opcode]['handler']
+
     def peekByte(self):
         byte = self.file.peek(1)
 
@@ -42,12 +115,6 @@ class PrintFile:
             return byte[0]
         else:
             return None
-
-    def nameForOpCode(self, opcode):
-        return self.opCodes[opcode]['name']
-
-    def handlerForOpCode(self, opcode):
-        return self.opCodes[opcode]['handler']
 
     def primitivesFromBitMask(self, bitmask):
         primitives = []
@@ -58,45 +125,6 @@ class PrintFile:
                 primitives.append(i)
 
         return primitives
-
-    def readFiringCommand(self):
-        # This is actually TWO firing packets, but they always come in pairs
-        # currently, since we have two cartridges.
-        packet = self.file.read(8)
-
-        primitive1 = ord(packet[1])
-        address1 = ord(packet[2])
-
-        primitive2 = ord(packet[5])
-        address2 = ord(packet[6])
-
-        primitive1 = self.primitivesFromBitMask(primitive1)
-        primitive2 = self.primitivesFromBitMask(primitive2)
-
-        ret = {
-            'firing': [
-                [primitive1, address1],
-                [primitive2, address2]
-            ]
-        }
-
-        return ret
-
-    def readMovementCommand(self):
-        # Read until the next newline (\n).
-        packet = self.file.readline()
-        packet = packet.split()
-
-        axis = str(packet[1])
-        increment = int(packet[2])
-
-        ret = {
-            'incrementalMove': {
-                axis: increment
-            }
-        }
-
-        return ret
 
     def __iter__(self):
         return self
@@ -121,7 +149,7 @@ class PrintFile:
             return None
 
         if opCode in self.opCodes:
-            return self.handlerForOpCode(opCode)()
+            return self.handlerForOpCode(opCode)(self.file)
         else:
             print('Unknown Code: {}'.format(byte))
             return None
@@ -137,9 +165,26 @@ class PrintFileParser:
         if fileName:
             self.printFile = PrintFile(fileName)
 
+    def packetCount(self):
+        self.printFile.rewind()
+
+        count = 0
+
+        for packet in self.printFile:
+            count += 1
+
+        self.printFile.rewind()
+
+        return count
+
     def parse(self):
         for packet in self.printFile:
             print packet
+
+            command = packet[0]
+
+            if command == 'firing':
+                pass
 
     def parse2(self):
 
@@ -198,8 +243,15 @@ if __name__ == '__main__':
 
     inputFileName = sys.argv[1]
 
-    parser = PrintFileParser(inputFileName)
-    parser.parse()
+    th = TestHandler()
+    printFile = PrintFile(inputFileName, commandHandler=th)
 
-    print('Positions: {}'.format(parser.positions))
-    print('Maximums: {}'.format(parser.maximums))
+    for command in printFile:
+        pass
+
+    #parser = PrintFileParser(inputFileName)
+    #print(parser.packetCount())
+    #parser.parse()
+
+    #print('Positions: {}'.format(parser.positions))
+    #print('Maximums: {}'.format(parser.maximums))

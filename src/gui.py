@@ -326,13 +326,10 @@ class Argentum(QtGui.QMainWindow):
     def updateOptions(self, val):
         print(val)
 
-
 def main():
-
     app = QtGui.QApplication(sys.argv)
     ex = Argentum()
     sys.exit(app.exec_())
-
 
 if __name__ == '__main__':
     main()
