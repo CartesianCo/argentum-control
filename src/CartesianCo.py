@@ -1,5 +1,8 @@
 from Emulators import Printer, Cartridge
 
+from PIL import Image, ImageDraw
+from datetime import datetime
+
 class Argentum(Printer):
     '''
     Argentum Simulatron
@@ -16,6 +19,8 @@ class ArgentumEmulator(Printer):
     printImage = None
     printMatrix = None
 
+    __type__ = 'Argentum Simulator'
+
     def __init__(self, cartridge, printAreaBounds):
         super(ArgentumEmulator, self).__init__(HP_CC(), (1907, 1907))
 
@@ -27,8 +32,8 @@ class ArgentumEmulator(Printer):
         self.placeTextOnPrintImage('Printed on a [{}] at {}'.format(self.__type__, datetime.now()), (0, 0))
         self.placeTextOnPrintImage(self.cartridge.__str__(), (0, 10))
 
-        printScale = PrintScale()
-        printScale.drawAtLocation(self.printImage, (0, self.printImage.size[1] - 48))
+        #printScale = PrintScale()
+        #printScale.drawAtLocation(self.printImage, (0, self.printImage.size[1] - 48))
 
     def placeTextOnPrintImage(self, text, origin):
         imageContext = ImageDraw.Draw(self.printImage)
@@ -65,20 +70,6 @@ class ArgentumEmulator(Printer):
                     self.printMatrix[xPosition, yPosition] = self.cartridge.inkColour
 
             y = y + 1
-
-        # self.advanceX()
-    def incrementX(self):
-        self.sendMovementCommand(self.XstepSize, None)
-
-    def incrementY(self):
-        self.sendMovementCommand(None, self.YstepSize)
-
-    def decrementX(self):
-        self.sendMovementCommand(-self.XstepSize, None)
-
-    def decrementY(self):
-        self.sendMovementCommand(None, -self.YstepSize)
-
 
 
 class HP_CC(Cartridge):

@@ -3,46 +3,10 @@
 import sys
 import io
 
-class Command(object):
-    IncrementalMove = ord('M')
-    Firing = 1
-
-    type = None
-
-
-class IncrementalMove(Command):
-    type = Command.IncrementalMove
-
-    # Command Specific Variables
-    axis = None
-    steps = None
-
-    def __init__(self, axis=None, steps=None):
-        self.axis = axis
-        self.steps = steps
-
-
-class Firing(Command):
-    type = Command.Firing
-
-    # Command Specific Variables
-    primitive1 = None
-    address1 = None
-
-    primitive2 = None
-    address2 = None
-
-    def __init__(self, primitive1, address1, primitive2, address2):
-        self.primitive1 = primitive1
-        self.address1 = address1
-
-        self.primitive2 = primitive2
-        self.address2 = address2
-
-
 class PrintFile:
     file = None
     fileName = None
+    fileSize = 0
 
     OP_FIRING = 1
     OP_MOVE = ord('M')
@@ -51,18 +15,21 @@ class PrintFile:
     opCodes = {}
 
     def __init__(self, fileName):
-        self.registerOpCode(self.OP_FIRING, 'OP_FIRING', name='Firing', format='\x01 ...', handler=self.readFiringCommand)
-        self.registerOpCode(self.OP_MOVE, 'OP_MOVE', name='Incremental Movement', format='M <axis> <steps>', handler=self.readMovementCommand)
+        self.registerOpCode(self.OP_FIRING, handler=self.readFiringCommand)
+        self.registerOpCode(self.OP_MOVE, handler=self.readMovementCommand)
 
         self.fileName = fileName
 
         self.file = io.open(self.fileName, mode='rb')
 
-    def registerOpCode(self, code, codeString, name=None, format=None, handler=None):
+        self.fileSize = self.file.seek(0, io.SEEK_END)
+        self.rewind()
+
+    def rewind(self):
+        self.file.seek(0, io.SEEK_SET)
+
+    def registerOpCode(self, code, handler=None):
         description = {
-            'code': codeString,
-            'name': name,
-            'format': format,
             'handler': handler
         }
 
@@ -82,29 +49,54 @@ class PrintFile:
     def handlerForOpCode(self, opcode):
         return self.opCodes[opcode]['handler']
 
+    def primitivesFromBitMask(self, bitmask):
+        primitives = []
+
+        # Hardcoded 8 primitives here
+        for i in xrange(8):
+            if bitmask & (1 << i):
+                primitives.append(i)
+
+        return primitives
+
     def readFiringCommand(self):
-        packet = self.file.read(8) # Burn 7 bytes for now
+        # This is actually TWO firing packets, but they always come in pairs
+        # currently, since we have two cartridges.
+        packet = self.file.read(8)
 
-        #print('{},{} - {},{}'.format(ord(packet[1]), ord(packet[2]), ord(packet[5]), ord(packet[6])))
+        primitive1 = ord(packet[1])
+        address1 = ord(packet[2])
 
-        return Firing(
-            ord(packet[1]),
-            ord(packet[2]),
-            ord(packet[5]),
-            ord(packet[6])
-        )
+        primitive2 = ord(packet[5])
+        address2 = ord(packet[6])
 
-        #return packet
+        primitive1 = self.primitivesFromBitMask(primitive1)
+        primitive2 = self.primitivesFromBitMask(primitive2)
+
+        ret = {
+            'firing': [
+                [primitive1, address1],
+                [primitive2, address2]
+            ]
+        }
+
+        return ret
 
     def readMovementCommand(self):
+        # Read until the next newline (\n).
         packet = self.file.readline()
-
         packet = packet.split()
 
         axis = str(packet[1])
         increment = int(packet[2])
 
-        return IncrementalMove(axis=axis, steps=increment)
+        ret = {
+            'incrementalMove': {
+                axis: increment
+            }
+        }
+
+        return ret
 
     def __iter__(self):
         return self
@@ -123,23 +115,16 @@ class PrintFile:
     def nextCommand(self):
         byte = self.peekByte()
 
-        if byte:
+        if byte is not None:
             opCode = ord(byte)
         else:
             return None
 
-        while True:
-            if opCode in self.opCodes:
-                #print(self.opCodes[opCode]['name'])
-
-                handler = self.handlerForOpCode(opCode)
-
-                if handler:
-                    return handler()
-                else:
-                    return None
-            else:
-                print('Unknown Code: {}'.format(byte))
+        if opCode in self.opCodes:
+            return self.handlerForOpCode(opCode)()
+        else:
+            print('Unknown Code: {}'.format(byte))
+            return None
 
 
 class PrintFileParser:
@@ -153,6 +138,10 @@ class PrintFileParser:
             self.printFile = PrintFile(fileName)
 
     def parse(self):
+        for packet in self.printFile:
+            print packet
+
+    def parse2(self):
 
         byte = self.printFile.peekByte()
 
@@ -208,17 +197,9 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     inputFileName = sys.argv[1]
-    #inputFile = io.open(inputFileName, mode='rb')
 
-    printFile = PrintFile(inputFileName)
+    parser = PrintFileParser(inputFileName)
+    parser.parse()
 
-    for packet in printFile:
-        print packet
-
-    #pf.nextCommand()
-
-    #parser = PrintFileParser(inputFileName)
-    #parser.parse()
-
-    #print('Positions: {}'.format(parser.positions))
-    #print('Maximums: {}'.format(parser.maximums))
+    print('Positions: {}'.format(parser.positions))
+    print('Maximums: {}'.format(parser.maximums))

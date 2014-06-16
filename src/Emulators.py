@@ -1,5 +1,4 @@
 from PIL import Image, ImageDraw
-from datetime import datetime
 
 class Printer(object):
     '''
@@ -84,7 +83,7 @@ class Printer(object):
 
         return True
 
-    def incrementX(self, xIncrement, wrap=False):
+    def incrementX(self, xIncrement=1, wrap=False):
         newX = self.getX() + xIncrement
 
         if not self.checkBounds(newX, None):
@@ -96,9 +95,9 @@ class Printer(object):
         self.moveToX(newX)
 
     def advanceX(self):
-        self.incrementX(1)
+        self.incrementX()
 
-    def incrementY(self, yIncrement):
+    def incrementY(self, yIncrement=1):
         newY = self.getY() + yIncrement
 
         if not self.checkBounds(None, newY):
