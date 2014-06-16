@@ -3,21 +3,33 @@
 import sys
 import io
 
-OP_FIRING = 1
-OP_MOVE = ord('M')
-CMD_TERMINATOR = '\n'
-
 class PrintFile:
     file = None
     fileName = None
 
-    positions = {'X': 0, 'Y': 0}
-    maximums  = {'X': 0, 'Y': 0}
+    OP_FIRING = 1
+    OP_MOVE = ord('M')
+    CMD_TERMINATOR = '\n'
+
+    opCodes = {}
 
     def __init__(self, fileName):
+        self.registerOpCode(self.OP_FIRING, 'OP_FIRING', name='Firing', format='\x01 ...', handler=self.readFiringCommand)
+        self.registerOpCode(self.OP_MOVE, 'OP_MOVE', name='Incremental Movement', format='M <axis> <steps>', handler=self.readMovementCommand)
+
         self.fileName = fileName
 
         self.file = io.open(self.fileName, mode='rb')
+
+    def registerOpCode(self, code, codeString, name=None, format=None, handler=None):
+        description = {
+            'code': codeString,
+            'name': name,
+            'format': format,
+            'handler': handler
+        }
+
+        self.opCodes[code] = description
 
     def peekByte(self):
         byte = self.file.peek(1)
@@ -27,28 +39,75 @@ class PrintFile:
         else:
             return None
 
-    def nextByte(self):
-        return self.file.read(1)
+    def nameForOpCode(self, opcode):
+        return self.opCodes[opcode]['name']
+
+    def handlerForOpCode(self, opcode):
+        return self.opCodes[opcode]['handler']
+
+    def readFiringCommand(self):
+        packet = self.file.read(8) # Burn 7 bytes for now
+
+        print('{},{} - {},{}'.format(ord(packet[1]), ord(packet[2]), ord(packet[5]), ord(packet[6])))
+
+        return packet
+
+    def readMovementCommand(self):
+        packet = self.file.readline()
+
+        return packet
+
+    def nextCommand(self):
+        byte = self.peekByte()
+
+        if byte:
+            opCode = ord(byte)
+        else:
+            return None
+
+        while True:
+            if opCode in self.opCodes:
+                print(self.opCodes[opCode]['name'])
+
+                handler = self.handlerForOpCode(opCode)
+
+                if handler:
+                    return handler()
+                else:
+                    return None
+            else:
+                print('Unknown Code: {}'.format(byte))
+
+
+class PrintFileParser:
+    printFile = None
+
+    positions = {'X': 0, 'Y': 0}
+    maximums  = {'X': 0, 'Y': 0}
+
+    def __init__(self, fileName):
+        if fileName:
+            self.printFile = PrintFile(fileName)
 
     def parse(self):
 
-        byte = self.peekByte()
+        byte = self.printFile.peekByte()
 
         while byte:
             #print byte
             byte = ord(byte)
 
-            if byte == OP_FIRING:
+            if byte == PrintFile.OP_FIRING:
                 #print('Got firing command.')
 
-                packet = self.file.read(8) # Burn 7 bytes for now
+                packet = self.printFile.file.read(8) # Burn 7 bytes for now
 
                 #print('{},{} - {},{}'.format(ord(packet[1]), ord(packet[2]), ord(packet[5]), ord(packet[6])))
 
-            if byte == OP_MOVE:
+            if byte == PrintFile.OP_MOVE:
                 #print('Got movement command.')
 
-                packet = self.file.readline()
+                packet = self.printFile.file.readline()
 
                 # Format:
                 # M [X, Y] <increment>\n
@@ -74,7 +133,7 @@ class PrintFile:
 
                 #print(packet[:-1])
 
-            byte = self.peekByte()
+            byte = self.printFile.peekByte()
             #a = input('')
 
 
@@ -88,8 +147,14 @@ if __name__ == '__main__':
     inputFileName = sys.argv[1]
     #inputFile = io.open(inputFileName, mode='rb')
 
-    parser = PrintFile(inputFileName)
+    pf = PrintFile(inputFileName)
+
+    while pf.nextCommand():
+        pass
+    #pf.nextCommand()
+
+    parser = PrintFileParser(inputFileName)
     parser.parse()
 
-    print('Positions: {}'.format(parser.positions))
-    print('Maximums: {}'.format(parser.maximums))
+    #print('Positions: {}'.format(parser.positions))
+    #print('Maximums: {}'.format(parser.maximums))
