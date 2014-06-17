@@ -2,78 +2,7 @@
 
 import sys
 import io
-
-class HandlerBase(object):
-    OP_FIRING = 1
-    OP_MOVE = ord('M')
-
-    def __init__(self):
-        raise NotImplementedError('Subclass me.')
-
-    def install(self, parser):
-        commands = [
-            {
-                'name': 'OP_FIRING',
-                'opcode': 1,
-                'handler': self.__firingCommand__
-            },
-            {
-                'name': 'OP_INCREMENTAL_MOVE',
-                'opcode': ord('M'),
-                'handler': self.__incrementalMovementCommand__
-            }
-        ]
-
-        print('Getting installed into {}'.format(parser))
-
-        for command in commands:
-            opcode = command['opcode']
-            handler = command['handler']
-
-            parser.registerOpCode(opcode, handler=handler)
-
-    def __incrementalMovementCommand__(self, source):
-        # Read until the next newline (\n).
-        packet = source.readline()
-        packet = packet.split()
-
-        axis = str(packet[1])
-        steps = int(packet[2])
-
-        self.incrementalMovementCommand(axis, steps)
-
-        return True
-
-    def incrementalMovementCommand(self, axis, steps):
-        raise NotImplementedError
-
-    def __firingCommand__(self, source):
-        packet = source.read(8)
-
-        primitive1 = ord(packet[1])
-        address1 = ord(packet[2])
-
-        primitive2 = ord(packet[5])
-        address2 = ord(packet[6])
-
-        self.firingCommand(primitive1, address1, primitive2, address2)
-
-        return True
-
-    def firingCommand(self, primitives1, address1, primitives2, address2):
-        raise NotImplementedError
-
-
-class TestHandler(HandlerBase):
-    def __init__(self):
-        pass
-
-    def incrementalMovementCommand(self, axis, steps):
-        print('incrementalMovementCommand on {} axis for {} steps.'.format(axis, steps))
-
-    def firingCommand(self, primitives1, address1, primitives2, address2):
-        print('firingCommand1 on primitives {} (bitmask) and address {}.'.format(primitives1, address1))
-        print('firingCommand2 on primitives {} (bitmask) and address {}.'.format(primitives2, address2))
+from controllers import TestParsingController
 
 class PrintFile:
     file = None
@@ -85,15 +14,24 @@ class PrintFile:
     def __init__(self, fileName, commandHandler=None):
         self.fileName = fileName
 
-        self.commandHandler = commandHandler
-
         if commandHandler:
-            commandHandler.install(self)
+            self.installCommandHandler(commandHandler)
 
         self.file = io.open(self.fileName, mode='rb')
 
         self.fileSize = self.file.seek(0, io.SEEK_END)
         self.rewind()
+
+    def installCommandHandler(self, commandHandler):
+        self.commandHandler = commandHandler
+
+        commands = self.commandHandler.supportedCommands()
+
+        for command in commands:
+            opcode = command['opcode']
+            handler = command['handler']
+
+            self.registerOpCode(opcode, handler=handler)
 
     def rewind(self):
         self.file.seek(0, io.SEEK_SET)
@@ -243,7 +181,7 @@ if __name__ == '__main__':
 
     inputFileName = sys.argv[1]
 
-    th = TestHandler()
+    th = TestParsingController()
     printFile = PrintFile(inputFileName, commandHandler=th)
 
     for command in printFile:
