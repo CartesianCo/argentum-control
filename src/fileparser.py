@@ -2,7 +2,7 @@
 
 import sys
 import io
-from controllers import TestParsingController
+from simcon import SimulatorController
 
 class PrintFile:
     file = None
@@ -182,7 +182,7 @@ if __name__ == '__main__':
 
     inputFileName = sys.argv[1]
 
-    th = TestParsingController()
+    th = SimulatorController()
     printFile = PrintFile(inputFileName, commandHandler=th)
 
     for command in printFile:

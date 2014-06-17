@@ -71,7 +71,7 @@ class Printer(object):
         if self.checkBounds(None, y):
             self.currentPosition = (self.getX(), y)
         else:
-            print 'Attempted to move beyond bed boundary.', y, self.printAreaBounds
+            print 'Attempted to move beyond bed boundary.', self.printAreaBounds
 
     def checkBounds(self, x, y):
         if x:

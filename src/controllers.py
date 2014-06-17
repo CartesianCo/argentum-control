@@ -1,17 +1,29 @@
-from abc import ABCMeta, abstractmethod
-
 class ControllerBase(object):
-    __metaclass__ = ABCMeta
 
-    @abstractmethod
-    def __init__(self):
-        raise NotImplementedError('Subclass me.')
+    # Control Commands
+    def startCommand(self, fileName):
+        raise NotImplementedError
 
-    @abstractmethod
+    def stopCommand(self):
+        raise NotImplementedError
+
+    def pauseCommand(self):
+        raise NotImplementedError
+
+    def resumeCommand(self):
+        raise NotImplementedError
+
+    # Positional Commands
+    def homeCommand(self):
+        raise NotImplementedError
+
+    def absoluteMovementCommand(self, x, y):
+        raise NotImplementedError
+
     def incrementalMovementCommand(self, axis, steps):
         raise NotImplementedError
 
-    @abstractmethod
+    # Printing Commands
     def firingCommand(self, primitives1, address1, primitives2, address2):
         raise NotImplementedError
 
@@ -58,9 +70,6 @@ class ParsingControllerBase(ControllerBase):
 
 
 class TestParsingController(ParsingControllerBase):
-    def __init__(self):
-        pass
-
     def incrementalMovementCommand(self, axis, steps):
         print('incrementalMovementCommand on {} axis for {} steps.'.format(axis, steps))
 
