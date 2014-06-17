@@ -70,9 +70,26 @@ class ParsingControllerBase(ControllerBase):
 
 
 class TestParsingController(ParsingControllerBase):
+    positions = {'X': 0, 'Y': 0}
+    maximums  = {'X': 0, 'Y': 0}
+
     def incrementalMovementCommand(self, axis, steps):
-        print('incrementalMovementCommand on {} axis for {} steps.'.format(axis, steps))
+        #print('incrementalMovementCommand on {} axis for {} steps.'.format(axis, steps))
+        increment = abs(steps)
+
+        if increment > 0:
+            self.positions[axis] += increment
+        elif increment == 0:
+            #print('Homing {} axis.'.format(axis))
+            self.positions[axis] = 0
+        #else:
+        #    print('Negative movement: {} on {} [{}].'.format(increment, axis, positions[axis]))
+
+        for axis in self.positions:
+            if self.positions[axis] > self.maximums[axis]:
+                self.maximums[axis] = self.positions[axis]
 
     def firingCommand(self, primitives1, address1, primitives2, address2):
-        print('firingCommand1 on primitives {} (bitmask) and address {}.'.format(primitives1, address1))
-        print('firingCommand2 on primitives {} (bitmask) and address {}.'.format(primitives2, address2))
+        #print('firingCommand1 on primitives {} (bitmask) and address {}.'.format(primitives1, address1))
+        #print('firingCommand2 on primitives {} (bitmask) and address {}.'.format(primitives2, address2))
+        pass
