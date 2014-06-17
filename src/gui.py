@@ -31,13 +31,16 @@ class Argentum(QtGui.QMainWindow):
         self.XStepSize = 150
         self.YStepSize = 200
 
-        try:
-            app = esky.Esky(sys.executable,"http://update.shiel.io")
-            app.auto_update()
-        except:
-            pass
-
         self.initUI()
+
+        if hasattr(sys, "frozen"):
+            try:
+                app = esky.Esky(sys.executable,"http://update.shiel.io")
+                self.appendOutput(app.findUpdate())
+                app.auto_update()
+            except:
+                self.appendOutput('Update exception.')
+                pass
 
     def initUI(self):
         widget = QtGui.QWidget(self)
