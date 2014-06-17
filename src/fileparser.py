@@ -3,6 +3,7 @@
 import sys
 import io
 from simcon import SimulatorController
+from controllers import TestParsingController
 
 class PrintFile:
     file = None

@@ -21,6 +21,5 @@ class SimulatorController(ParsingControllerBase):
                 self.printer.incrementY(yIncrement=steps)
 
     def firingCommand(self, primitives1, address1, primitives2, address2):
-        #print('firingCommand1 on primitives {} (bitmask) and address {}.'.format(primitives1, address1))
-        #print('firingCommand2 on primitives {} (bitmask) and address {}.'.format(primitives2, address2))
+        print('firingCommand on primitives {}-{} and address {}.'.format(primitives1, primitives2, address1))
         pass

@@ -57,6 +57,15 @@ class ParsingControllerBase(ControllerBase):
 
         self.incrementalMovementCommand(axis, steps)
 
+    def decodePrimitiveBitmask(self, bitmask):
+        firings = []
+
+        for i in xrange(8):
+            if bitmask & (1 << i):
+                firings.append(i)
+
+        return firings
+
     def __firingCommand__(self, source):
         packet = source.read(8)
 
@@ -65,6 +74,9 @@ class ParsingControllerBase(ControllerBase):
 
         primitive2 = ord(packet[5])
         address2 = ord(packet[6])
+
+        primitive1 = self.decodePrimitiveBitmask(primitive1)
+        primitive2 = self.decodePrimitiveBitmask(primitive2)
 
         self.firingCommand(primitive1, address1, primitive2, address2)
 
