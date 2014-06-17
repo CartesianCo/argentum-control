@@ -102,7 +102,7 @@ class ImageProcessor:
 
             # Iterate through the width of the image(s)
             for x in xrange(width):
-                
+
                 firings = [
                         [
                             self.calculateFiring(x, y, a, 0),
@@ -135,7 +135,11 @@ class ImageProcessor:
                             outputStream.write(chr(1)) # Fire command
                             outputStream.write(chr(firings[a][i])) # Relevant firing data, i.e. which primitive(s) to fire
                             outputStream.write(chr(address)) # The address we're firing within the primitive(s)
-                            outputStream.write(chr(0))
+
+                            if i == 0:
+                                outputStream.write(chr(0))
+                            else:
+                                outputStream.write('\n')
 
             # Move back
             if xposition != 0:

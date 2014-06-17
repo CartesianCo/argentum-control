@@ -45,8 +45,6 @@ class ParsingControllerBase(ControllerBase):
 
         self.incrementalMovementCommand(axis, steps)
 
-        return True
-
     def __firingCommand__(self, source):
         packet = source.read(8)
 
@@ -57,8 +55,6 @@ class ParsingControllerBase(ControllerBase):
         address2 = ord(packet[6])
 
         self.firingCommand(primitive1, address1, primitive2, address2)
-
-        return True
 
 
 class TestParsingController(ParsingControllerBase):

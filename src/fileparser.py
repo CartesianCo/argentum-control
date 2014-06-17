@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import sys
 import io
@@ -87,7 +87,8 @@ class PrintFile:
             return None
 
         if opCode in self.opCodes:
-            return self.handlerForOpCode(opCode)(self.file)
+            self.handlerForOpCode(opCode)(self.file)
+            return True
         else:
             print('Unknown Code: {}'.format(byte))
             return None
