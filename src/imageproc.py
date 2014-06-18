@@ -60,12 +60,10 @@ class ImageProcessor:
         #height += (104*2)
 
         # Create the output images and put them into a list for easy referencing
-        outputImages = [Image.new('RGBA', (width,height), (255,255,255,255)) for i in range(4)]
+        outputImages = [Image.new('RGBA', (width,height), (255,255,255,255)) for i in range(2)]
 
         # Paste the split input image into correct locations on output images
         pasteLocations = (
-            (self.HEADOFFSET, (int(208/self.mOffset) * self.mOffset)/2),
-            (self.HEADOFFSET+self.PRIMITIVEOFFSET, (int(208/self.mOffset) * self.mOffset)/2),
             (0, (int(208/self.mOffset) * self.mOffset)/2 + self.VOFFSET),
             (self.PRIMITIVEOFFSET, (int(208/self.mOffset) * self.mOffset)/2 + self.VOFFSET)
         )
@@ -75,13 +73,13 @@ class ImageProcessor:
         # (0, VOFFSET + 104) = (0, 104)
         # (PRIMITIVEOFFSET, VOFFSET + 104) = (12, 104)
 
-        for i in range(4):
+        for i in range(2):
             outputImages[i].paste(inputs[i%2], pasteLocations[i])
             #outputImages[i].show()
 
         #pixelMatrices = (outputImages[0][0].load(), outputImages[0][1].load(),
         #outputImages[0][2].load(), outputImages[0][3].load())
-        pixelMatrices = [outputImages[i].load() for i in range(4)]
+        pixelMatrices = [outputImages[i].load() for i in range(2)]
 
         # We have our input images and their matrices. Now we need to generate the
         # correct output data.
@@ -108,8 +106,7 @@ class ImageProcessor:
 
                 firings = [
                         [
-                            self.calculateFiring(x, y, a, 0),
-                            self.calculateFiring(x, y, a, 1)
+                            self.calculateFiring(x, y, a, 0)
                         ]
                     for a in range(13)
                 ]
@@ -127,10 +124,10 @@ class ImageProcessor:
                 for f in range(self.fps):
                     # Iterate through addresses
                     for a in range(13):
-                        if firings[a] == [0, 0]:
+                        if firings[a] == [0]:
                             continue
 
-                        self.writeFiringCommand(a, firings[a][0], firings[a][1])
+                        self.writeFiringCommand(a, firings[a][0], 0)
 
             # Move back
             if xposition != 0:
@@ -261,7 +258,9 @@ class ImageProcessor:
         address += (a & 0b00000100) >> 1
         address += (a & 0b00001000) >> 3
 
-        outputStream = self.outputFile
+        self.outputFile.write('F {} {} {}\n'.format(a, firing1, firing2))
+
+        """outputStream = self.outputFile
 
         outputStream.write(chr(1)) # Fire command
         outputStream.write(chr(firing1)) # Relevant firing data, i.e. which primitive(s) to fire
@@ -270,4 +269,4 @@ class ImageProcessor:
         outputStream.write(chr(1)) # Fire command
         outputStream.write(chr(firing2)) # Relevant firing data, i.e. which primitive(s) to fire
         outputStream.write(chr(address)) # The address we're firing within the primitive(s)
-        outputStream.write('\n')
+        outputStream.write('\n')"""
