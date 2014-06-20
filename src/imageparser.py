@@ -171,11 +171,11 @@ def writeCommands(outputStream):
                         # address |= ((aa & 0b1000) >> 3)
 
                         if 1 == 1:
-                            #outputStream.write(chr(1)) # Fire command
-                            #outputStream.write(chr(firings[a][i])) # Relevant firing data, i.e. which primitive to fire
-                            #outputStream.write(chr(address)) # The address we are firing on
-                            #outputStream.write(chr(0))
-                            outputStream.write('Firing for {:n}: {:08b}, address: {:013b}\n'.format(i, firings[a][i], address))
+                            outputStream.write(chr(1)) # Fire command
+                            outputStream.write(chr(firings[a][i])) # Relevant firing data, i.e. which primitive to fire
+                            outputStream.write(chr(address)) # The address we are firing on
+                            outputStream.write(chr(0))
+                            #outputStream.write('Firing for {:n}: {:08b}, address: {:013b}\n'.format(i, firings[a][i], address))
 
                         if 1 == 0:
 

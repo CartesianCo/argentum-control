@@ -35,11 +35,19 @@ class Argentum(QtGui.QMainWindow):
 
         if hasattr(sys, "frozen"):
             try:
-                app = esky.Esky(sys.executable,"http://update.shiel.io")
-                self.appendOutput(app.findUpdate())
-                app.auto_update()
-            except:
+                self.app = esky.Esky(sys.executable, "http://update.shiel.io")
+
+                new_version = self.app.find_update()
+
+                if new_version:
+                    self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
+                        .format(self.app.active_version, self.app.find_update()))
+
+                     self.statusBar().showMessage('Update available!')
+
+            except Exception, e:
                 self.appendOutput('Update exception.')
+                self.appendOutput(str(e))
                 pass
 
     def initUI(self):
@@ -158,13 +166,16 @@ class Argentum(QtGui.QMainWindow):
         self.optionsAction.triggered.connect(self.optionsActionTriggered)
         #self.optionsAction.setEnabled(False)
 
+        self.updateAction = QtGui.QAction('&Update', self)
+        self.updateAction.triggered.connect(self.updateActionTriggered)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('Utilities')
         fileMenu.addAction(self.flashAction)
         fileMenu.addAction(self.optionsAction)
+        fileMenu.addAction(self.updateAction)
 
         self.statusBar().showMessage('Ready')
-
 
         # Main Window Setup
         widget.setLayout(verticalLayout)
@@ -195,13 +206,23 @@ class Argentum(QtGui.QMainWindow):
         self.outputView.append(output)
 
     def monitor(self):
-        #if self.printer.connected and self.printer.serialDevice.inWaiting():
-        #    self.appendOutput(self.printer.serialDevice.readline())
+        if self.printer.connected and self.printer.serialDevice.inWaiting():
+            self.appendOutput(self.printer.serialDevice.readline())
 
         #self.after(100, self.monitor)
         QtCore.QTimer.singleShot(100, self.monitor)
 
     ### Button Functions ###
+
+    def updateActionTriggered(self):
+        reply = QtGui.QMessageBox.question(self, 'Message',
+            'But are you sure?', QtGui.QMessageBox.Yes |
+            QtGui.QMessageBox.No, QtGui.QMessageBox.Yes)
+
+        if reply == QtGui.QMessageBox.Yes:
+            self.app.auto_update()
+        else:
+            self.appendOutput('Crisis Averted!')
 
     def flashActionTriggered(self):
         firmwareFileName = QtGui.QFileDialog.getOpenFileName(self, 'Firmware File', '~')
@@ -281,6 +302,7 @@ class Argentum(QtGui.QMainWindow):
 
     def sendButtonPushed(self):
         command = self.commandField.text() + '\n'
+        print command
         self.printer.command(command)
 
     def sendPrintCommand(self):

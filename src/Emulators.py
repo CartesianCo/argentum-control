@@ -155,7 +155,7 @@ class Cartridge(object):
 
     def addressForPrimitiveIndex(self, primitive, index):
         # This needs to be implemented in the subclass
-        return None
+        raise NotImplementedError
 
     def __str__(self):
         return '{}. {} total nozzles ({} columns), arranged in {} primitives of {} nozzles each.'.format(self.__type__,

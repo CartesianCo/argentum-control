@@ -53,44 +53,52 @@ class ImageProcessor:
         width, height = inputs[0].size
         width += self.HEADOFFSET + self.PRIMITIVEOFFSET
 
-        # Adjust the height. First make sure it is divisible by 25. Then add an
-        # extra 2 rows of blank lines.
+        # Adjust the height. First make sure it is a multiple of mOffset.
         height += (self.mOffset - height % self.mOffset)
-        height += (int(208/self.mOffset) * self.mOffset)
-        #height += (104*2)
+
+        # Then add an extra 2 rows of blank lines.
+        height += (104 * 2)
 
         # Create the output images and put them into a list for easy referencing
-        outputImages = [Image.new('RGBA', (width,height), (255,255,255,255)) for i in range(2)]
+        outputImages = [
+                Image.new('RGBA', (width , height), (255, 255, 255, 255))
+                for i in range(2)
+        ]
 
         # Paste the split input image into correct locations on output images
-        pasteLocations = (
-            (0, (int(208/self.mOffset) * self.mOffset)/2 + self.VOFFSET),
-            (self.PRIMITIVEOFFSET, (int(208/self.mOffset) * self.mOffset)/2 + self.VOFFSET)
-        )
 
-        # (HEADOFFSET, 104) = (1365, 104)
-        # (HEADOFFSET + PRIMITIVEOFFSET, 104) = (1377, 104)
         # (0, VOFFSET + 104) = (0, 104)
         # (PRIMITIVEOFFSET, VOFFSET + 104) = (12, 104)
 
+        pasteLocations = (
+            (
+                0,
+                (int(208/self.mOffset) * self.mOffset)/2 + self.VOFFSET
+            ),
+            (
+                self.PRIMITIVEOFFSET,
+                (int(208/self.mOffset) * self.mOffset)/2 + self.VOFFSET
+            )
+        )
+
+
         for i in range(2):
-            outputImages[i].paste(inputs[i%2], pasteLocations[i])
-            #outputImages[i].show()
+            outputImages[i].paste(inputs[i], pasteLocations[i])
 
-        #pixelMatrices = (outputImages[0][0].load(), outputImages[0][1].load(),
-        #outputImages[0][2].load(), outputImages[0][3].load())
-        pixelMatrices = [outputImages[i].load() for i in range(2)]
+        pixelMatrices = [
+            outputImages[i].load()
+            for i in range(2)
+        ]
 
-        # We have our input images and their matrices. Now we need to generate the
-        # correct output data.
+        # We have our input images and their matrices. Now we need to generate
+        # the correct output data.
         self.writeCommands()
-
-        # Construct image from Output.hex
-        #simulateImage()
 
     def writeCommands(self):
         width, height = outputImages[0].size
-        height -= (int(208/self.mOffset) * self.mOffset) # Ignore empty pixels added to the bottom of the file.
+
+        # Ignore empty pixels added to the bottom of the file.
+        height -= (int(208/self.mOffset) * self.mOffset)
 
         yposition = 0
 
@@ -258,9 +266,9 @@ class ImageProcessor:
         address += (a & 0b00000100) >> 1
         address += (a & 0b00001000) >> 3
 
-        self.outputFile.write('F {} {} {}\n'.format(a, firing1, firing2))
+        #self.outputFile.write('F {} {} {}\n'.format(a, firing1, firing2))
 
-        """outputStream = self.outputFile
+        outputStream = self.outputFile
 
         outputStream.write(chr(1)) # Fire command
         outputStream.write(chr(firing1)) # Relevant firing data, i.e. which primitive(s) to fire
@@ -269,4 +277,4 @@ class ImageProcessor:
         outputStream.write(chr(1)) # Fire command
         outputStream.write(chr(firing2)) # Relevant firing data, i.e. which primitive(s) to fire
         outputStream.write(chr(address)) # The address we're firing within the primitive(s)
-        outputStream.write('\n')"""
+        outputStream.write('\n')
