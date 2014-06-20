@@ -43,7 +43,7 @@ class Argentum(QtGui.QMainWindow):
                     self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
                         .format(self.app.active_version, self.app.find_update()))
 
-                     self.statusBar().showMessage('Update available!')
+                    self.statusBar().showMessage('Update available!')
 
             except Exception, e:
                 self.appendOutput('Update exception.')
