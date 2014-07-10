@@ -70,6 +70,13 @@ def sliceImage(direct, inputImage):
     # Create the output images and put them into a tuple for easy referencing
     outputImages = [Image.new('RGBA', (width,height), (255,255,255,255)) for i in range(4)]
 
+    """
+    HEADOFFSET = 1365        # Distance between the same line of primitives on two different heads (in pixels)
+    PRIMITIVEOFFSET = 12     # Distance between two different primitives on the same head (in pixels)
+    VOFFSET = 0              # Vertical distance between the two printheads
+    SPN = 3.386666
+    """
+
     # Paste the split input image into correct locations on output images
     pasteLocations = ((HEADOFFSET, (int(208/mOffset) * mOffset)/2),                     # (HEADOFFSET, 104)
                       (HEADOFFSET+PRIMITIVEOFFSET, (int(208/mOffset) * mOffset)/2),     # (HEADOFFSET + PRIMITIVEOFFSET, 104)
@@ -232,6 +239,8 @@ def calculateFiring(xPos, yPos, addr, side):
     x = xPos
     y = (yPos * mOffset)/2 + (positions[0][addr] * 2)
     if yPos % 2: y += 1
+
+    # 0, 2, 4, 6
     for i in range(4):
         if pixelMatrices[side*2][x, y][2] <= 200:
             firing |= 1 << (i*2)
@@ -240,6 +249,8 @@ def calculateFiring(xPos, yPos, addr, side):
 
     y = (yPos * mOffset)/2 + (positions[1][addr] * 2)
     if yPos % 2: y += 1
+
+    # 1, 3, 5, 7
     for i in range(4):
         if pixelMatrices[side*2 + 1][x, y][2] <= 200:
             firing |= 1 << (i*2 + 1)

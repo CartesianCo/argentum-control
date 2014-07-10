@@ -128,6 +128,13 @@ class Cartridge(object):
 
     inkColour = None
 
+    # 104 Nozzles
+    # 8 Primitives
+    # 13 Addresses
+    # 2 Columns
+    
+    # 12 Horizontal Spacing
+    # 0 Vertical Spacing
     def __init__(self, nozzles, primitives, addresses, columns, horizontalSpacing, verticalSpacing):
         self.nozzles = nozzles
         self.primitives = primitives

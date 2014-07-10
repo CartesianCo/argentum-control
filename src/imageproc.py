@@ -1,17 +1,24 @@
 from PIL import Image
 ### Image Processing Functions
 
+"""
+# Define Constants - RC1
+HEADOFFSET = 726 # Distance between the same line of primitives on two different heads (in pixels)
+PRIMITIVEOFFSET = 12 # Distance between two different primitives on the same head (in pixels)
+VOFFSET = -2 # Vertical distance between the two printheads
+"""
+
 class ImageProcessor:
     # Distance between the same line of primitives on two different heads (in pixels)
     # Distance between the two cartridges in pixels
-    HEADOFFSET = 1365
+    HEADOFFSET = 726
 
     # Distance between two different primitives on the same head (in pixels)
     # Distance between the two rows of nozzles
     PRIMITIVEOFFSET = 12
 
     # Vertical distance between the two printheads
-    VOFFSET = 0
+    VOFFSET = -2
 
     # Steps per nozzle (actually per half nozzle as we are doing 600 dpi)
     SPN = 3.386666
