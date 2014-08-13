@@ -66,7 +66,7 @@ def fire_with_offset(offset):
     #print firing_offset
 
     try:
-        matrix[firing_offset] = (matrix[firing_offset][0] - 1, 255, 255, 255)
+        matrix[firing_offset] = (0, 0, 0, 255)
 
         if matrix[firing_offset][0] > maximum_value:
             maximum_value = matrix[firing_offset][0]
@@ -181,12 +181,12 @@ if __name__ == '__main__':
             if matrix[x, y][0] > maximum:
                 maximum = matrix[x, y][0]
     """
-    scale = 255.0 / maximum_value
+    """scale = 255.0 / maximum_value
 
     for y in xrange(height):
         for x in xrange(width):
             matrix[x, y] = (255 - int(matrix[x, y][0] * scale), matrix[x, y][1], matrix[x, y][2], 255)
-
+"""
     size = (width / 10, height / 10)
     #out.thumbnail(size, Image.ANTIALIAS)
     out.save('out.png')

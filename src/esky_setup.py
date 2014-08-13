@@ -18,7 +18,7 @@ setup(
          	'plist': 'Info.plist'}
      	}
  	},
-    version='0.0.1',
+    version='0.0.2',
 	data_files=DATA_FILES,
     scripts=[exe]
 )

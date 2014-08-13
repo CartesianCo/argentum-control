@@ -14,7 +14,7 @@ SPN = 3.386666           # Steps per nozzle (actually per half nozzle as we are 
 # Movement offset in pixels. This is how far down we move between lines.
 # Can be changed to any odd number less than 103. A larger number means the
 # print will be faster but put down less ink and have less overlap
-mOffset = 61
+mOffset = 104
 
 # Firings per step variable. Currently cannot set different firings per step for
 # different print heads but this will be implemented very soon - won't take me
@@ -93,12 +93,13 @@ def sliceImage(fileThing, inputImage):
 
 
 def writeCommands(outputStream):
-
     width, height = outputImages[0].size
     height -= (int(208/mOffset) * mOffset) # Ignore empty pixels added to the bottom of the file.
     print height
     # Move right 400 steps
     #outputStream.write('M X 3000\n')
+
+    #outputStream.write('SIZE {} {}\n'.format(int(width * SPN), int(height * SPN)))
 
     yposition = 0
 

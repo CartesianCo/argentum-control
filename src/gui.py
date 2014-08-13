@@ -181,7 +181,7 @@ class Argentum(QtGui.QMainWindow):
         widget.setLayout(verticalLayout)
         self.setCentralWidget(widget)
 
-        self.setGeometry(300, 300, 500, 500)
+        self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum')
         self.show()
 
@@ -203,14 +203,13 @@ class Argentum(QtGui.QMainWindow):
             ip.sliceImage(inputFileName, outputFileName)
 
     def appendOutput(self, output):
-        self.outputView.append(output)
+        self.outputView.append(output[:-2])
 
     def monitor(self):
         if self.printer.connected and self.printer.serialDevice.inWaiting():
             self.appendOutput(self.printer.serialDevice.readline())
 
-        #self.after(100, self.monitor)
-        QtCore.QTimer.singleShot(100, self.monitor)
+        QtCore.QTimer.singleShot(1, self.monitor)
 
     ### Button Functions ###
 
@@ -253,7 +252,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.portListCombo.setEnabled(not enabled)
 
-        QtCore.QTimer.singleShot(100, self.monitor)
+        self.monitor()
 
     def connectButtonPushed(self):
         if(self.printer.connected):
@@ -277,10 +276,6 @@ class Argentum(QtGui.QMainWindow):
 
     ### Command Functions ###
 
-    def sendCommand(self, command):
-        # Remove the last character (new line)
-        self.appendOutput(command[:-1])
-
     def printButtonPushed(self):
         self.sendPrintCommand()
 
@@ -301,8 +296,7 @@ class Argentum(QtGui.QMainWindow):
         self.printer.move(0, 0)
 
     def sendButtonPushed(self):
-        command = self.commandField.text() + '\n'
-        print command
+        command = str(self.commandField.text())
         self.printer.command(command)
 
     def sendPrintCommand(self):
