@@ -1,51 +1,117 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import sys
 import io
+from simcon import SimulatorController
+from controllers import TestParsingController
 
-OP_FIRING = 1
-OP_MOVE = ord('M')
-CMD_TERMINATOR = '\n'
+class PrintFile:
+    file = None
+    fileName = None
+    fileSize = 0
 
-def peekByte(fileStream):
-    byte = fileStream.peek(1)
+    opCodes = {}
 
-    if byte:
-        return byte[0]
-    else:
-        return None
+    def __init__(self, fileName, commandHandler=None):
+        self.fileName = fileName
 
-def nextByte(fileStream):
-    return fileStream.read(1)
+        if commandHandler:
+            self.installCommandHandler(commandHandler)
 
-print('Argentum File Parser')
+        self.file = io.open(self.fileName, mode='rb')
 
-if len(sys.argv) < 2:
-    print('usage: {} <filename>'.format(sys.argv[0]))
-    sys.exit(-1)
+        self.fileSize = self.file.seek(0, io.SEEK_END)
+        self.rewind()
 
-inputFileName = sys.argv[1]
-inputFile = io.open(inputFileName, mode='rb')
+    def installCommandHandler(self, commandHandler):
+        self.commandHandler = commandHandler
 
-byte = peekByte(inputFile)
+        commands = self.commandHandler.supportedCommands()
 
-while byte:
-    #print byte
-    byte = ord(byte)
+        for command in commands:
+            opcode = command['opcode']
+            handler = command['handler']
 
-    if byte == OP_FIRING:
-        #print('Got firing command.')
+            self.registerOpCode(opcode, handler=handler)
 
-        packet = inputFile.read(8) # Burn 7 bytes for now
+    def rewind(self):
+        self.file.seek(0, io.SEEK_SET)
 
-        print('{},{} - {},{}'.format(ord(packet[1]), ord(packet[2]), ord(packet[5]), ord(packet[6])))
+    def registerOpCode(self, code, handler=None):
+        description = {
+            'handler': handler
+        }
 
-    if byte == OP_MOVE:
-        #print('Got movement command.')
+        self.opCodes[code] = description
 
-        packet = inputFile.readline()
+    def handlerForOpCode(self, opcode):
+        return self.opCodes[opcode]['handler']
 
-        #print(packet[:-1])
+    def peekByte(self):
+        byte = self.file.peek(1)
 
-    byte = peekByte(inputFile)
-    #a = input('')
+        if byte:
+            return byte[0]
+        else:
+            return None
+
+    def primitivesFromBitMask(self, bitmask):
+        primitives = []
+
+        # Hardcoded 8 primitives here
+        for i in xrange(8):
+            if bitmask & (1 << i):
+                primitives.append(i)
+
+        return primitives
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def next(self):
+        packet = self.nextCommand()
+
+        if packet:
+            return packet
+        else:
+            raise StopIteration
+
+    def nextCommand(self):
+        byte = self.peekByte()
+
+        if byte is not None:
+            opCode = ord(byte)
+        else:
+            return None
+
+        if opCode in self.opCodes:
+            self.handlerForOpCode(opCode)(self.file)
+            return True
+        else:
+            print('Unknown Code: {}'.format(byte))
+            return None
+
+if __name__ == '__main__':
+    print('Argentum File Parser')
+
+    if len(sys.argv) < 2:
+        print('usage: {} <filename>'.format(sys.argv[0]))
+        sys.exit(-1)
+
+    inputFileName = sys.argv[1]
+
+    th = SimulatorController()
+    printFile = PrintFile(inputFileName, commandHandler=th)
+
+    for command in printFile:
+        pass
+
+    #parser = PrintFileParser(inputFileName)
+    #print(parser.packetCount())
+    #parser.parse()
+
+    #print('Positions: {}'.format(parser.positions))
+    #print('Maximums: {}'.format(parser.maximums))

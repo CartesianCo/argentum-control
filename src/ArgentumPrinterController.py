@@ -5,6 +5,7 @@ class ArgentumPrinterController(PrinterController):
     serialDevice = None
     port = None
     connected = False
+    delimiter = '\n'
 
     def __init__(self, port=None):
         self.port = port
@@ -14,7 +15,7 @@ class ArgentumPrinterController(PrinterController):
             self.port = port
 
         try:
-            self.serialDevice = Serial(self.port)
+            self.serialDevice = Serial(self.port, 115200)
             self.connected = True
 
             return True
@@ -27,10 +28,9 @@ class ArgentumPrinterController(PrinterController):
       self.connected = False
 
     def command(self, command):
-        print('[APC] Raw Command Issued: [{}]'.format(command))
-
         if self.serialDevice and self.connected:
             self.serialDevice.write(command)
+            self.serialDevice.write(self.delimiter)
 
     def move(self, x, y):
         if x is not None:

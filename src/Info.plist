@@ -6,5 +6,27 @@
 	<string>Argentum Printer Control Software</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.cartesianco.argentum</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>argentum</string>
+				<string>pcode</string>
+			</array>
+
+			<key>CFBundleTypeIconFile</key>
+			<string>Icon.icns</string>
+
+			<key>CFBundleTypeName</key>
+			<string>Argentum Circuit</string>
+
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
+	</array>
 </dict>
 </plist>

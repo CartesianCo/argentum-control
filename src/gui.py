@@ -16,6 +16,10 @@ from avrdude import avrdude
 
 from imageproc import ImageProcessor
 
+from Alchemist import OptionsDialog
+
+import esky
+
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
@@ -28,6 +32,23 @@ class Argentum(QtGui.QMainWindow):
         self.YStepSize = 200
 
         self.initUI()
+
+        if hasattr(sys, "frozen"):
+            try:
+                self.app = esky.Esky(sys.executable, "http://update.shiel.io")
+
+                new_version = self.app.find_update()
+
+                if new_version:
+                    self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
+                        .format(self.app.active_version, self.app.find_update()))
+
+                    self.statusBar().showMessage('Update available!')
+
+            except Exception, e:
+                self.appendOutput('Update exception.')
+                self.appendOutput(str(e))
+                pass
 
     def initUI(self):
         widget = QtGui.QWidget(self)
@@ -137,22 +158,30 @@ class Argentum(QtGui.QMainWindow):
 
         # Menu Bar Stuff
 
-        self.flashAction = QtGui.QAction('Flash Arduino', self)
+        self.flashAction = QtGui.QAction('&Flash Arduino', self)
         self.flashAction.triggered.connect(self.flashActionTriggered)
         self.flashAction.setEnabled(False)
+
+        self.optionsAction = QtGui.QAction('Printer &Options', self)
+        self.optionsAction.triggered.connect(self.optionsActionTriggered)
+        #self.optionsAction.setEnabled(False)
+
+        self.updateAction = QtGui.QAction('&Update', self)
+        self.updateAction.triggered.connect(self.updateActionTriggered)
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('Utilities')
         fileMenu.addAction(self.flashAction)
+        fileMenu.addAction(self.optionsAction)
+        fileMenu.addAction(self.updateAction)
 
         self.statusBar().showMessage('Ready')
-
 
         # Main Window Setup
         widget.setLayout(verticalLayout)
         self.setCentralWidget(widget)
 
-        self.setGeometry(300, 300, 500, 500)
+        self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum')
         self.show()
 
@@ -174,16 +203,25 @@ class Argentum(QtGui.QMainWindow):
             ip.sliceImage(inputFileName, outputFileName)
 
     def appendOutput(self, output):
-        self.outputView.append(output)
+        self.outputView.append(output[:-2])
 
     def monitor(self):
-        #if self.printer.connected and self.printer.serialDevice.inWaiting():
-        #    self.appendOutput(self.printer.serialDevice.readline())
+        if self.printer.connected and self.printer.serialDevice.inWaiting():
+            self.appendOutput(self.printer.serialDevice.readline())
 
-        #self.after(100, self.monitor)
-        QtCore.QTimer.singleShot(100, self.monitor)
+        QtCore.QTimer.singleShot(1, self.monitor)
 
     ### Button Functions ###
+
+    def updateActionTriggered(self):
+        reply = QtGui.QMessageBox.question(self, 'Message',
+            'But are you sure?', QtGui.QMessageBox.Yes |
+            QtGui.QMessageBox.No, QtGui.QMessageBox.Yes)
+
+        if reply == QtGui.QMessageBox.Yes:
+            self.app.auto_update()
+        else:
+            self.appendOutput('Crisis Averted!')
 
     def flashActionTriggered(self):
         firmwareFileName = QtGui.QFileDialog.getOpenFileName(self, 'Firmware File', '~')
@@ -197,12 +235,24 @@ class Argentum(QtGui.QMainWindow):
 
             self.printer.connect()
 
+    def optionsActionTriggered(self):
+        options = {
+            'stepSizeX': 120,
+            'stepSizeY': 120,
+            'xAxis':    '',
+            'yAxis':    ''
+        }
+
+        optionsDialog = OptionsDialog(self, options=options)
+        optionsDialog.exec_()
+
     def enableConnectionSpecificControls(self, enabled):
         self.flashAction.setEnabled(enabled)
+        #self.optionsAction.setEnabled(enabled)
 
         self.portListCombo.setEnabled(not enabled)
 
-        QtCore.QTimer.singleShot(100, self.monitor)
+        self.monitor()
 
     def connectButtonPushed(self):
         if(self.printer.connected):
@@ -226,10 +276,6 @@ class Argentum(QtGui.QMainWindow):
 
     ### Command Functions ###
 
-    def sendCommand(self, command):
-        # Remove the last character (new line)
-        self.appendOutput(command[:-1])
-
     def printButtonPushed(self):
         self.sendPrintCommand()
 
@@ -250,7 +296,7 @@ class Argentum(QtGui.QMainWindow):
         self.printer.move(0, 0)
 
     def sendButtonPushed(self):
-        command = self.commandField.text() + '\n'
+        command = str(self.commandField.text())
         self.printer.command(command)
 
     def sendPrintCommand(self):
@@ -296,46 +342,13 @@ class Argentum(QtGui.QMainWindow):
         #else:
             #print 'click'
 
-class InputDialog(QtGui.QDialog):
-   '''
-   this is for when you need to get some user input text
-   '''
-   def __init__(self, parent=None, title='user input', label='comment', text=''):
-
-       QtGui.QWidget.__init__(self, parent)
-
-       #--Layout Stuff---------------------------#
-       mainLayout = QtGui.QVBoxLayout()
-
-       layout = QtGui.QHBoxLayout()
-       self.label = QtGui.QLabel()
-       self.label.setText(label)
-       layout.addWidget(self.label)
-
-       self.text = QtGui.QLineEdit(text)
-       layout.addWidget(self.text)
-
-       mainLayout.addLayout(layout)
-
-       #--The Button------------------------------#
-       layout = QtGui.QHBoxLayout()
-       button = QtGui.QPushButton("okay") #string or icon
-       #self.connect(button, QtCore.SIGNAL("clicked()"), self.close)
-       button.clicked.connect(self.close)
-       layout.addWidget(button)
-
-       mainLayout.addLayout(layout)
-       self.setLayout(mainLayout)
-
-       self.resize(400, 60)
-       self.setWindowTitle(title)
+    def updateOptions(self, val):
+        print(val)
 
 def main():
-
     app = QtGui.QApplication(sys.argv)
     ex = Argentum()
     sys.exit(app.exec_())
-
 
 if __name__ == '__main__':
     main()
