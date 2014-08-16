@@ -61,7 +61,7 @@ def maximum_size(file):
     return maximums
 
 def new_pixel_value(old, new):
-    #print("old = {}, new = {}".format(old, new))
+    #print("old = {}, new = {}".format(old, new)) 
 
     out = [new[0], new[1], new[2], 255]
 
