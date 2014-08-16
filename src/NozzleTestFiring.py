@@ -55,8 +55,8 @@ def moveY(distance):
     moveCommand('Y', distance)
 
 def moveCommand(direction, distance):
-    if distance == 0:
-        return
+    #if distance == 0:
+    #    return
 
     if not (direction == 'X' or direction == 'Y'):
         print('Bad Direction Value {}'.format(direction))
@@ -69,22 +69,25 @@ def moveCommand(direction, distance):
     print(command)
     outputStream.write(command)
 
-def fireNozzleByPrimitiveIndex(primitive, index):
+def fireNozzleByPrimitiveIndex(c, primitive, index):
     # Address for this nozzle
     address = cartridge.addressForPrimitiveIndex(primitive, index)
 
     #print('Address: {}'.format(address))
 
-    firingCommand((1 << primitive), address)
-    #firingCommand(0, 0)
-    firingCommand((1 << primitive), address)
+    if c == 0:
+        firingCommand((1 << primitive), address)
+        firingCommand(0, 0)
+    else:
+        firingCommand(0, 0)
+        firingCommand((1 << primitive), address)
 
     #var = (1 << primitive)
     #print 'Var: {}'.format(var)
 
     print 'Primitive: {}, Index: {}, Address: {}'.format(primitive, index, address)
 
-def fireNozzle(nozzle):
+def fireNozzle(c, nozzle):
     # What primitive is the nozzle in?
     primitive = cartridge.primitiveForNozzle(nozzle)
 
@@ -92,45 +95,46 @@ def fireNozzle(nozzle):
     index = cartridge.indexForNozzle(nozzle)
 
     print('Nozzle: {} -> Primitive: {}, Index: {}'.format(nozzle, primitive, index))
-    fireNozzleByPrimitiveIndex(primitive, index)
+    fireNozzleByPrimitiveIndex(c, primitive, index)
 
-def fireEvenColumn():
+def fireEvenColumn(c):
     for i in xrange(52):
-        fireNozzle((i * 2) + 1)
+        fireNozzle(c, (i * 2) + 1)
 
-def fireOddColumn():
+def fireOddColumn(c):
     for i in xrange(52):
-        fireNozzle(i * 2)
+        fireNozzle(c, i * 2)
 
 def firePrimitive(primitive):
     for index in xrange(13):
-        fireNozzleByPrimitiveIndex(primitive, index)
+        fireNozzleByPrimitiveIndex(c, primitive, index)
 
-def fireLine():
+def fireLine(c):
     for i in xrange(10):
-        fireOddColumn()
+        fireOddColumn(c)
 
-    moveX(20)
+    moveX(40)
 
     for i in xrange(10):
-        fireEvenColumn()
+        fireEvenColumn(c)
 
 def main():
     scale = 10
 
-    for a in xrange(2):
-        for primitive in xrange(4):
-            fireLine()
+    for c in xrange(2):
+        for a in xrange(2):
+            for primitive in xrange(4):
+                fireLine(c)
 
-            for index in xrange(13):
-                for x in xrange(NUMBER_OF_FIRINGS):
-                    #fireNozzle(i)
-                    fireNozzleByPrimitiveIndex((primitive * 2) + a, index)
-                    moveX(2)
+                for index in xrange(13):
+                    for x in xrange(NUMBER_OF_FIRINGS):
+                        fireNozzleByPrimitiveIndex(c, (primitive * 2) + a, index)
+                        moveX(3)
 
-        fireLine()
+        fireLine(c)
 
-        moveX(400)
+    moveX(0)
+    moveY(1000)
 
     outputStream.flush()
     outputStream.close()
