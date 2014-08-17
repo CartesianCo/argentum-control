@@ -1,0 +1,12 @@
+[
+    {
+        "version": "0.0",
+        "filename": "argentum_0_0.hex",
+        "sha": "b8b88ed90821e199bcc5ea6426b1ad4b9c971749"
+    },
+    {
+        "version": "0.1",
+        "filename": "argentum_0_1.hex",
+        "sha": "b8b88ed90821e199bcc5ea6426b1ad4b9c971749"
+    }
+]

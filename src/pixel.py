@@ -5,6 +5,7 @@ from printfile import PrintFile
 import numpy
 from datetime import datetime
 import time
+import os
 
 from PIL import Image, ImageDraw
 from CartridgeMath import offset_for_nozzle, nozzle_from_primitive_address
@@ -61,7 +62,7 @@ def maximum_size(file):
     return maximums
 
 def new_pixel_value(old, new):
-    #print("old = {}, new = {}".format(old, new)) 
+    #print("old = {}, new = {}".format(old, new))
 
     out = [new[0], new[1], new[2], 255]
 
@@ -74,7 +75,7 @@ def new_pixel_value(old, new):
 
     return tuple(out)
 
-def fire_at_position(position, colour):
+def fire_at_position(matrix, position, colour):
 
     position = (position[0], position[1] + 20) # Shift the print down for text
     try:
@@ -87,23 +88,15 @@ def fire_at_position(position, colour):
         while(1):
             pass
 
-def fire_with_offset(offset, colour=(0, 0, 0)):
+def fire_with_offset(matrix, offset, colour=(0, 0, 0)):
     global maximum_value
     x_offset, y_offset = offset
 
     firing_offset = (x_offset + int(round(positions['X'])), y_offset + int(round(positions['Y'])))
 
-    fire_at_position(firing_offset, colour)
+    fire_at_position(matrix, firing_offset, colour)
 
-if __name__ == '__main__':
-    print('Argentum File Parser')
-
-    if len(sys.argv) < 2:
-        print('usage: {} <filename>'.format(sys.argv[0]))
-        sys.exit(-1)
-
-    inputFileName = sys.argv[1]
-
+def simulate_file(inputFileName):
     printFile = PrintFile(inputFileName)
 
     #for command in printFile:
@@ -177,7 +170,7 @@ if __name__ == '__main__':
 
                 #print("Offset for {} = {}".format(nozzle, nozzle_offset))
 
-                fire_with_offset(nozzle_offset, (255, 0, 0))
+                fire_with_offset(matrix, nozzle_offset, (255, 0, 0))
 
             primitives = primitives_from_bitmask(firing2)
 
@@ -190,11 +183,11 @@ if __name__ == '__main__':
                 nozzle_offset = offset_for_nozzle(nozzle)
 
                 # Compensate for cartridge offsets.
-                nozzle_offset = (nozzle_offset[0] + 706, nozzle_offset[1])
+                nozzle_offset = (nozzle_offset[0] + 726, nozzle_offset[1])
 
                 #print("Offset for {} = {}".format(nozzle, nozzle_offset))
 
-                fire_with_offset(nozzle_offset, (0, 0, 255))
+                fire_with_offset(matrix, nozzle_offset, (0, 0, 255))
 
     """
     maximum = 0
@@ -220,4 +213,20 @@ if __name__ == '__main__':
     #size = (width / 4, height / 4)
     #outim.thumbnail(size, Image.ANTIALIAS)
 
-    outim.save('simulator_{}_{}.png'.format(inputFileName.split('/')[-1], str(int(time.time()))))
+    outfilename = 'simulator_{}_{}.png'.format(inputFileName.split('/')[-1], str(int(time.time())))
+
+    outim.save(outfilename)
+
+    return outfilename
+
+
+if __name__ == '__main__':
+    print('Argentum File Parser')
+
+    if len(sys.argv) < 2:
+        print('usage: {} <filename>'.format(sys.argv[0]))
+        sys.exit(-1)
+
+    output_filename = simulate_file(sys.argv[1]))
+
+    os.system('open {}'.format(output_filename)

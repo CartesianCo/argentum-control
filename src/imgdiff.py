@@ -3,21 +3,16 @@
 import sys
 from PIL import Image, ImageDraw
 
-
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print('usage: {} <image 1> <image 2>'.format(sys.argv[0]))
-        sys.exit(-1)
-
-    image1 = Image.open(sys.argv[1])
-    image2 = Image.open(sys.argv[2])
+def compare_images(filename1, filename2):
+    image1 = Image.open(filename1)
+    image2 = Image.open(filename2)
 
     mat1 = image1.load()
     mat2 = image2.load()
 
     if image1.size != image2.size:
         print('Sizes differ')
-        sys.exit(-1)
+        return -1
 
     width, height = image1.size
 
@@ -29,4 +24,12 @@ if __name__ == '__main__':
                 print('Pixels differ at {}'.format(pos))
 
     print('Images are identical.')
-    sys.exit(0)
+    return 0
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print('usage: {} <image 1> <image 2>'.format(sys.argv[0]))
+        sys.exit(-1)
+
+    sys.exit(compare_images(sys.argv[1], sys.argv[2]))

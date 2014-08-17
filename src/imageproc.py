@@ -18,7 +18,7 @@ class ImageProcessor:
     PRIMITIVEOFFSET = 12
 
     # Vertical distance between the two printheads
-    VOFFSET = -2
+    VOFFSET = 0
 
     # Steps per nozzle (actually per half nozzle as we are doing 600 dpi)
     SPN = 3.386666
@@ -26,7 +26,7 @@ class ImageProcessor:
     # Movement offset in pixels. This is how far down we move between lines.
     # Can be changed to any odd number less than 103. A larger number means the
     # print will be faster but put down less ink and have less overlap
-    mOffset = 41
+    mOffset = 103
 
     # Firings per step variable. Currently cannot set different firings per step for
     # different print heads but this will be implemented very soon - won't take me
@@ -69,7 +69,7 @@ class ImageProcessor:
         # Create the output images and put them into a list for easy referencing
         outputImages = [
                 Image.new('RGBA', (width , height), (255, 255, 255, 255))
-                for i in range(2)
+                for i in range(4)
         ]
 
         # Paste the split input image into correct locations on output images
@@ -79,22 +79,30 @@ class ImageProcessor:
 
         pasteLocations = (
             (
+                self.HEADOFFSET,
+                (int(208 / self.mOffset) * self.mOffset) / 2
+            ),
+            (
+                self.HEADOFFSET + self.PRIMITIVEOFFSET,
+                (int(208 / self.mOffset) * self.mOffset) / 2
+            ),
+            (
                 0,
-                (int(208/self.mOffset) * self.mOffset)/2 + self.VOFFSET
+                (int(208 / self.mOffset) * self.mOffset) / 2 + self.VOFFSET
             ),
             (
                 self.PRIMITIVEOFFSET,
-                (int(208/self.mOffset) * self.mOffset)/2 + self.VOFFSET
+                (int(208 / self.mOffset) * self.mOffset) / 2 + self.VOFFSET
             )
         )
 
 
-        for i in range(2):
-            outputImages[i].paste(inputs[i], pasteLocations[i])
+        for i in range(4):
+            outputImages[i].paste(inputs[i % 2], pasteLocations[i])
 
         pixelMatrices = [
             outputImages[i].load()
-            for i in range(2)
+            for i in range(4)
         ]
 
         # We have our input images and their matrices. Now we need to generate
@@ -121,9 +129,10 @@ class ImageProcessor:
 
                 firings = [
                         [
-                            self.calculateFiring(x, y, a, 0)
+                            self.calculateFiring(x, y, a, 0),
+                            self.calculateFiring(x, y, a, 1)
                         ]
-                    for a in range(13)
+                    for a in xrange(13)
                 ]
 
                 if not any([any(firings[i]) for i in xrange(len(firings))]):
@@ -136,13 +145,14 @@ class ImageProcessor:
                     self.writeMovementCommand('X', move)
                     move = (int((x + 1) * self.SPN) - xposition)
 
-                for f in range(self.fps):
+                for f in xrange(self.fps):
                     # Iterate through addresses
-                    for a in range(13):
+                    for a in xrange(13):
                         if firings[a] == [0]:
                             continue
 
-                        self.writeFiringCommand(a, firings[a][0], 0)
+                        #for i in xrange(2):
+                        self.writeFiringCommand(a, firings[a][0], firings[a][1])
 
             # Move back
             if xposition != 0:

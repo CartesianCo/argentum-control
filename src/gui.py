@@ -19,6 +19,7 @@ from imageproc import ImageProcessor
 from Alchemist import OptionsDialog
 
 import esky
+from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware
 
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
@@ -49,6 +50,17 @@ class Argentum(QtGui.QMainWindow):
                 self.appendOutput('Update exception.')
                 self.appendOutput(str(e))
                 pass
+
+        update_firmware_list()
+
+        update_local_firmware()
+
+        available_firmware = get_available_firmware()
+
+        self.appendOutput('Available firmware versions:')
+
+        for firmware in available_firmware:
+            self.appendOutput(firmware['version'])
 
     def initUI(self):
         widget = QtGui.QWidget(self)
@@ -203,7 +215,7 @@ class Argentum(QtGui.QMainWindow):
             ip.sliceImage(inputFileName, outputFileName)
 
     def appendOutput(self, output):
-        self.outputView.append(output[:-2])
+        self.outputView.append(output)
 
     def monitor(self):
         if self.printer.connected and self.printer.serialDevice.inWaiting():
