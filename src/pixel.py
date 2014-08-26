@@ -227,6 +227,6 @@ if __name__ == '__main__':
         print('usage: {} <filename>'.format(sys.argv[0]))
         sys.exit(-1)
 
-    output_filename = simulate_file(sys.argv[1]))
+    output_filename = simulate_file(sys.argv[1])
 
-    os.system('open {}'.format(output_filename)
+    os.system('open {}'.format(output_filename))
