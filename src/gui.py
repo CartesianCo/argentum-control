@@ -21,6 +21,19 @@ from Alchemist import OptionsDialog
 import esky
 from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware
 
+class CommandLineEdit(QtGui.QLineEdit):
+    def __init__(self, *args):
+        QtGui.QLineEdit.__init__(self, *args)
+
+    def event(self, event):
+        if (event.type() == QtCore.QEvent.KeyPress) and (event.key() == QtCore.Qt.Key_Enter or event.key() == QtCore.Qt.Key_Return):
+            #print(QtCore.Qt.Key_Enter)
+            #print(event.key())
+            self.emit(QtCore.SIGNAL("enterPressed"))
+            return True
+
+        return QtGui.QLineEdit.event(self, event)
+
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
@@ -91,10 +104,11 @@ class Argentum(QtGui.QMainWindow):
         commandRow = QtGui.QHBoxLayout()
 
         commandLabel = QtGui.QLabel("Command:")
-        self.commandField = QtGui.QLineEdit(self)
+        self.commandField = CommandLineEdit(self) #QtGui.QLineEdit(self)
         commandSendButton = QtGui.QPushButton("Send")
 
         commandSendButton.clicked.connect(self.sendButtonPushed)
+        self.commandField.connect(self.commandField, QtCore.SIGNAL("enterPressed"), self.sendButtonPushed)
 
         self.commandField.setSizePolicy(QtGui.QSizePolicy.Expanding,
                          QtGui.QSizePolicy.Fixed)

@@ -49,11 +49,11 @@ def download_file(filename, calculate_sha=True):
     local_filename = filename
     url = '{}{}'.format(firmware_base_url, filename)
 
-    r = requests.get(url, stream=True, timeout=1.0)
+    r = requests.get(url, stream=True)
 
     hasher = hashlib.sha1()
 
-    if r.status_code == 200:
+    if r.ok:
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
