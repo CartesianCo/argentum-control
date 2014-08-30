@@ -22,15 +22,54 @@ import esky
 from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware
 
 class CommandLineEdit(QtGui.QLineEdit):
+    submit_keys = [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]
+    arrow_keys = [QtCore.Qt.Key_Up, QtCore.Qt.Key_Down]
+
+    command_history = []
+    history_size = 5
+    history_index = -1
+    last_content = ''
+
     def __init__(self, *args):
         QtGui.QLineEdit.__init__(self, *args)
 
     def event(self, event):
-        if (event.type() == QtCore.QEvent.KeyPress) and (event.key() == QtCore.Qt.Key_Enter or event.key() == QtCore.Qt.Key_Return):
-            #print(QtCore.Qt.Key_Enter)
-            #print(event.key())
-            self.emit(QtCore.SIGNAL("enterPressed"))
-            return True
+        if (event.type() == QtCore.QEvent.KeyPress):
+            key = event.key()
+
+            if key in self.submit_keys:
+                self.emit(QtCore.SIGNAL("enterPressed"))
+
+                command = str(self.text().toAscii())
+
+                self.history_index = -1
+                self.command_history.append(command)
+                self.command_history = self.command_history[-self.history_size:]
+
+                print(self.command_history)
+
+                return True
+
+            if key in self.arrow_keys:
+                if self.history_index < 0:
+                    self.last_content = str(self.text().toAscii())
+
+                if len(self.command_history) < 1:
+                    return False
+
+                if key == QtCore.Qt.Key_Up:
+                    self.history_index = min(self.history_index + 1, len(self.command_history) - 1)
+                else:
+                    self.history_index = max(self.history_index - 1, -1)
+
+                if self.history_index < 0:
+                    command = self.last_content
+                else:
+                    command = self.command_history[self.history_index]
+
+                self.setText(command)
+
+                return True
 
         return QtGui.QLineEdit.event(self, event)
 
@@ -323,6 +362,7 @@ class Argentum(QtGui.QMainWindow):
 
     def sendButtonPushed(self):
         command = str(self.commandField.text())
+
         self.printer.command(command)
 
     def sendPrintCommand(self):
