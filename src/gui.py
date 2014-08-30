@@ -26,7 +26,7 @@ class CommandLineEdit(QtGui.QLineEdit):
     arrow_keys = [QtCore.Qt.Key_Up, QtCore.Qt.Key_Down]
 
     command_history = []
-    history_size = 5
+    history_size = 100
     history_index = -1
     last_content = ''
 
