@@ -23,6 +23,8 @@ from firmware_updater import update_firmware_list, get_available_firmware, updat
 
 class CommandLineEdit(QtGui.QLineEdit):
     submit_keys = [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]
+
+    # Order must be up, down
     arrow_keys = [QtCore.Qt.Key_Up, QtCore.Qt.Key_Down]
 
     command_history = []
@@ -40,24 +42,18 @@ class CommandLineEdit(QtGui.QLineEdit):
             if key in self.submit_keys:
                 self.emit(QtCore.SIGNAL("enterPressed"))
 
-                command = str(self.text().toAscii())
-
-                self.history_index = -1
-                self.command_history.append(command)
-                self.command_history = self.command_history[-self.history_size:]
-
-                print(self.command_history)
+                self.submit_command()
 
                 return True
 
             if key in self.arrow_keys:
+                if len(self.command_history) < 1:
+                    return True
+
                 if self.history_index < 0:
                     self.last_content = str(self.text().toAscii())
 
-                if len(self.command_history) < 1:
-                    return False
-
-                if key == QtCore.Qt.Key_Up:
+                if key == self.arrow_keys[0]:
                     self.history_index = min(self.history_index + 1, len(self.command_history) - 1)
                 else:
                     self.history_index = max(self.history_index - 1, -1)
@@ -72,6 +68,13 @@ class CommandLineEdit(QtGui.QLineEdit):
                 return True
 
         return QtGui.QLineEdit.event(self, event)
+
+    def submit_command(self):
+        command = str(self.text().toAscii())
+
+        self.history_index = -1
+        self.command_history.append(command)
+        self.command_history = self.command_history[-self.history_size:]
 
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
@@ -362,6 +365,8 @@ class Argentum(QtGui.QMainWindow):
 
     def sendButtonPushed(self):
         command = str(self.commandField.text())
+
+        self.commandField.submit_command()
 
         self.printer.command(command)
 
