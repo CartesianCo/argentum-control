@@ -19,6 +19,7 @@ from imageproc import ImageProcessor
 from Alchemist import OptionsDialog
 
 import esky
+from setup import BASEVERSION
 from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware
 
 class CommandLineEdit(QtGui.QLineEdit):
@@ -91,7 +92,7 @@ class Argentum(QtGui.QMainWindow):
 
         if hasattr(sys, "frozen"):
             try:
-                self.app = esky.Esky(sys.executable, "http://update.shiel.io")
+                self.app = esky.Esky(sys.executable, "http://files.cartesianco.com")
 
                 new_version = self.app.find_update()
 
@@ -105,6 +106,10 @@ class Argentum(QtGui.QMainWindow):
                 self.appendOutput('Update exception.')
                 self.appendOutput(str(e))
                 pass
+        else:
+            print('Not packaged - no automatic update support.')
+
+        print('Running {}'.format(BASEVERSION))
 
         update_firmware_list()
 

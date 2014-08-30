@@ -6,16 +6,35 @@ Usage:
 """
 
 from setuptools import setup
+import time
 
-APP = ['gui.py']
+APP = 'gui.py'
+NAME = 'Argentum'
+
+BASEVERSION = '0.0.4'
+BUILDTIME = time.strftime('%Y%m%d%H%M%S')
+
+VERSION = BASEVERSION + '.' + BUILDTIME
+
 DATA_FILES = []
-OPTIONS = {'argv_emulation': True, 'includes': ['sip', 'PyQt4', 'PyQt4.QtCore', 'PyQt4.QtGui', 'simplejson'],
-            'excludes': ['PyQt4.QtDesigner', 'PyQt4.QtNetwork', 'PyQt4.QtOpenGL', 'PyQt4.QtScript', 'PyQt4.QtSql', 'PyQt4.QtTest', 'PyQt4.QtWebKit', 'PyQt4.QtXml', 'PyQt4.phonon']}
-             
 
-setup(
-    app=APP,
-    data_files=DATA_FILES,
-    options={'py2app': OPTIONS},
-    setup_requires=['py2app'],
-)
+OPTIONS = {
+    "bdist_esky": {
+        "freezer_module": "py2app",
+        "freezer_options": {
+            'includes': [
+                'PyQt4', 'PyQt4.QtCore', 'PyQt4.QtGui'
+            ],
+            'excludes': [
+                'PyQt4.QtDesigner', 'PyQt4.QtNetwork', 'PyQt4.QtOpenGL',
+                'PyQt4.QtScript', 'PyQt4.QtSql', 'PyQt4.QtTest',
+                'PyQt4.QtWebKit', 'PyQt4.QtXml', 'PyQt4.phonon'
+            ],
+
+            'argv_emulation': True,
+            'emulate-shell-environment': True,
+            'iconfile': 'Icon.icns',
+            'plist': 'Info.plist'
+        }
+    }
+}
