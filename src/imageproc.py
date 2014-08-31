@@ -35,6 +35,18 @@ class ImageProcessor:
 
     outputFile = None
 
+    def __init__(self, horizontal_offset=None, vertical_offset=None, overlap=None):
+        if horizontal_offset:
+            self.HEADOFFSET = horizontal_offset
+
+        if vertical_offset:
+            self.VOFFSET = vertical_offset
+
+        if overlap:
+            self.mOffset = overlap
+
+        print('Image processor with {} {} {}'.format(self.HEADOFFSET, self.VOFFSET, self.mOffset))
+
     def sliceImage(self, inputFileName, outputFileName):
         #directory = direct
         # Global variables to hold the images we are working with

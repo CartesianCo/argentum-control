@@ -1,7 +1,7 @@
 from esky.bdist_esky import Executable
 from distutils.core import setup
 
-from setup import APP, OPTIONS, BASEVERSION, VERSION
+from setup import APP, OPTIONS, BASEVERSION, VERSION, NAME
 
 exe = Executable(APP)
 DATA_FILES = ['avrdude', 'avrdude.conf']
@@ -30,6 +30,11 @@ OPTIONS = {
 
 setup(
     name = NAME,
+    description = 'Argentum Control Software',
+    author = 'Cartesian Co.',
+    author_email = 'software@cartesianco.com',
+    url = 'http://www.cartesianco.com',
+    #packages = [],
     options = OPTIONS,
     version = BASEVERSION,
     data_files = DATA_FILES,

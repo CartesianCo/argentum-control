@@ -14,72 +14,80 @@ from serial.tools.list_ports import comports
 from ArgentumPrinterController import ArgentumPrinterController
 from avrdude import avrdude
 
+import pickle
+
 from imageproc import ImageProcessor
 
-from Alchemist import OptionsDialog
+from Alchemist import OptionsDialog, CommandLineEdit
 
 import esky
 from setup import BASEVERSION
 from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware
 
-class CommandLineEdit(QtGui.QLineEdit):
-    submit_keys = [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]
+import subprocess
+from multiprocessing import Process
 
-    # Order must be up, down
-    arrow_keys = [QtCore.Qt.Key_Up, QtCore.Qt.Key_Down]
+def myrun(cmd):
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    stdout = []
+    while True:
+        line = p.stdout.readline()
+        stdout.append(line)
+        print line,
+        if line == '' and p.poll() != None:
+            break
+    return ''.join(stdout)
 
-    command_history = []
-    history_size = 100
-    history_index = -1
-    last_content = ''
+default_options = {
+    'horizontal_offset': 726,
+    'vertical_offset': 0,
+    'print_overlap': 41
+}
 
-    def __init__(self, *args):
-        QtGui.QLineEdit.__init__(self, *args)
+def load_options():
+    try:
+        options_file = open('argentum.pickle', 'rb')
+    except:
+        print('No existing options file, using defaults.')
 
-    def event(self, event):
-        if (event.type() == QtCore.QEvent.KeyPress):
-            key = event.key()
+        return default_options
 
-            if key in self.submit_keys:
-                self.emit(QtCore.SIGNAL("enterPressed"))
+    return pickle.load(options_file)
 
-                self.submit_command()
+def save_options(options):
+    try:
+        options_file = open('argentum.pickle', 'wb')
+    except:
+        print('Unable to open options file for writing.')
 
-                return True
-
-            if key in self.arrow_keys:
-                if len(self.command_history) < 1:
-                    return True
-
-                if self.history_index < 0:
-                    self.last_content = str(self.text().toAscii())
-
-                if key == self.arrow_keys[0]:
-                    self.history_index = min(self.history_index + 1, len(self.command_history) - 1)
-                else:
-                    self.history_index = max(self.history_index - 1, -1)
-
-                if self.history_index < 0:
-                    command = self.last_content
-                else:
-                    command = self.command_history[self.history_index]
-
-                self.setText(command)
-
-                return True
-
-        return QtGui.QLineEdit.event(self, event)
-
-    def submit_command(self):
-        command = str(self.text().toAscii())
-
-        self.history_index = -1
-        self.command_history.append(command)
-        self.command_history = self.command_history[-self.history_size:]
+    pickle.dump(options, options_file)
 
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
+
+        #v = Process(target=updater, args=('http://files.cartesianco.com',))
+        #v.start()
+
+        if hasattr(sys, "frozen"):
+            try:
+                app = esky.Esky(sys.executable, 'http://files.cartesianco.com')
+
+                new_version = app.find_update()
+
+                if new_version:
+                    self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
+                        .format(app.active_version, new_version))
+
+                    self.statusBar().showMessage('Update available!')
+
+            except Exception, e:
+                self.appendOutput('Update exception.')
+                self.appendOutput(str(e))
+
+                pass
+        else:
+            print('Not packaged - no automatic update support.')
 
         self.printer = ArgentumPrinterController()
 
@@ -88,26 +96,12 @@ class Argentum(QtGui.QMainWindow):
         self.XStepSize = 150
         self.YStepSize = 200
 
+        self.options = load_options()
+        save_options(self.options)
+
+        print('Loaded options: {}'.format(self.options))
+
         self.initUI()
-
-        if hasattr(sys, "frozen"):
-            try:
-                self.app = esky.Esky(sys.executable, "http://files.cartesianco.com")
-
-                new_version = self.app.find_update()
-
-                if new_version:
-                    self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
-                        .format(self.app.active_version, self.app.find_update()))
-
-                    self.statusBar().showMessage('Update available!')
-
-            except Exception, e:
-                self.appendOutput('Update exception.')
-                self.appendOutput(str(e))
-                pass
-        else:
-            print('Not packaged - no automatic update support.')
 
         print('Running {}'.format(BASEVERSION))
 
@@ -235,7 +229,7 @@ class Argentum(QtGui.QMainWindow):
         self.flashAction.triggered.connect(self.flashActionTriggered)
         self.flashAction.setEnabled(False)
 
-        self.optionsAction = QtGui.QAction('Printer &Options', self)
+        self.optionsAction = QtGui.QAction('Processing &Options', self)
         self.optionsAction.triggered.connect(self.optionsActionTriggered)
         #self.optionsAction.setEnabled(False)
 
@@ -264,15 +258,23 @@ class Argentum(QtGui.QMainWindow):
         button.setAutoRepeatInterval(80)
 
     def showDialog(self):
+        ip = ImageProcessor(
+            horizontal_offset=self.options['horizontal_offset'],
+            vertical_offset=self.options['vertical_offset'],
+            overlap=self.options['print_overlap']
+        )
 
         inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'File to process', '~')
 
         inputFileName = str(inputFileName)
 
         if inputFileName:
+
+
             outputFileName = QtGui.QFileDialog.getSaveFileName(self, 'Output file', 'Output.hex', '.hex')
 
-            ip = ImageProcessor()
+
+
             ip.sliceImage(inputFileName, outputFileName)
 
     def appendOutput(self, output):
@@ -309,14 +311,14 @@ class Argentum(QtGui.QMainWindow):
             self.printer.connect()
 
     def optionsActionTriggered(self):
-        options = {
+        """options = {
             'stepSizeX': 120,
             'stepSizeY': 120,
             'xAxis':    '',
             'yAxis':    ''
-        }
+        }"""
 
-        optionsDialog = OptionsDialog(self, options=options)
+        optionsDialog = OptionsDialog(self, options=self.options)
         optionsDialog.exec_()
 
     def enableConnectionSpecificControls(self, enabled):
@@ -419,7 +421,10 @@ class Argentum(QtGui.QMainWindow):
             #print 'click'
 
     def updateOptions(self, val):
-        print(val)
+        self.options = val
+        save_options(self.options)
+
+        print('New options values: {}'.format(self.options))
 
 def main():
     app = QtGui.QApplication(sys.argv)
