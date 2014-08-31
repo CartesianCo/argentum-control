@@ -1,7 +1,7 @@
 from esky.bdist_esky import Executable
 from distutils.core import setup
 
-from setup import NAME, VERSION
+from setup import NAME, BASEVERSION
 
 exe = Executable("gui.py")
 DATA_FILES = ['tools/avrdude.exe', 'avrdude.conf']
@@ -26,6 +26,6 @@ setup(
     name = NAME,
     options = OPTIONS,
 	data_files=DATA_FILES,
-    version=VERSION,
+    version=BASEVERSION,
     scripts=[exe]
 )
