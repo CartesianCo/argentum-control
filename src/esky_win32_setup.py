@@ -1,6 +1,8 @@
 from esky.bdist_esky import Executable
 from distutils.core import setup
 
+from setup import NAME, VERSION
+
 exe = Executable("gui.py")
 DATA_FILES = ['tools/avrdude.exe', 'avrdude.conf']
 
@@ -21,8 +23,9 @@ OPTIONS = {
 }
 
 setup(
-    name = "Argentum",
+    name = NAME,
     options = OPTIONS,
 	data_files=DATA_FILES,
+    version=VERSION,
     scripts=[exe]
 )
