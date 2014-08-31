@@ -2,7 +2,7 @@ from esky.bdist_esky import Executable
 from distutils.core import setup
 
 exe = Executable("gui.py")
-DATA_FILES = ['avrdude.exe', 'avrdude.conf']
+DATA_FILES = ['tools/avrdude.exe', 'avrdude.conf']
 
 OPTIONS = {
     "bdist_esky": {

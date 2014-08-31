@@ -4,7 +4,7 @@ from distutils.core import setup
 from setup import APP, OPTIONS, BASEVERSION, VERSION, NAME
 
 exe = Executable(APP)
-DATA_FILES = ['avrdude', 'avrdude.conf']
+DATA_FILES = ['tools/avrdude', 'avrdude.conf']
 
 OPTIONS = {
     "bdist_esky": {
