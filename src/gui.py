@@ -282,9 +282,17 @@ class Argentum(QtGui.QMainWindow):
 
     def monitor(self):
         if self.printer.connected and self.printer.serialDevice.inWaiting():
-            self.appendOutput(self.printer.serialDevice.readline())
 
-        QtCore.QTimer.singleShot(1, self.monitor)
+            data = self.printer.serialDevice.read(1)              # read one, blocking
+
+            n = self.printer.serialDevice.inWaiting()             # look if there is more
+            if n:
+                data = data + self.printer.serialDevice.read(n)   # and get as much as possible
+
+            if data:
+                self.appendOutput(data)
+
+        QtCore.QTimer.singleShot(10, self.monitor)
 
     ### Button Functions ###
 
