@@ -21,7 +21,7 @@ from imageproc import ImageProcessor
 from Alchemist import OptionsDialog, CommandLineEdit
 
 import esky
-from setup import BASEVERSION
+from setup import VERSION
 from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware
 
 import subprocess
@@ -69,6 +69,22 @@ class Argentum(QtGui.QMainWindow):
         #v = Process(target=updater, args=('http://files.cartesianco.com',))
         #v.start()
 
+        self.printer = ArgentumPrinterController()
+
+        self.paused = False
+
+        self.XStepSize = 150
+        self.YStepSize = 200
+
+        self.options = load_options()
+        save_options(self.options)
+
+        print('Loaded options: {}'.format(self.options))
+
+        self.initUI()
+
+        self.appendOutput('Argentum Control, Version {}'.format(VERSION))
+
         if hasattr(sys, "frozen"):
             try:
                 app = esky.Esky(sys.executable, 'http://files.cartesianco.com')
@@ -87,23 +103,7 @@ class Argentum(QtGui.QMainWindow):
 
                 pass
         else:
-            print('Not packaged - no automatic update support.')
-
-        self.printer = ArgentumPrinterController()
-
-        self.paused = False
-
-        self.XStepSize = 150
-        self.YStepSize = 200
-
-        self.options = load_options()
-        save_options(self.options)
-
-        print('Loaded options: {}'.format(self.options))
-
-        self.initUI()
-
-        print('Running {}'.format(BASEVERSION))
+            self.appendOutput('Not packaged - no automatic update support.')
 
         update_firmware_list()
 

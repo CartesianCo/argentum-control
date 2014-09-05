@@ -9,12 +9,12 @@ from setuptools import setup
 import time
 
 APP = 'gui.py'
-NAME = 'Argentum'
+NAME = 'Argentum Control'
 
-BASEVERSION = '0.0.5'
+BASEVERSION = '0.0.6'
 BUILDTIME = time.strftime('%Y%m%d%H%M%S')
 
-VERSION = BASEVERSION + '.' + BUILDTIME
+VERSION = BASEVERSION + '-' + BUILDTIME
 
 DATA_FILES = []
 
