@@ -259,9 +259,9 @@ class Argentum(QtGui.QMainWindow):
 
     def showDialog(self):
         ip = ImageProcessor(
-            horizontal_offset=self.options['horizontal_offset'],
-            vertical_offset=self.options['vertical_offset'],
-            overlap=self.options['print_overlap']
+            horizontal_offset=int(self.options['horizontal_offset']),
+            vertical_offset=int(self.options['vertical_offset']),
+            overlap=int(self.options['print_overlap'])
         )
 
         inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'File to process', '~')
