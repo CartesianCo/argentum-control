@@ -18,7 +18,7 @@ import pickle
 
 from imageproc import ImageProcessor
 
-from Alchemist import OptionsDialog, CommandLineEdit
+from Alchemist import OptionsDialog, CommandLineEdit, ServoCalibrationDialog
 
 import esky
 from setup import VERSION
@@ -104,6 +104,9 @@ class Argentum(QtGui.QMainWindow):
                 pass
         else:
             self.appendOutput('Not packaged - no automatic update support.')
+
+        optionsDialog = ServoCalibrationDialog(self, None)
+        optionsDialog.exec_()
 
         update_firmware_list()
 

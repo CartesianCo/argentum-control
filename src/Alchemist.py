@@ -161,3 +161,85 @@ class CommandLineEdit(QtGui.QLineEdit):
         self.history_index = -1
         self.command_history.append(command)
         self.command_history = self.command_history[-self.history_size:]
+
+
+
+class ServoCalibrationDialog(QtGui.QDialog):
+    '''
+    Servo Calibration Dialog
+    '''
+
+    def __init__(self, controller, parent=None):
+
+        QtGui.QWidget.__init__(self, parent)
+
+        self.controller = controller
+        self.parent = parent
+
+        #--Layout Stuff---------------------------#
+        mainLayout = QtGui.QVBoxLayout()
+
+        # Controls Here
+        row = QtGui.QHBoxLayout()
+        self.addButton(row, "Up ^", self.servoUp)
+        self.addButton(row, "Set Deployed Position", self.setDeployedPosition)
+        mainLayout.addLayout(row)
+
+        row = QtGui.QHBoxLayout()
+        self.addButton(row, "Down v", self.servoDown)
+        self.addButton(row, "Set Retracted Position", self.setRetractedPosition)
+        mainLayout.addLayout(row)
+
+        #--The Button------------------------------#
+        layout = QtGui.QHBoxLayout()
+        button = QtGui.QPushButton("Done") #string or icon
+        self.connect(button, QtCore.SIGNAL("clicked()"), self.close)
+
+        layout.addWidget(button)
+
+        mainLayout.addLayout(layout)
+        self.setLayout(mainLayout)
+
+        self.resize(200, 60)
+        self.setWindowTitle('Servo Calibration')
+
+        button.setFocus()
+
+    def servoUp(self):
+        if self.controller:
+            self.controller.command('')
+
+    def servoDown(self):
+        print('Down')
+
+    def setRetractedPosition(self):
+        print('Retracted')
+
+    def setDeployedPosition(self):
+        print('Deployed')
+
+    def addButton(self, parent, label, function):
+        button = QtGui.QPushButton(label) #string or icon
+        self.connect(button, QtCore.SIGNAL("clicked()"), function)
+
+        parent.addWidget(button)
+
+    def createOptionWidget(self, parentLayout, optionName, defaultValue):
+        # Create a Sub-Layout for this option
+        #layout = QtGui.QHBoxLayout()
+
+        # Make sure it's a string with str(...)
+        optionLineEdit = QtGui.QLineEdit(str(defaultValue))
+        parentLayout.addWidget(optionLineEdit)
+
+        return optionLineEdit
+
+    def addOptions(self, parentLayout, options):
+        for optionName, defaultValue in options.items():
+            layout = QtGui.QHBoxLayout()
+
+            widget = self.createOptionWidget(layout, optionName, defaultValue)
+
+            self.created[optionName] = widget
+
+            parentLayout.addLayout(layout)
