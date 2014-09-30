@@ -103,10 +103,10 @@ class Argentum(QtGui.QMainWindow):
 
                 pass
         else:
-            self.appendOutput('Not packaged - no automatic update support.')
-
-        optionsDialog = ServoCalibrationDialog(self, None)
-        optionsDialog.exec_()
+            self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
+                .format('0.0.6', '0.0.7'))
+            #pass
+            #self.appendOutput('Not packaged - no automatic update support.')
 
         update_firmware_list()
 
@@ -236,6 +236,9 @@ class Argentum(QtGui.QMainWindow):
         self.optionsAction.triggered.connect(self.optionsActionTriggered)
         #self.optionsAction.setEnabled(False)
 
+        self.servoCalibrationAction = QtGui.QAction('Servo Calibration', self)
+        self.servoCalibrationAction.triggered.connect(self.servoCalibrationActionTriggered)
+
         self.updateAction = QtGui.QAction('&Update', self)
         self.updateAction.triggered.connect(self.updateActionTriggered)
 
@@ -244,6 +247,7 @@ class Argentum(QtGui.QMainWindow):
         fileMenu.addAction(self.flashAction)
         fileMenu.addAction(self.optionsAction)
         fileMenu.addAction(self.updateAction)
+        fileMenu.addAction(self.servoCalibrationAction)
 
         self.statusBar().showMessage('Ready')
 
@@ -252,7 +256,7 @@ class Argentum(QtGui.QMainWindow):
         self.setCentralWidget(widget)
 
         self.setGeometry(300, 300, 1000, 800)
-        self.setWindowTitle('Argentum')
+        self.setWindowTitle('Argentum Control')
         self.show()
 
     def makeButtonRepeatable(self, button):
@@ -299,6 +303,10 @@ class Argentum(QtGui.QMainWindow):
 
     ### Button Functions ###
 
+    def servoCalibrationActionTriggered(self):
+        optionsDialog = ServoCalibrationDialog(self, None)
+        optionsDialog.exec_()
+
     def updateActionTriggered(self):
         reply = QtGui.QMessageBox.question(self, 'Message',
             'But are you sure?', QtGui.QMessageBox.Yes |
@@ -316,8 +324,14 @@ class Argentum(QtGui.QMainWindow):
         if firmwareFileName:
             self.printer.disconnect()
 
+            self.appendOutput('Flashing {} with {}...'.format(self.printer.port, firmwareFileName))
+            self.appendOutput('Flashing completed.')
+
             programmer = avrdude(port=self.printer.port)
             programmer.flashFile(firmwareFileName)
+
+
+
 
             self.printer.connect()
 
