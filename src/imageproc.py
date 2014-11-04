@@ -131,7 +131,7 @@ class ImageProcessor:
 
         for y in xrange(height/self.mOffset*2 + 1):
             # Print out progress
-            print '{} out of {}.'.format(y + 1, height/self.mOffset*2 + 1)
+            print('{} out of {}.'.format(y + 1, height/self.mOffset*2 + 1))
 
             move = 0
             xposition = 0

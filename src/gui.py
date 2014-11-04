@@ -33,7 +33,7 @@ def myrun(cmd):
     while True:
         line = p.stdout.readline()
         stdout.append(line)
-        print line,
+        print(line)
         if line == '' and p.poll() != None:
             break
     return ''.join(stdout)
@@ -98,7 +98,7 @@ class Argentum(QtGui.QMainWindow):
 
                     self.statusBar().showMessage('Update available!')
 
-            except Exception, e:
+            except Exception as e:
                 self.appendOutput('Update exception.')
                 self.appendOutput(str(e))
 
@@ -132,13 +132,13 @@ class Argentum(QtGui.QMainWindow):
 
         self.connectButton.clicked.connect(self.connectButtonPushed)
 
-	self.updatePortListTimer = QtCore.QTimer()
-	QtCore.QObject.connect(self.updatePortListTimer, QtCore.SIGNAL("timeout()"), self.updatePortList)
-	self.updatePortListTimer.start(1000)
+        self.updatePortListTimer = QtCore.QTimer()
+        QtCore.QObject.connect(self.updatePortListTimer, QtCore.SIGNAL("timeout()"), self.updatePortList)
+        self.updatePortListTimer.start(1000)
 
         self.portListCombo.setSizePolicy(QtGui.QSizePolicy.Expanding,
                          QtGui.QSizePolicy.Fixed)
-	self.portListCombo.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToContents)
+        self.portListCombo.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToContents)
 
         connectionRow.addWidget(portLabel)
         connectionRow.addWidget(self.portListCombo)
@@ -298,7 +298,7 @@ class Argentum(QtGui.QMainWindow):
                 data = data + self.printer.serialDevice.read(n)   # and get as much as possible
 
             if data:
-                self.appendOutput(data)
+                self.appendOutput(data.decode('utf-8'))
 
         QtCore.QTimer.singleShot(10, self.monitor)
 
@@ -369,31 +369,27 @@ class Argentum(QtGui.QMainWindow):
                 self.connectButton.setText('Disconnect')
 
                 self.enableConnectionSpecificControls(True)
-	    else:
-		QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
-	self.updatePortList()
+            else:
+                QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
+        self.updatePortList()
 
     def updatePortList(self):
         curPort = str(self.portListCombo.currentText())
-	
-	self.portListCombo.clear()
+    
+        self.portListCombo.clear()
 
-	portList = comports()
-
-	shorterPortList = []
-	for port in portList:
-	    if port[2].find("2341:0042") != -1:
-		shorterPortList.append(port)
-	if len(shorterPortList) > 0:
-		portList = shorterPortList
+        portList = []
+        for port in comports():
+            if port[2].find("2341:0042") != -1:
+                portList.append(port)
 
         for port in portList:
             self.portListCombo.addItem(port[0])
 
-	if curPort != "":
-		idx = self.portListCombo.findText(curPort)
-		self.portListCombo.setCurrentIndex(idx)
-	
+        if curPort != "":
+            idx = self.portListCombo.findText(curPort)
+            self.portListCombo.setCurrentIndex(idx)
+    
     def processFileButtonPushed(self):
         self.appendOutput('Process File')
 
