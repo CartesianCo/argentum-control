@@ -277,16 +277,16 @@ class Argentum(QtGui.QMainWindow):
         inputFileName = str(inputFileName)
 
         if inputFileName:
-
-
             outputFileName = QtGui.QFileDialog.getSaveFileName(self, 'Output file', 'Output.hex', '.hex')
+            ip.sliceImage(inputFileName, outputFileName, progressFunc=self.progressFunc)
 
-
-
-            ip.sliceImage(inputFileName, outputFileName)
+    def progressFunc(self, y, max_y):
+        self.appendOutput('{} out of {}.'.format(y, max_y))
 
     def appendOutput(self, output):
         self.outputView.append(output)
+        # Allow the gui to update during long processing
+        QtGui.QApplication.processEvents()
 
     def monitor(self):
         if self.printer.connected and self.printer.serialDevice.inWaiting():

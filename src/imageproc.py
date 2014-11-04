@@ -47,7 +47,7 @@ class ImageProcessor:
 
         print('Image processor with {} {} {}'.format(self.HEADOFFSET, self.VOFFSET, self.mOffset))
 
-    def sliceImage(self, inputFileName, outputFileName):
+    def sliceImage(self, inputFileName, outputFileName, progressFunc=None):
         #directory = direct
         # Global variables to hold the images we are working with
         global outputImages
@@ -119,9 +119,9 @@ class ImageProcessor:
 
         # We have our input images and their matrices. Now we need to generate
         # the correct output data.
-        self.writeCommands()
+        self.writeCommands(progressFunc)
 
-    def writeCommands(self):
+    def writeCommands(self, progressFunc=None):
         width, height = outputImages[0].size
 
         # Ignore empty pixels added to the bottom of the file.
@@ -131,7 +131,10 @@ class ImageProcessor:
 
         for y in xrange(height/self.mOffset*2 + 1):
             # Print out progress
-            print('{} out of {}.'.format(y + 1, height/self.mOffset*2 + 1))
+            if progressFunc:
+                progressFunc(y + 1, height/self.mOffset*2 + 1)
+            else:
+                print('{} out of {}.'.format(y + 1, height/self.mOffset*2 + 1))
 
             move = 0
             xposition = 0
