@@ -20,10 +20,10 @@ class ArgentumPrinterController(PrinterController):
             self.connected = True
 
             return True
-	except SerialException as e:
-	    self.lastError = str(e)
+        except SerialException as e:
+            self.lastError = str(e)
         except:
-	    self.lastError = "Unknown Error"
+            self.lastError = "Unknown Error"
             return False
 
     def disconnect(self):
@@ -33,8 +33,8 @@ class ArgentumPrinterController(PrinterController):
 
     def command(self, command):
         if self.serialDevice and self.connected:
-            self.serialDevice.write(command)
-            self.serialDevice.write(self.delimiter)
+            self.serialDevice.write(command.encode('utf-8'))
+            self.serialDevice.write(self.delimiter.encode('utf-8'))
 
     def move(self, x, y):
         if x is not None:

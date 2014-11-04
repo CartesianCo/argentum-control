@@ -137,7 +137,7 @@ class CommandLineEdit(QtGui.QLineEdit):
                     return True
 
                 if self.history_index < 0:
-                    self.last_content = str(self.text().toAscii())
+                    self.last_content = str(self.text())
 
                 if key == self.arrow_keys[0]:
                     self.history_index = min(self.history_index + 1, len(self.command_history) - 1)
@@ -156,7 +156,7 @@ class CommandLineEdit(QtGui.QLineEdit):
         return QtGui.QLineEdit.event(self, event)
 
     def submit_command(self):
-        command = str(self.text().toAscii())
+        command = str(self.text())
 
         self.history_index = -1
         self.command_history.append(command)
