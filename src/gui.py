@@ -378,14 +378,10 @@ class Argentum(QtGui.QMainWindow):
     
         self.portListCombo.clear()
 
-        portList = comports()
-
-        shorterPortList = []
-        for port in portList:
+        portList = []
+        for port in comports():
             if port[2].find("2341:0042") != -1:
-                shorterPortList.append(port)
-        if len(shorterPortList) > 0:
-            portList = shorterPortList
+                portList.append(port)
 
         for port in portList:
             self.portListCombo.addItem(port[0])
