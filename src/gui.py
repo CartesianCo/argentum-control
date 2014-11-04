@@ -14,15 +14,61 @@ from serial.tools.list_ports import comports
 from ArgentumPrinterController import ArgentumPrinterController
 from avrdude import avrdude
 
+import pickle
+
 from imageproc import ImageProcessor
 
-from Alchemist import OptionsDialog
+from Alchemist import OptionsDialog, CommandLineEdit, ServoCalibrationDialog
 
 import esky
+from setup import VERSION
+from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware
+
+import subprocess
+from multiprocessing import Process
+
+def myrun(cmd):
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    stdout = []
+    while True:
+        line = p.stdout.readline()
+        stdout.append(line)
+        print line,
+        if line == '' and p.poll() != None:
+            break
+    return ''.join(stdout)
+
+default_options = {
+    'horizontal_offset': 726,
+    'vertical_offset': 0,
+    'print_overlap': 41
+}
+
+def load_options():
+    try:
+        options_file = open('argentum.pickle', 'rb')
+
+    except:
+        print('No existing options file, using defaults.')
+
+        return default_options
+
+    return pickle.load(options_file)
+
+def save_options(options):
+    try:
+        options_file = open('argentum.pickle', 'wb')
+    except:
+        print('Unable to open options file for writing.')
+
+    pickle.dump(options, options_file)
 
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
+
+        #v = Process(target=updater, args=('http://files.cartesianco.com',))
+        #v.start()
 
         self.printer = ArgentumPrinterController()
 
@@ -31,24 +77,48 @@ class Argentum(QtGui.QMainWindow):
         self.XStepSize = 150
         self.YStepSize = 200
 
+        self.options = load_options()
+        save_options(self.options)
+
+        print('Loaded options: {}'.format(self.options))
+
         self.initUI()
+
+        self.appendOutput('Argentum Control, Version {}'.format(VERSION))
 
         if hasattr(sys, "frozen"):
             try:
-                self.app = esky.Esky(sys.executable, "http://update.shiel.io")
+                app = esky.Esky(sys.executable, 'http://files.cartesianco.com')
 
-                new_version = self.app.find_update()
+                new_version = app.find_update()
 
                 if new_version:
                     self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
-                        .format(self.app.active_version, self.app.find_update()))
+                        .format(app.active_version, new_version))
 
                     self.statusBar().showMessage('Update available!')
 
             except Exception, e:
                 self.appendOutput('Update exception.')
                 self.appendOutput(str(e))
+
                 pass
+        else:
+            self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
+                .format('0.0.6', '0.0.7'))
+            #pass
+            #self.appendOutput('Not packaged - no automatic update support.')
+
+        update_firmware_list()
+
+        update_local_firmware()
+
+        available_firmware = get_available_firmware()
+
+        self.appendOutput('Available firmware versions:')
+
+        for firmware in available_firmware:
+            self.appendOutput(firmware['version'])
 
     def initUI(self):
         widget = QtGui.QWidget(self)
@@ -62,13 +132,13 @@ class Argentum(QtGui.QMainWindow):
 
         self.connectButton.clicked.connect(self.connectButtonPushed)
 
-        portList = comports()
-
-        for port in portList:
-            self.portListCombo.addItem(port[0])
+	self.updatePortListTimer = QtCore.QTimer()
+	QtCore.QObject.connect(self.updatePortListTimer, QtCore.SIGNAL("timeout()"), self.updatePortList)
+	self.updatePortListTimer.start(1000)
 
         self.portListCombo.setSizePolicy(QtGui.QSizePolicy.Expanding,
                          QtGui.QSizePolicy.Fixed)
+	self.portListCombo.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToContents)
 
         connectionRow.addWidget(portLabel)
         connectionRow.addWidget(self.portListCombo)
@@ -79,10 +149,11 @@ class Argentum(QtGui.QMainWindow):
         commandRow = QtGui.QHBoxLayout()
 
         commandLabel = QtGui.QLabel("Command:")
-        self.commandField = QtGui.QLineEdit(self)
+        self.commandField = CommandLineEdit(self) #QtGui.QLineEdit(self)
         commandSendButton = QtGui.QPushButton("Send")
 
         commandSendButton.clicked.connect(self.sendButtonPushed)
+        self.commandField.connect(self.commandField, QtCore.SIGNAL("enterPressed"), self.sendButtonPushed)
 
         self.commandField.setSizePolicy(QtGui.QSizePolicy.Expanding,
                          QtGui.QSizePolicy.Fixed)
@@ -162,9 +233,12 @@ class Argentum(QtGui.QMainWindow):
         self.flashAction.triggered.connect(self.flashActionTriggered)
         self.flashAction.setEnabled(False)
 
-        self.optionsAction = QtGui.QAction('Printer &Options', self)
+        self.optionsAction = QtGui.QAction('Processing &Options', self)
         self.optionsAction.triggered.connect(self.optionsActionTriggered)
         #self.optionsAction.setEnabled(False)
+
+        self.servoCalibrationAction = QtGui.QAction('Servo Calibration', self)
+        self.servoCalibrationAction.triggered.connect(self.servoCalibrationActionTriggered)
 
         self.updateAction = QtGui.QAction('&Update', self)
         self.updateAction.triggered.connect(self.updateActionTriggered)
@@ -174,6 +248,7 @@ class Argentum(QtGui.QMainWindow):
         fileMenu.addAction(self.flashAction)
         fileMenu.addAction(self.optionsAction)
         fileMenu.addAction(self.updateAction)
+        fileMenu.addAction(self.servoCalibrationAction)
 
         self.statusBar().showMessage('Ready')
 
@@ -182,7 +257,7 @@ class Argentum(QtGui.QMainWindow):
         self.setCentralWidget(widget)
 
         self.setGeometry(300, 300, 1000, 800)
-        self.setWindowTitle('Argentum')
+        self.setWindowTitle('Argentum Control')
         self.show()
 
     def makeButtonRepeatable(self, button):
@@ -191,27 +266,47 @@ class Argentum(QtGui.QMainWindow):
         button.setAutoRepeatInterval(80)
 
     def showDialog(self):
+        ip = ImageProcessor(
+            horizontal_offset=int(self.options['horizontal_offset']),
+            vertical_offset=int(self.options['vertical_offset']),
+            overlap=int(self.options['print_overlap'])
+        )
 
         inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'File to process', '~')
 
         inputFileName = str(inputFileName)
 
         if inputFileName:
+
+
             outputFileName = QtGui.QFileDialog.getSaveFileName(self, 'Output file', 'Output.hex', '.hex')
 
-            ip = ImageProcessor()
+
+
             ip.sliceImage(inputFileName, outputFileName)
 
     def appendOutput(self, output):
-        self.outputView.append(output[:-2])
+        self.outputView.append(output)
 
     def monitor(self):
         if self.printer.connected and self.printer.serialDevice.inWaiting():
-            self.appendOutput(self.printer.serialDevice.readline())
 
-        QtCore.QTimer.singleShot(1, self.monitor)
+            data = self.printer.serialDevice.read(1)              # read one, blocking
+
+            n = self.printer.serialDevice.inWaiting()             # look if there is more
+            if n:
+                data = data + self.printer.serialDevice.read(n)   # and get as much as possible
+
+            if data:
+                self.appendOutput(data)
+
+        QtCore.QTimer.singleShot(10, self.monitor)
 
     ### Button Functions ###
+
+    def servoCalibrationActionTriggered(self):
+        optionsDialog = ServoCalibrationDialog(self, None)
+        optionsDialog.exec_()
 
     def updateActionTriggered(self):
         reply = QtGui.QMessageBox.question(self, 'Message',
@@ -230,20 +325,26 @@ class Argentum(QtGui.QMainWindow):
         if firmwareFileName:
             self.printer.disconnect()
 
+            self.appendOutput('Flashing {} with {}...'.format(self.printer.port, firmwareFileName))
+            self.appendOutput('Flashing completed.')
+
             programmer = avrdude(port=self.printer.port)
             programmer.flashFile(firmwareFileName)
+
+
+
 
             self.printer.connect()
 
     def optionsActionTriggered(self):
-        options = {
+        """options = {
             'stepSizeX': 120,
             'stepSizeY': 120,
             'xAxis':    '',
             'yAxis':    ''
-        }
+        }"""
 
-        optionsDialog = OptionsDialog(self, options=options)
+        optionsDialog = OptionsDialog(self, options=self.options)
         optionsDialog.exec_()
 
     def enableConnectionSpecificControls(self, enabled):
@@ -268,7 +369,31 @@ class Argentum(QtGui.QMainWindow):
                 self.connectButton.setText('Disconnect')
 
                 self.enableConnectionSpecificControls(True)
+	    else:
+		QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
+	self.updatePortList()
 
+    def updatePortList(self):
+        curPort = str(self.portListCombo.currentText())
+	
+	self.portListCombo.clear()
+
+	portList = comports()
+
+	shorterPortList = []
+	for port in portList:
+	    if port[2].find("2341:0042") != -1:
+		shorterPortList.append(port)
+	if len(shorterPortList) > 0:
+		portList = shorterPortList
+
+        for port in portList:
+            self.portListCombo.addItem(port[0])
+
+	if curPort != "":
+		idx = self.portListCombo.findText(curPort)
+		self.portListCombo.setCurrentIndex(idx)
+	
     def processFileButtonPushed(self):
         self.appendOutput('Process File')
 
@@ -297,6 +422,9 @@ class Argentum(QtGui.QMainWindow):
 
     def sendButtonPushed(self):
         command = str(self.commandField.text())
+
+        self.commandField.submit_command()
+
         self.printer.command(command)
 
     def sendPrintCommand(self):
@@ -343,7 +471,10 @@ class Argentum(QtGui.QMainWindow):
             #print 'click'
 
     def updateOptions(self, val):
-        print(val)
+        self.options = val
+        save_options(self.options)
+
+        print('New options values: {}'.format(self.options))
 
 def main():
     app = QtGui.QApplication(sys.argv)

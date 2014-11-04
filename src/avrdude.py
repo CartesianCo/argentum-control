@@ -32,7 +32,7 @@ class avrdude:
     subprocess.Popen(commandString.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
   def assembleCommand(self, firmwareFileName):
-    commandString = './avrdude -C avrdude.conf -v -c {} -p {} -P {} -b {} -D -U flash:w:{}:i'.format(
+    commandString = './tools/avrdude -C avrdude.conf -v -c {} -p {} -P {} -b {} -D -U flash:w:{}:i'.format(
     self.protocol, self.boardType, self.port, self.baud, firmwareFileName
     )
 

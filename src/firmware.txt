@@ -1,0 +1,27 @@
+[
+    {
+        "version": "0.0",
+        "filename": "argentum_0_0.hex",
+        "sha": "b8b88ed90821e199bcc5ea6426b1ad4b9c971749"
+    },
+    {
+        "version": "0.1",
+        "filename": "argentum_0_1.hex",
+        "sha": "b8b88ed90821e199bcc5ea6426b1ad4b9c971749"
+    },
+    {
+        "version": "0.12",
+        "filename": "argentum_0_12.hex",
+        "sha": "e090ddd328089081646aca1ba7ea0f71052b8919"
+    },
+    {
+        "version": "0.13",
+        "filename": "argentum_0_13.hex",
+        "sha": "71b32d3870ffd67fa53c5982c0bc499f2bd94775"
+    },
+    {
+        "version": "0.14",
+        "filename": "argentum_0_14.hex",
+        "sha": "3b825426ac0a1946e94b933a1357cfe30c4d0a1e"
+    }
+]
