@@ -1,11 +1,12 @@
 from PrinterController import PrinterController
-from serial import Serial
+from serial import Serial, SerialException
 
 class ArgentumPrinterController(PrinterController):
     serialDevice = None
     port = None
     connected = False
     delimiter = '\n'
+    lastError = None
 
     def __init__(self, port=None):
         self.port = port
@@ -19,7 +20,10 @@ class ArgentumPrinterController(PrinterController):
             self.connected = True
 
             return True
+	except SerialException as e:
+	    self.lastError = str(e)
         except:
+	    self.lastError = "Unknown Error"
             return False
 
     def disconnect(self):

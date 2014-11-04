@@ -47,6 +47,7 @@ default_options = {
 def load_options():
     try:
         options_file = open('argentum.pickle', 'rb')
+
     except:
         print('No existing options file, using defaults.')
 
@@ -131,13 +132,13 @@ class Argentum(QtGui.QMainWindow):
 
         self.connectButton.clicked.connect(self.connectButtonPushed)
 
-        portList = comports()
-
-        for port in portList:
-            self.portListCombo.addItem(port[0])
+	self.updatePortListTimer = QtCore.QTimer()
+	QtCore.QObject.connect(self.updatePortListTimer, QtCore.SIGNAL("timeout()"), self.updatePortList)
+	self.updatePortListTimer.start(1000)
 
         self.portListCombo.setSizePolicy(QtGui.QSizePolicy.Expanding,
                          QtGui.QSizePolicy.Fixed)
+	self.portListCombo.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToContents)
 
         connectionRow.addWidget(portLabel)
         connectionRow.addWidget(self.portListCombo)
@@ -368,7 +369,31 @@ class Argentum(QtGui.QMainWindow):
                 self.connectButton.setText('Disconnect')
 
                 self.enableConnectionSpecificControls(True)
+	    else:
+		QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
+	self.updatePortList()
 
+    def updatePortList(self):
+        curPort = str(self.portListCombo.currentText())
+	
+	self.portListCombo.clear()
+
+	portList = comports()
+
+	shorterPortList = []
+	for port in portList:
+	    if port[2].find("2341:0042") != -1:
+		shorterPortList.append(port)
+	if len(shorterPortList) > 0:
+		portList = shorterPortList
+
+        for port in portList:
+            self.portListCombo.addItem(port[0])
+
+	if curPort != "":
+		idx = self.portListCombo.findText(curPort)
+		self.portListCombo.setCurrentIndex(idx)
+	
     def processFileButtonPushed(self):
         self.appendOutput('Process File')
 
