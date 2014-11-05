@@ -388,7 +388,11 @@ class Argentum(QtGui.QMainWindow):
 
         if curPort != "":
             idx = self.portListCombo.findText(curPort)
-            self.portListCombo.setCurrentIndex(idx)
+            if idx == -1:
+                if self.printer.connected:
+                    self.connectButtonPushed()
+            else:
+                self.portListCombo.setCurrentIndex(idx)
     
     def processFileButtonPushed(self):
         self.appendOutput('Process File')
