@@ -3,6 +3,10 @@ argentum-control
 
 GUI Control Program for the Argentum Circuit Printer
 
+NOTE: If you're looking for more recent changes:
+
+    git checkout develop
+
 This Python app uses a number of libraries that may not be installed by default on your system (especially if you're using Windows). Obviously you may need to install Python, the latest version should be fine and should include the package manager (pip). Next, install PyQt4 if installing Python does not install it automatically (for most platforms it does).
 
 PyQt4 Windows installer: http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
