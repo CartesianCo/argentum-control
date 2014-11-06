@@ -24,3 +24,13 @@ At this point you're ready to run the program:
 
 If you see an error message that requires you to install another package, please let someone know so this documentation can be updated.
 
+For Linux users: You almost certainly don't have permission to talk to your printer. Regardless, the gui should tell you the port number. You probably want to do something like:
+
+    sudo usermod -a -G dialout [your username]
+
+or
+    
+    sudo chmod a+rw /dev/ttyACM0
+
+or some other means of getting access to the device.
+
