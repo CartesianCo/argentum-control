@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import sys
+import os
 import subprocess
 
 class avrdude:
@@ -24,16 +26,50 @@ class avrdude:
       #self.protocol = 'arduino'
       self.protocol = 'stk500v2'
 
+    self.running = None
+
   def flashFile(self, firmwareFileName):
+    if self.running != None:
+        if self.running.poll() == None:
+            self.running = None
+        else:
+            print("Already flashing!")
+            return False
+
     commandString = self.assembleCommand(firmwareFileName)
 
-    print(commandString)
+    print("Running: " + commandString)
 
-    subprocess.Popen(commandString.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        self.running = subprocess.Popen(commandString.split()) #, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except OSError as e:
+        print(e)
+        print("This usually means we can't find avrdude.")
+    except:
+        print(sys.exc_info()[0])
+        return False
+
+    return True
+
+  def done(self):
+    if self.running == None:
+        return True
+    if self.running.poll() == None:
+        return False
+    self.running = None
+    return True
 
   def assembleCommand(self, firmwareFileName):
-    commandString = './tools/avrdude -C avrdude.conf -v -c {} -p {} -P {} -b {} -D -U flash:w:{}:i'.format(
-    self.protocol, self.boardType, self.port, self.baud, firmwareFileName
-    )
+    if os.path.isdir('tools'):
+        avrdudeString = './tools/avrdude -C avrdude.conf'
+    else:
+        # use the system's exe and config
+        avrdudeString = 'avrdude'
+
+    commandString = (avrdudeString + ' -v -c {} -p {} -P {} -b {} -D -U flash:w:{}:i').format(self.protocol, 
+              self.boardType, 
+              self.port, 
+              self.baud, 
+              firmwareFileName)
 
     return commandString

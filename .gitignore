@@ -2,3 +2,5 @@
 *.png
 *.argentum
 *.pickle
+*.pyc
+*.hex
