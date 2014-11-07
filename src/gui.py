@@ -71,6 +71,7 @@ class Argentum(QtGui.QMainWindow):
         #v.start()
 
         self.printer = ArgentumPrinterController()
+        self.programmer = None
 
         self.paused = False
 
@@ -150,9 +151,9 @@ class Argentum(QtGui.QMainWindow):
 
         commandLabel = QtGui.QLabel("Command:")
         self.commandField = CommandLineEdit(self) #QtGui.QLineEdit(self)
-        commandSendButton = QtGui.QPushButton("Send")
+        self.commandSendButton = QtGui.QPushButton("Send")
 
-        commandSendButton.clicked.connect(self.sendButtonPushed)
+        self.commandSendButton.clicked.connect(self.sendButtonPushed)
         self.commandField.connect(self.commandField, QtCore.SIGNAL("enterPressed"), self.sendButtonPushed)
 
         self.commandField.setSizePolicy(QtGui.QSizePolicy.Expanding,
@@ -160,7 +161,7 @@ class Argentum(QtGui.QMainWindow):
 
         commandRow.addWidget(commandLabel)
         commandRow.addWidget(self.commandField)
-        commandRow.addWidget(commandSendButton)
+        commandRow.addWidget(self.commandSendButton)
 
         # Output Text Window
         self.outputView = QtGui.QTextEdit()
@@ -174,47 +175,47 @@ class Argentum(QtGui.QMainWindow):
 
         jogControlsGrid = QtGui.QGridLayout()
 
-        upButton = QtGui.QPushButton('^')
-        downButton = QtGui.QPushButton('V')
-        leftButton = QtGui.QPushButton('<')
-        rightButton = QtGui.QPushButton('>')
+        self.upButton = QtGui.QPushButton('^')
+        self.downButton = QtGui.QPushButton('V')
+        self.leftButton = QtGui.QPushButton('<')
+        self.rightButton = QtGui.QPushButton('>')
 
-        self.makeButtonRepeatable(upButton)
-        self.makeButtonRepeatable(downButton)
-        self.makeButtonRepeatable(leftButton)
-        self.makeButtonRepeatable(rightButton)
+        self.makeButtonRepeatable(self.upButton)
+        self.makeButtonRepeatable(self.downButton)
+        self.makeButtonRepeatable(self.leftButton)
+        self.makeButtonRepeatable(self.rightButton)
 
-        upButton.clicked.connect(self.incrementX)
-        downButton.clicked.connect(self.decrementX)
-        leftButton.clicked.connect(self.decrementY)
-        rightButton.clicked.connect(self.incrementY)
+        self.upButton.clicked.connect(self.incrementX)
+        self.downButton.clicked.connect(self.decrementX)
+        self.leftButton.clicked.connect(self.decrementY)
+        self.rightButton.clicked.connect(self.incrementY)
 
-        jogControlsGrid.addWidget(upButton, 0, 1)
-        jogControlsGrid.addWidget(leftButton, 1, 0)
-        jogControlsGrid.addWidget(rightButton, 1, 2)
-        jogControlsGrid.addWidget(downButton, 2, 1)
+        jogControlsGrid.addWidget(self.upButton, 0, 1)
+        jogControlsGrid.addWidget(self.leftButton, 1, 0)
+        jogControlsGrid.addWidget(self.rightButton, 1, 2)
+        jogControlsGrid.addWidget(self.downButton, 2, 1)
 
         # Main Controls
 
         controlRow = QtGui.QHBoxLayout()
 
-        printButton = QtGui.QPushButton('Print')
+        self.printButton = QtGui.QPushButton('Print')
         self.pauseButton = QtGui.QPushButton('Pause')
-        stopButton = QtGui.QPushButton('Stop')
-        homeButton = QtGui.QPushButton('Home')
-        processFileButton = QtGui.QPushButton('Process File')
+        self.stopButton = QtGui.QPushButton('Stop')
+        self.homeButton = QtGui.QPushButton('Home')
+        self.processFileButton = QtGui.QPushButton('Process File')
 
-        printButton.clicked.connect(self.printButtonPushed)
+        self.printButton.clicked.connect(self.printButtonPushed)
         self.pauseButton.clicked.connect(self.pauseButtonPushed)
-        stopButton.clicked.connect(self.stopButtonPushed)
-        homeButton.clicked.connect(self.homeButtonPushed)
-        processFileButton.clicked.connect(self.processFileButtonPushed)
+        self.stopButton.clicked.connect(self.stopButtonPushed)
+        self.homeButton.clicked.connect(self.homeButtonPushed)
+        self.processFileButton.clicked.connect(self.processFileButtonPushed)
 
-        controlRow.addWidget(printButton)
+        controlRow.addWidget(self.printButton)
         controlRow.addWidget(self.pauseButton)
-        controlRow.addWidget(stopButton)
-        controlRow.addWidget(homeButton)
-        controlRow.addWidget(processFileButton)
+        controlRow.addWidget(self.stopButton)
+        controlRow.addWidget(self.homeButton)
+        controlRow.addWidget(self.processFileButton)
 
         # Main Vertical Layout
 
@@ -318,23 +319,57 @@ class Argentum(QtGui.QMainWindow):
         else:
             self.appendOutput('Crisis Averted!')
 
+    def enableAllButtons(self, enabled=True):
+        self.connectButton.setEnabled(enabled)
+        self.commandSendButton.setEnabled(enabled)
+        self.commandField.setEnabled(enabled)
+        self.upButton.setEnabled(enabled)
+        self.downButton.setEnabled(enabled)
+        self.leftButton.setEnabled(enabled)
+        self.rightButton.setEnabled(enabled)
+        self.printButton.setEnabled(enabled)
+        self.pauseButton.setEnabled(enabled)
+        self.stopButton.setEnabled(enabled)
+        self.homeButton.setEnabled(enabled)
+        self.processFileButton.setEnabled(enabled)
+        
+    def disableAllButtons(self):
+        self.enableAllButtons(False)
+
     def flashActionTriggered(self):
+        if self.programmer != None:
+            return
+
         firmwareFileName = QtGui.QFileDialog.getOpenFileName(self, 'Firmware File', '~')
         firmwareFileName = str(firmwareFileName)
 
         if firmwareFileName:
+            self.disableAllButtons()
             self.printer.disconnect()
 
             self.appendOutput('Flashing {} with {}...'.format(self.printer.port, firmwareFileName))
+
+            self.programmer = avrdude(port=self.printer.port)
+            if self.programmer.flashFile(firmwareFileName):
+                self.pollFlashingTimer = QtCore.QTimer()
+                QtCore.QObject.connect(self.pollFlashingTimer, QtCore.SIGNAL("timeout()"), self.pollFlashing)
+                self.pollFlashingTimer.start(1000)
+            else:
+                self.appendOutput("Can't flash for some reason.")
+                self.appendOutput("");
+                self.printer.connect()
+                self.enableAllButtons()
+
+    def pollFlashing(self):
+        if self.programmer.done():
             self.appendOutput('Flashing completed.')
-
-            programmer = avrdude(port=self.printer.port)
-            programmer.flashFile(firmwareFileName)
-
-
-
+            self.appendOutput("");
+            self.pollFlashingTimer.stop()
+            self.pollFlashingTimer = None
+            self.programmer = None
 
             self.printer.connect()
+            self.enableAllButtons()
 
     def optionsActionTriggered(self):
         """options = {
