@@ -176,7 +176,7 @@ class Argentum(QtGui.QMainWindow):
         jogControlsGrid = QtGui.QGridLayout()
 
         self.upButton = QtGui.QPushButton('^')
-        self.downButton = QtGui.QPushButton('V')
+        self.downButton = QtGui.QPushButton('v')
         self.leftButton = QtGui.QPushButton('<')
         self.rightButton = QtGui.QPushButton('>')
 
@@ -420,6 +420,9 @@ class Argentum(QtGui.QMainWindow):
 
         for port in portList:
             self.portListCombo.addItem(port[0])
+
+        if len(portList) == 0:
+            self.statusBar().showMessage('No printer connected. Connect your printer.')
 
         if curPort != "":
             idx = self.portListCombo.findText(curPort)
