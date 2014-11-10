@@ -253,6 +253,8 @@ class Argentum(QtGui.QMainWindow):
 
         self.statusBar().showMessage('Ready')
 
+        self.disableAllButtonsExceptConnect()
+
         # Main Window Setup
         widget.setLayout(verticalLayout)
         self.setCentralWidget(widget)
@@ -336,6 +338,10 @@ class Argentum(QtGui.QMainWindow):
     def disableAllButtons(self):
         self.enableAllButtons(False)
 
+    def disableAllButtonsExceptConnect(self):
+        self.disableAllButtons()
+        self.connectButton.setEnabled(True)
+
     def flashActionTriggered(self):
         if self.programmer != None:
             return
@@ -397,12 +403,14 @@ class Argentum(QtGui.QMainWindow):
             self.connectButton.setText('Connect')
 
             self.enableConnectionSpecificControls(False)
+            self.disableAllButtonsExceptConnect()
         else:
             port = str(self.portListCombo.currentText())
 
             if self.printer.connect(port=port):
                 self.connectButton.setText('Disconnect')
 
+                self.enableAllButtons()
                 self.enableConnectionSpecificControls(True)
             else:
                 QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
