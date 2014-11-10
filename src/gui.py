@@ -176,7 +176,7 @@ class Argentum(QtGui.QMainWindow):
         jogControlsGrid = QtGui.QGridLayout()
 
         self.upButton = QtGui.QPushButton('^')
-        self.downButton = QtGui.QPushButton('V')
+        self.downButton = QtGui.QPushButton('v')
         self.leftButton = QtGui.QPushButton('<')
         self.rightButton = QtGui.QPushButton('>')
 
@@ -185,10 +185,10 @@ class Argentum(QtGui.QMainWindow):
         self.makeButtonRepeatable(self.leftButton)
         self.makeButtonRepeatable(self.rightButton)
 
-        self.upButton.clicked.connect(self.incrementX)
-        self.downButton.clicked.connect(self.decrementX)
-        self.leftButton.clicked.connect(self.decrementY)
-        self.rightButton.clicked.connect(self.incrementY)
+        self.upButton.clicked.connect(self.incrementY)
+        self.downButton.clicked.connect(self.decrementY)
+        self.leftButton.clicked.connect(self.decrementX)
+        self.rightButton.clicked.connect(self.incrementX)
 
         jogControlsGrid.addWidget(self.upButton, 0, 1)
         jogControlsGrid.addWidget(self.leftButton, 1, 0)
@@ -420,6 +420,9 @@ class Argentum(QtGui.QMainWindow):
 
         for port in portList:
             self.portListCombo.addItem(port[0])
+
+        if len(portList) == 0:
+            self.statusBar().showMessage('No printer connected. Connect your printer.')
 
         if curPort != "":
             idx = self.portListCombo.findText(curPort)
