@@ -74,6 +74,7 @@ class Argentum(QtGui.QMainWindow):
         self.programmer = None
 
         self.paused = False
+        self.autoConnect = True
 
         self.XStepSize = 150
         self.YStepSize = 200
@@ -404,6 +405,7 @@ class Argentum(QtGui.QMainWindow):
 
             self.enableConnectionSpecificControls(False)
             self.disableAllButtonsExceptConnect()
+            self.statusBar().showMessage('Disconnected from printer.')
         else:
             port = str(self.portListCombo.currentText())
 
@@ -412,6 +414,7 @@ class Argentum(QtGui.QMainWindow):
 
                 self.enableAllButtons()
                 self.enableConnectionSpecificControls(True)
+                self.statusBar().showMessage('Connected.')
             else:
                 QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
         self.updatePortList()
@@ -429,8 +432,14 @@ class Argentum(QtGui.QMainWindow):
         for port in portList:
             self.portListCombo.addItem(port[0])
 
-        if len(portList) == 0:
+        if self.portListCombo.count() == 0:
             self.statusBar().showMessage('No printer connected. Connect your printer.')
+        else:
+            if curPort == "" or self.portListCombo.findText(curPort) == -1:
+                if self.portListCombo.count() == 1:
+                    curPort = self.portListCombo.itemText(0)
+                else:
+                    self.statusBar().showMessage('Multiple printers connected.')
 
         if curPort != "":
             idx = self.portListCombo.findText(curPort)
@@ -439,6 +448,9 @@ class Argentum(QtGui.QMainWindow):
                     self.connectButtonPushed()
             else:
                 self.portListCombo.setCurrentIndex(idx)
+                if self.autoConnect and not self.printer.connected:
+                    self.autoConnect = False
+                    self.connectButtonPushed()
     
     def processFileButtonPushed(self):
         self.appendOutput('Process File')
