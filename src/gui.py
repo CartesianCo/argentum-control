@@ -185,10 +185,10 @@ class Argentum(QtGui.QMainWindow):
         self.makeButtonRepeatable(self.leftButton)
         self.makeButtonRepeatable(self.rightButton)
 
-        self.upButton.clicked.connect(self.incrementX)
-        self.downButton.clicked.connect(self.decrementX)
-        self.leftButton.clicked.connect(self.decrementY)
-        self.rightButton.clicked.connect(self.incrementY)
+        self.upButton.clicked.connect(self.incrementY)
+        self.downButton.clicked.connect(self.decrementY)
+        self.leftButton.clicked.connect(self.decrementX)
+        self.rightButton.clicked.connect(self.incrementX)
 
         jogControlsGrid.addWidget(self.upButton, 0, 1)
         jogControlsGrid.addWidget(self.leftButton, 1, 0)
