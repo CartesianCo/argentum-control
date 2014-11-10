@@ -114,7 +114,6 @@ class CommandLineEdit(QtGui.QLineEdit):
     arrow_keys = [QtCore.Qt.Key_Up, QtCore.Qt.Key_Down]
 
     command_history = []
-    history_size = 100
     history_index = -1
     last_content = ''
 
@@ -128,7 +127,7 @@ class CommandLineEdit(QtGui.QLineEdit):
             if key in self.submit_keys:
                 self.emit(QtCore.SIGNAL("enterPressed"))
 
-                self.submit_command()
+                # We leave the signal catcher to call self.submit_command()
 
                 return True
 
@@ -159,10 +158,9 @@ class CommandLineEdit(QtGui.QLineEdit):
         command = str(self.text())
 
         self.history_index = -1
-        self.command_history.append(command)
-        self.command_history = self.command_history[-self.history_size:]
+        self.command_history.insert(0,command)
 
-
+        self.setText("")
 
 class ServoCalibrationDialog(QtGui.QDialog):
     '''
