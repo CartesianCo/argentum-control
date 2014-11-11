@@ -127,7 +127,7 @@ class ImageProcessor:
         # Ignore empty pixels added to the bottom of the file.
         height -= (int(208/self.mOffset) * self.mOffset)
 
-        yposition = 0
+        xposition = 0
 
         for y in xrange(height/self.mOffset*2 + 1):
             # Print out progress
@@ -136,7 +136,7 @@ class ImageProcessor:
             else:
                 print('{} out of {}.'.format(y + 1, height/self.mOffset*2 + 1))
 
-            xposition = 0
+            yposition = 0
 
             # Iterate through the width of the image(s)
             for x in xrange(width):
@@ -152,9 +152,9 @@ class ImageProcessor:
                 if not any([any(firings[i]) for i in xrange(len(firings))]):
                     continue
 
-                move = int((x + 1) * self.SPN) - xposition
+                move = int((x + 1) * self.SPN) - yposition
                 if move != 0:
-                    xposition += move
+                    yposition += move
                     self.writeMovementCommand('Y', move)
 
                 for f in xrange(self.fps):
@@ -163,15 +163,15 @@ class ImageProcessor:
                         if firings[a] != [0]:
                             self.writeFiringCommand(a, firings[a][0], firings[a][1])
 
-            # Move back
-            if xposition != 0:
-                self.writeMovementCommand('Y', -xposition)
-                xposition = 0
+            # Carriage return
+            if yposition != 0:
+                self.writeMovementCommand('Y', -yposition)
+                yposition = 0
 
-            # Move down
-            movey = int(self.mOffset * (y + 1) * self.SPN) - yposition
-            self.writeMovementCommand('X', -movey)
-            yposition += movey
+            # Line feed
+            movex = int(self.mOffset * (y + 1) * self.SPN) - xposition
+            self.writeMovementCommand('X', -movex)
+            xposition += movex
 
 
         # Reset X and Y positions
