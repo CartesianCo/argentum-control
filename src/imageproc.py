@@ -136,7 +136,6 @@ class ImageProcessor:
             else:
                 print('{} out of {}.'.format(y + 1, height/self.mOffset*2 + 1))
 
-            move = 0
             xposition = 0
 
             # Iterate through the width of the image(s)
@@ -151,40 +150,31 @@ class ImageProcessor:
                 ]
 
                 if not any([any(firings[i]) for i in xrange(len(firings))]):
-                    #move += (int((x + 1) * SPN) - xposition - move)
-                    move = (int((x + 1) * self.SPN) - xposition)
                     continue
-                elif move != 0 :
+
+                move = int((x + 1) * self.SPN) - xposition
+                if move != 0:
                     xposition += move
-                    #outputStream.write('M X %d\n' % move)
-                    self.writeMovementCommand('X', move)
-                    move = (int((x + 1) * self.SPN) - xposition)
+                    self.writeMovementCommand('Y', move)
 
                 for f in xrange(self.fps):
                     # Iterate through addresses
                     for a in xrange(13):
-                        if firings[a] == [0]:
-                            continue
-
-                        #for i in xrange(2):
-                        self.writeFiringCommand(a, firings[a][0], firings[a][1])
+                        if firings[a] != [0]:
+                            self.writeFiringCommand(a, firings[a][0], firings[a][1])
 
             # Move back
             if xposition != 0:
-                #outputStream.write('M X 0\n')
-                self.writeMovementCommand('X', 0)
+                self.writeMovementCommand('Y', -xposition)
                 xposition = 0
 
             # Move down
             movey = int(self.mOffset * (y + 1) * self.SPN) - yposition
-            #outputStream.write('M Y %d\n' % -movey)
-            self.writeMovementCommand('Y', -movey)
+            self.writeMovementCommand('X', -movey)
             yposition += movey
 
 
         # Reset X and Y positions
-        #outputStream.write('M Y 0\n')
-        #outputStream.write('M X 0\n')
         self.writeMovementCommand('X', 0)
         self.writeMovementCommand('Y', 0)
 
