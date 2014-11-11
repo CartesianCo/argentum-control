@@ -65,6 +65,8 @@ class ImageProcessor:
 
         # Open our image and split it into its odd rows and even rows
         inputImage = Image.open(inputFileName)
+        inputImage = inputImage.transpose(Image.FLIP_LEFT_RIGHT);
+        inputImage = inputImage.transpose(Image.ROTATE_270);
 
         inputs = self.splitImageTwos(inputImage)
 
