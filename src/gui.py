@@ -256,9 +256,19 @@ class Argentum(QtGui.QMainWindow):
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('File')
-        self.openAction = QtGui.QAction('&Open', self)
-        self.openAction.triggered.connect(self.fileOpenTriggered)
-        fileMenu.addAction(self.openAction)
+        self.openLayoutAction = QtGui.QAction('&Open Layout', self)
+        self.openLayoutAction.triggered.connect(self.fileOpenLayoutTriggered)
+        fileMenu.addAction(self.openLayoutAction)
+        self.saveLayoutAction = QtGui.QAction('&Save Layout', self)
+        self.saveLayoutAction.triggered.connect(self.fileSaveLayoutTriggered)
+        fileMenu.addAction(self.saveLayoutAction)
+        self.closeLayoutAction = QtGui.QAction('&Close Layout', self)
+        self.closeLayoutAction.triggered.connect(self.fileCloseLayoutTriggered)
+        fileMenu.addAction(self.closeLayoutAction)
+        fileMenu.addSeparator()
+        self.importImageAction = QtGui.QAction('&Import Image', self)
+        self.importImageAction.triggered.connect(self.fileImportImageTriggered)
+        fileMenu.addAction(self.importImageAction)
         fileMenu.addSeparator()
         self.exitAction = QtGui.QAction("E&xit", self)
         self.exitAction.triggered.connect(self.close)
@@ -423,7 +433,16 @@ class Argentum(QtGui.QMainWindow):
         optionsDialog = OptionsDialog(self, options=self.options)
         optionsDialog.exec_()
 
-    def fileOpenTriggered(self):
+    def fileOpenLayoutTriggered(self):
+        pass
+
+    def fileSaveLayoutTriggered(self):
+        pass
+
+    def fileCloseLayoutTriggered(self):
+        pass
+
+    def fileImportImageTriggered(self):
         inputFileName = str(QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.filesDir, "Images (*.png *.xpm *.jpg)"))
         if inputFileName:
             self.printView.addImageFile(inputFileName)
