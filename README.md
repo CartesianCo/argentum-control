@@ -21,12 +21,12 @@ The remaining requirements can be installed with pip. You probably already have 
 
 add it to your path and then run:
 
-    pip install esky
-    pip install pyserial
-    pip install requests
-    pip install Pillow
+    pip install esky --upgrade
+    pip install pyserial --upgrade
+    pip install requests --upgrade
+    pip install Pillow --upgrade
 
-Running this command may nag you to install developer tools. Do that and rerun the command. The last one is probably the most difficult to get working.
+Running any of these commands may nag you to install developer tools. Do that and rerun the command. The last one is probably the most difficult to get working.
 
 At this point you're ready to run the program:
 
