@@ -82,7 +82,7 @@ class Argentum(QtGui.QMainWindow):
         self.options = load_options()
         save_options(self.options)
 
-        print('Loaded options: {}'.format(self.options))
+        #print('Loaded options: {}'.format(self.options))
 
         self.initUI()
 
