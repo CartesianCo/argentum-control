@@ -5,6 +5,7 @@
 Argentum Control GUI
 
 author: Michael Shiel
+author: Trent Waddington
 """
 
 import sys
