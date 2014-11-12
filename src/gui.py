@@ -292,12 +292,18 @@ class Argentum(QtGui.QMainWindow):
             overlap=int(self.options['print_overlap'])
         )
 
-        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Image to process', '~')
+        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', '~')
 
         inputFileName = str(inputFileName)
 
         if inputFileName:
-            outputFileName = QtGui.QFileDialog.getSaveFileName(self, 'Output file', 'Output.hex', '.hex')
+            self.appendOutput('Processing Image ' + inputFileName)
+            baseName = os.path.basename(inputFileName)
+            if baseName.find('.') != -1:
+                baseName = baseName[:baseName.find('.')]
+            baseName = baseName + '.hex'
+            outputFileName = os.path.join(self.filesDir, baseName)
+            self.appendOutput('Writing to ' + outputFileName)
             ip.sliceImage(inputFileName, outputFileName, progressFunc=self.progressFunc)
 
     def progressFunc(self, y, max_y):
@@ -472,8 +478,6 @@ class Argentum(QtGui.QMainWindow):
                         self.tabWidget.setCurrentWidget(self.printWidget)
     
     def processImageButtonPushed(self):
-        self.appendOutput('Processing Image...')
-
         self.processImage()
 
     ### Command Functions ###
