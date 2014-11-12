@@ -268,14 +268,14 @@ class Argentum(QtGui.QMainWindow):
         # Create the Print tab
         self.printWidget = QtGui.QWidget(self)
         horizontalLayout = QtGui.QHBoxLayout()
-        self.printView = PrintView(self)
+        self.printView = PrintView()
         horizontalLayout.addWidget(self.printView)
         self.printWidget.setLayout(horizontalLayout)
 
         # Main Window Setup
         self.tabWidget = QtGui.QTabWidget(self)
         self.tabWidget.setTabPosition(QtGui.QTabWidget.South)
-        self.tabWidget.addTab(self.printWidget, "Print")
+        self.tabWidget.addTab(self.printWidget, "Printer")
         self.tabWidget.addTab(self.consoleWidget, "Console") # always last
         self.setCentralWidget(self.tabWidget)
 
