@@ -14,6 +14,7 @@ from PyQt4 import QtGui, QtCore
 
 from serial.tools.list_ports import comports
 from ArgentumPrinterController import ArgentumPrinterController
+from PrintView import PrintView
 from avrdude import avrdude
 
 import pickle
@@ -235,8 +236,7 @@ class Argentum(QtGui.QMainWindow):
         verticalLayout.addWidget(self.outputView)
         verticalLayout.addLayout(jogControlsGrid)
         verticalLayout.addLayout(controlRow)
-
-        #verticalLayout.addStretch(1)
+        self.consoleWidget.setLayout(verticalLayout)
 
         # Menu Bar Stuff
 
@@ -267,9 +267,12 @@ class Argentum(QtGui.QMainWindow):
         
         # Create the Print tab
         self.printWidget = QtGui.QWidget(self)
+        horizontalLayout = QtGui.QHBoxLayout()
+        self.printView = PrintView(self)
+        horizontalLayout.addWidget(self.printView)
+        self.printWidget.setLayout(horizontalLayout)
 
         # Main Window Setup
-        self.consoleWidget.setLayout(verticalLayout)
         self.tabWidget = QtGui.QTabWidget(self)
         self.tabWidget.setTabPosition(QtGui.QTabWidget.South)
         self.tabWidget.addTab(self.printWidget, "Print")
@@ -385,14 +388,14 @@ class Argentum(QtGui.QMainWindow):
                 self.pollFlashingTimer.start(1000)
             else:
                 self.appendOutput("Can't flash for some reason.")
-                self.appendOutput("");
+                self.appendOutput("")
                 self.printer.connect()
                 self.enableAllButtons()
 
     def pollFlashing(self):
         if self.programmer.done():
             self.appendOutput('Flashing completed.')
-            self.appendOutput("");
+            self.appendOutput("")
             self.pollFlashingTimer.stop()
             self.pollFlashingTimer = None
             self.programmer = None
