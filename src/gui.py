@@ -255,11 +255,20 @@ class Argentum(QtGui.QMainWindow):
         self.updateAction.triggered.connect(self.updateActionTriggered)
 
         menubar = self.menuBar()
-        fileMenu = menubar.addMenu('Utilities')
-        fileMenu.addAction(self.flashAction)
-        fileMenu.addAction(self.optionsAction)
-        fileMenu.addAction(self.updateAction)
-        fileMenu.addAction(self.servoCalibrationAction)
+        fileMenu = menubar.addMenu('File')
+        self.openAction = QtGui.QAction('&Open', self)
+        self.openAction.triggered.connect(self.fileOpenTriggered)
+        fileMenu.addAction(self.openAction)
+        fileMenu.addSeparator()
+        self.exitAction = QtGui.QAction("E&xit", self)
+        self.exitAction.triggered.connect(self.close)
+        fileMenu.addAction(self.exitAction)
+
+        utilitiesMenu = menubar.addMenu('Utilities')
+        utilitiesMenu.addAction(self.flashAction)
+        utilitiesMenu.addAction(self.optionsAction)
+        utilitiesMenu.addAction(self.updateAction)
+        utilitiesMenu.addAction(self.servoCalibrationAction)
 
         self.statusBar().showMessage('Looking for printer...')
 
@@ -295,7 +304,7 @@ class Argentum(QtGui.QMainWindow):
             overlap=int(self.options['print_overlap'])
         )
 
-        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', '~')
+        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.filesDir)
 
         inputFileName = str(inputFileName)
 
@@ -413,6 +422,11 @@ class Argentum(QtGui.QMainWindow):
 
         optionsDialog = OptionsDialog(self, options=self.options)
         optionsDialog.exec_()
+
+    def fileOpenTriggered(self):
+        inputFileName = str(QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.filesDir, "Images (*.png *.xpm *.jpg)"))
+        if inputFileName:
+            self.printView.addImageFile(inputFileName)
 
     def enableConnectionSpecificControls(self, enabled):
         self.flashAction.setEnabled(enabled)
