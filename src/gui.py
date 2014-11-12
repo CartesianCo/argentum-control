@@ -123,7 +123,8 @@ class Argentum(QtGui.QMainWindow):
             self.appendOutput(firmware['version'])
 
     def initUI(self):
-        widget = QtGui.QWidget(self)
+        # Create the console
+        self.consoleWidget = QtGui.QWidget(self)
 
         # First Row
         connectionRow = QtGui.QHBoxLayout()
@@ -252,13 +253,20 @@ class Argentum(QtGui.QMainWindow):
         fileMenu.addAction(self.updateAction)
         fileMenu.addAction(self.servoCalibrationAction)
 
-        self.statusBar().showMessage('Ready')
+        self.statusBar().showMessage('Looking for printer...')
 
         self.disableAllButtonsExceptConnect()
+        
+        # Create the Print tab
+        self.printWidget = QtGui.QWidget(self)
 
         # Main Window Setup
-        widget.setLayout(verticalLayout)
-        self.setCentralWidget(widget)
+        self.consoleWidget.setLayout(verticalLayout)
+        self.tabWidget = QtGui.QTabWidget(self)
+        self.tabWidget.setTabPosition(QtGui.QTabWidget.South)
+        self.tabWidget.addTab(self.printWidget, "Print")
+        self.tabWidget.addTab(self.consoleWidget, "Console") # always last
+        self.setCentralWidget(self.tabWidget)
 
         self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum Control')
@@ -439,7 +447,8 @@ class Argentum(QtGui.QMainWindow):
                 if self.portListCombo.count() == 1:
                     curPort = self.portListCombo.itemText(0)
                 else:
-                    self.statusBar().showMessage('Multiple printers connected.')
+                    self.statusBar().showMessage('Multiple printers connected. Please select one.')
+                    self.tabWidget.setCurrentWidget(self.consoleWidget)
 
         if curPort != "":
             idx = self.portListCombo.findText(curPort)
@@ -451,6 +460,8 @@ class Argentum(QtGui.QMainWindow):
                 if self.autoConnect and not self.printer.connected:
                     self.autoConnect = False
                     self.connectButtonPushed()
+                    if self.printer.connected:
+                        self.tabWidget.setCurrentWidget(self.printWidget)
     
     def processFileButtonPushed(self):
         self.appendOutput('Process File')
