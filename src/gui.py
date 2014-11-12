@@ -213,19 +213,19 @@ class Argentum(QtGui.QMainWindow):
         self.pauseButton = QtGui.QPushButton('Pause')
         self.stopButton = QtGui.QPushButton('Stop')
         self.homeButton = QtGui.QPushButton('Home')
-        self.processFileButton = QtGui.QPushButton('Process File')
+        self.processImageButton = QtGui.QPushButton('Process Image')
 
         self.printButton.clicked.connect(self.printButtonPushed)
         self.pauseButton.clicked.connect(self.pauseButtonPushed)
         self.stopButton.clicked.connect(self.stopButtonPushed)
         self.homeButton.clicked.connect(self.homeButtonPushed)
-        self.processFileButton.clicked.connect(self.processFileButtonPushed)
+        self.processImageButton.clicked.connect(self.processImageButtonPushed)
 
         controlRow.addWidget(self.printButton)
         controlRow.addWidget(self.pauseButton)
         controlRow.addWidget(self.stopButton)
         controlRow.addWidget(self.homeButton)
-        controlRow.addWidget(self.processFileButton)
+        controlRow.addWidget(self.processImageButton)
 
         # Main Vertical Layout
 
@@ -285,14 +285,14 @@ class Argentum(QtGui.QMainWindow):
         button.setAutoRepeatDelay(100)
         button.setAutoRepeatInterval(80)
 
-    def showDialog(self):
+    def processImage(self):
         ip = ImageProcessor(
             horizontal_offset=int(self.options['horizontal_offset']),
             vertical_offset=int(self.options['vertical_offset']),
             overlap=int(self.options['print_overlap'])
         )
 
-        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'File to process', '~')
+        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Image to process', '~')
 
         inputFileName = str(inputFileName)
 
@@ -350,7 +350,7 @@ class Argentum(QtGui.QMainWindow):
         self.pauseButton.setEnabled(enabled)
         self.stopButton.setEnabled(enabled)
         self.homeButton.setEnabled(enabled)
-        self.processFileButton.setEnabled(enabled)
+        self.processImageButton.setEnabled(enabled)
         
     def disableAllButtons(self):
         self.enableAllButtons(False)
@@ -471,10 +471,10 @@ class Argentum(QtGui.QMainWindow):
                     if self.printer.connected:
                         self.tabWidget.setCurrentWidget(self.printWidget)
     
-    def processFileButtonPushed(self):
-        self.appendOutput('Process File')
+    def processImageButtonPushed(self):
+        self.appendOutput('Processing Image...')
 
-        self.showDialog()
+        self.processImage()
 
     ### Command Functions ###
 
