@@ -13,11 +13,20 @@ This Python app uses a number of libraries that may not be installed by default 
 
     Installing PyQt4 on Mac OS X: http://www.pythonschool.net/pyqt/installing-pyqt-on-mac-os-x/
 
-The remaining requirements can be installed with pip:
+Make sure you install the right version for your python install. This means getting 32 bit vs 64 bit correct, and it may mean you need to upgrade python.
 
-    pip install esky Pillow pyserial requests
+The remaining requirements can be installed with pip. You probably already have pip, but if not, you can get it from here:
 
-Running this command may nag you to install developer tools. Do that and rerun the command.
+    https://pip.pypa.io/en/latest/installing.html
+
+add it to your path and then run:
+
+    pip install esky
+    pip install pyserial
+    pip install requests
+    pip install Pillow
+
+Running this command may nag you to install developer tools. Do that and rerun the command. The last one is probably the most difficult to get working.
 
 At this point you're ready to run the program:
 
