@@ -35,6 +35,9 @@ class ImageProcessor:
 
     outputFile = None
 
+    # This allows for easier inspection of hex files
+    USE_TEXTUAL_FIRING = True
+
     def __init__(self, horizontal_offset=None, vertical_offset=None, overlap=None):
         if horizontal_offset:
             self.HEADOFFSET = horizontal_offset
@@ -292,13 +295,16 @@ class ImageProcessor:
 
         #self.outputFile.write('F {} {} {}\n'.format(a, firing1, firing2))
 
-        outputStream = self.outputFile
 
-        outputStream.write(chr(1)) # Fire command
-        outputStream.write(chr(firing1)) # Relevant firing data, i.e. which primitive(s) to fire
-        outputStream.write(chr(address)) # The address we're firing within the primitive(s)
-        outputStream.write('\n')
-        outputStream.write(chr(1)) # Fire command
-        outputStream.write(chr(firing2)) # Relevant firing data, i.e. which primitive(s) to fire
-        outputStream.write(chr(address)) # The address we're firing within the primitive(s)
-        outputStream.write('\n')
+        if self.USE_TEXTUAL_FIRING:
+            self.outputFile.write('F {:01X}{:02X}{:02X}\n'.format(address, firing1, firing2))
+        else:
+            outputStream = self.outputFile
+            outputStream.write(chr(1)) # Fire command
+            outputStream.write(chr(firing1)) # Relevant firing data, i.e. which primitive(s) to fire
+            outputStream.write(chr(address)) # The address we're firing within the primitive(s)
+            outputStream.write('\n')
+            outputStream.write(chr(1)) # Fire command
+            outputStream.write(chr(firing2)) # Relevant firing data, i.e. which primitive(s) to fire
+            outputStream.write(chr(address)) # The address we're firing within the primitive(s)
+            outputStream.write('\n')
