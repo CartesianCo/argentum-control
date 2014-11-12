@@ -8,6 +8,7 @@ author: Michael Shiel
 """
 
 import sys
+import os
 from PyQt4 import QtGui, QtCore
 
 from serial.tools.list_ports import comports
@@ -121,6 +122,12 @@ class Argentum(QtGui.QMainWindow):
 
         for firmware in available_firmware:
             self.appendOutput(firmware['version'])
+
+        # Make a directory where we can place processed images
+        docsDir = str(QtGui.QDesktopServices.storageLocation(QtGui.QDesktopServices.DocumentsLocation))
+        self.filesDir = os.path.join(docsDir, 'Argentum')
+        if not os.path.isdir(self.filesDir):
+            os.mkdir(self.filesDir)
 
     def initUI(self):
         # Create the console
@@ -547,6 +554,9 @@ class Argentum(QtGui.QMainWindow):
 
 def main():
     app = QtGui.QApplication(sys.argv)
+    app.setOrganizationName("CartesianCo")
+    app.setOrganizationDomain("cartesianco.com")
+    app.setApplicationName("ArgentumControl")
     app_icon = QtGui.QIcon()
     app_icon.addFile('Icon.ico', QtCore.QSize(16,16))
     app_icon.addFile('Icon.ico', QtCore.QSize(24,24))
