@@ -536,6 +536,13 @@ class Argentum(QtGui.QMainWindow):
 
 def main():
     app = QtGui.QApplication(sys.argv)
+    app_icon = QtGui.QIcon()
+    app_icon.addFile('Icon.ico', QtCore.QSize(16,16))
+    app_icon.addFile('Icon.ico', QtCore.QSize(24,24))
+    app_icon.addFile('Icon.ico', QtCore.QSize(32,32))
+    app_icon.addFile('Icon.ico', QtCore.QSize(48,48))
+    app_icon.addFile('Icon.ico', QtCore.QSize(256,256))
+    app.setWindowIcon(app_icon)
     ex = Argentum()
     sys.exit(app.exec_())
 
