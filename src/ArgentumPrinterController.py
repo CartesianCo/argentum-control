@@ -16,7 +16,7 @@ class ArgentumPrinterController(PrinterController):
             self.port = port
 
         try:
-            self.serialDevice = Serial(self.port, 115200)
+            self.serialDevice = Serial(self.port, 115200, timeout=0)
             self.connected = True
 
             return True
@@ -74,7 +74,24 @@ class ArgentumPrinterController(PrinterController):
         return None
 
     def waitForResponse(self):
-        start = self.monitoredCount
-        while start == self.monitoredCount:
-            time.sleep(0)
-        return self.monitoredData
+        if not self.connected:
+            return None
+
+        self.serialDevice.timeout = 0.5
+        response = ""
+        try:
+            while True:
+                data = self.serialDevice.read(1)
+                n = self.serialDevice.inWaiting()
+                if n:
+                    data = data + self.serialDevice.read(n)
+                else:
+                    break
+                if data:
+                    response = response + data
+        finally:
+            self.serialDevice.timeout = 0
+
+        if response == "":
+            return None
+        return response
