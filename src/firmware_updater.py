@@ -73,6 +73,7 @@ def update_local_firmware():
     firmware_list = get_unavailable_firmware()
 
     for firmware in firmware_list:
+        print("Downloading {}.".format(firmware['filename']))
         result = download_file(firmware['filename'])
 
         if not result:

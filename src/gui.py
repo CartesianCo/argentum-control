@@ -10,6 +10,7 @@ author: Trent Waddington
 
 import sys
 import os
+import time
 from PyQt4 import QtGui, QtCore
 
 from serial.tools.list_ports import comports
@@ -83,6 +84,11 @@ class Argentum(QtGui.QMainWindow):
         self.YStepSize = 200
 
         self.options = load_options()
+        try:
+            self.lastRun = self.options['last_run']
+        except:
+            self.lastRun = None
+        self.options['last_run'] = int(time.time())
         save_options(self.options)
 
         #print('Loaded options: {}'.format(self.options))
@@ -114,7 +120,9 @@ class Argentum(QtGui.QMainWindow):
             #pass
             #self.appendOutput('Not packaged - no automatic update support.')
 
-        update_firmware_list()
+        daily = 60*60*24
+        if self.lastRun == None or self.lastRun - int(time.time()) > daily:
+            update_firmware_list()
 
         update_local_firmware()
 
@@ -337,17 +345,9 @@ class Argentum(QtGui.QMainWindow):
         QtGui.QApplication.processEvents()
 
     def monitor(self):
-        if self.printer.connected and self.printer.serialDevice.inWaiting():
-
-            data = self.printer.serialDevice.read(1)              # read one, blocking
-
-            n = self.printer.serialDevice.inWaiting()             # look if there is more
-            if n:
-                data = data + self.printer.serialDevice.read(n)   # and get as much as possible
-
-            if data:
+        data = self.printer.monitor()
+        if data:
                 self.appendOutput(data.decode('utf-8'))
-
         QtCore.QTimer.singleShot(10, self.monitor)
 
     ### Button Functions ###
@@ -453,7 +453,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.portListCombo.setEnabled(not enabled)
 
-        self.monitor()
+        QtCore.QTimer.singleShot(10, self.monitor)
 
     def connectButtonPushed(self):
         if(self.printer.connected):
