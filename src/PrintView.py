@@ -11,6 +11,9 @@ import sys
 import os
 from PyQt4 import QtGui, QtCore, QtSvg
 
+printPlateDesignScale = [1.0757, 1.2256] # * printArea
+imageScale            = [ 23.52,  23.29] # * print = pixels
+
 # A kind of annoying Rect
 # Note: (0,0) is the bottom left corner of the printer
 # All measurements are in millimeters
@@ -26,8 +29,8 @@ class PrintImage(PrintRect):
         self.pixmap = pixmap
         self.left = 0.0
         self.bottom = 0.0
-        self.width = pixmap.width()
-        self.height = pixmap.height()
+        self.width = pixmap.width() / imageScale[0]
+        self.height = pixmap.height() / imageScale[1]
         self.screenRect = None
 
     def pixmapRect(self):
@@ -41,11 +44,10 @@ class PrintView(QtGui.QWidget):
         self.printPlateArea = PrintRect(0, 0, 285, 255)
         self.printArea = PrintRect(24, 73, 247, 127)
         self.printPlateDesign = QtSvg.QSvgRenderer("printPlateDesign.svg")
-        self.printPlateDesignScale = [1.0757, 1.2256] # * printArea
-        height = self.printArea.height * self.printPlateDesignScale[1]
+        height = self.printArea.height * printPlateDesignScale[1]
         self.printPlateDesignArea = PrintRect(12, 
                     50,
-                    self.printArea.width * self.printPlateDesignScale[0],
+                    self.printArea.width * printPlateDesignScale[0],
                     height)
         self.images = []
 
