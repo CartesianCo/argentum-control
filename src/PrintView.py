@@ -25,8 +25,9 @@ class PrintRect:
         self.height = float(height)
 
 class PrintImage(PrintRect):
-    def __init__(self, pixmap):
+    def __init__(self, pixmap, filename):
         self.pixmap = pixmap
+        self.filename = filename
         self.left = 0.0
         self.bottom = 0.0
         self.width = pixmap.width() / imageScale[0]
@@ -157,12 +158,24 @@ class PrintView(QtGui.QWidget):
         if not pixmap:
             print("Can't load image " + inputFileName)
             return
-        self.images.append(PrintImage(pixmap))
+        pi = PrintImage(pixmap, os.path.basename(inputFileName))
+        self.images.append(pi)
         self.update()
+        return pi
 
     def mouseReleaseEvent(self, event):
         self.dragging = None
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+
+    def ensureImageInPrintArea(self, image):
+        if image.left < 0:
+            image.left = 0
+        if image.bottom < 0:
+            image.bottom = 0
+        if image.left + image.width > self.printArea.width:
+            image.left = self.printArea.width - image.width
+        if image.bottom + image.height > self.printArea.height:
+            image.bottom = self.printArea.height - image.height
 
     def mouseMoveEvent(self, event):
         pressed = event.buttons() & QtCore.Qt.LeftButton
@@ -180,14 +193,7 @@ class PrintView(QtGui.QWidget):
             image = self.dragging
             image.left = px - self.dragStart[0] + self.dragImageStart[0]
             image.bottom = py - self.dragStart[1] + self.dragImageStart[1]
-            if image.left < 0:
-                image.left = 0
-            if image.bottom < 0:
-                image.bottom = 0
-            if image.left + image.width > self.printArea.width:
-                image.left = self.printArea.width - image.width
-            if image.bottom + image.height > self.printArea.height:
-                image.bottom = self.printArea.height - image.height
+            self.ensureImageInPrintArea(image)
             image.screenRect = None
             self.update()
         elif self.dragging == None:
@@ -213,6 +219,9 @@ class PrintView(QtGui.QWidget):
     def dropEvent(self, e):
         if e.mimeData().hasUrls():
             url = str(e.mimeData().urls()[0].path())
-            pixmap = QtGui.QPixmap(url)
-            self.images.append(PrintImage(pixmap))
-            self.update()
+            pi = self.addImageFile(url)
+            p = self.screenToPrintArea(e.pos().x(), e.pos().y())
+            if p != None:
+                pi.left = p[0] - pi.width / 2
+                pi.bottom = p[1] - pi.height / 2
+                self.ensureImageInPrintArea(pi)
