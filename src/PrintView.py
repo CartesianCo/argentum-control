@@ -262,6 +262,7 @@ class PrintView(QtGui.QWidget):
 
     def dragEnterEvent(self, e):
         self.argentum.raise_()
+        self.argentum.activateWindow()
         e.accept()
 
     def dropEvent(self, e):
