@@ -302,17 +302,9 @@ class Argentum(QtGui.QMainWindow):
         QtGui.QApplication.processEvents()
 
     def monitor(self):
-        if self.printer.connected and self.printer.serialDevice.inWaiting():
-
-            data = self.printer.serialDevice.read(1)              # read one, blocking
-
-            n = self.printer.serialDevice.inWaiting()             # look if there is more
-            if n:
-                data = data + self.printer.serialDevice.read(n)   # and get as much as possible
-
-            if data:
+        data = self.printer.monitor()
+        if data:
                 self.appendOutput(data.decode('utf-8'))
-
         QtCore.QTimer.singleShot(10, self.monitor)
 
     ### Button Functions ###
@@ -404,7 +396,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.portListCombo.setEnabled(not enabled)
 
-        self.monitor()
+        QtCore.QTimer.singleShot(10, self.monitor)
 
     def connectButtonPushed(self):
         if(self.printer.connected):

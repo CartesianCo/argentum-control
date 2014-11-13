@@ -35,6 +35,8 @@ class ArgentumPrinterController(PrinterController):
         if self.serialDevice and self.connected:
             self.serialDevice.write(command.encode('utf-8'))
             self.serialDevice.write(self.delimiter.encode('utf-8'))
+            return True
+        return False
 
     def move(self, x, y):
         if x is not None:
@@ -59,3 +61,20 @@ class ArgentumPrinterController(PrinterController):
 
     def stop(self):
         self.command('S')
+
+    def monitor(self):
+        if self.connected and self.serialDevice.inWaiting():
+            data = self.serialDevice.read(1)
+            n = self.serialDevice.inWaiting()
+            if n:
+                data = data + self.serialDevice.read(n)
+
+            if data:
+                return data
+        return None
+
+    def waitForResponse(self):
+        start = self.monitoredCount
+        while start == self.monitoredCount:
+            time.sleep(0)
+        return self.monitoredData
