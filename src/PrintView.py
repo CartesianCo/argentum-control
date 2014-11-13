@@ -261,6 +261,7 @@ class PrintView(QtGui.QWidget):
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def dragEnterEvent(self, e):
+        self.argentum.raise_()
         e.accept()
 
     def dropEvent(self, e):
