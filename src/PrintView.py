@@ -51,6 +51,8 @@ class PrintView(QtGui.QWidget):
                     height)
         self.images = []
         self.dragging = None
+        self.setAcceptDrops(True)
+        self.setMouseTracking(True)
 
     def calcScreenRects(self):
         if self.lastRect == self.rect():
@@ -156,20 +158,25 @@ class PrintView(QtGui.QWidget):
             print("Can't load image " + inputFileName)
             return
         self.images.append(PrintImage(pixmap))
+        self.update()
 
     def mouseReleaseEvent(self, event):
         self.dragging = None
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def mouseMoveEvent(self, event):
+        pressed = event.buttons() & QtCore.Qt.LeftButton
         p = self.screenToPrintArea(event.pos().x(), event.pos().y())
         if p == None:
+            if self.dragging == None:
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
 
         px = p[0]
         py = p[1]
         #print("{}, {}".format(px, py))
 
-        if self.dragging != None:
+        if pressed and self.dragging != None:
             image = self.dragging
             image.left = px - self.dragStart[0] + self.dragImageStart[0]
             image.bottom = py - self.dragStart[1] + self.dragImageStart[1]
@@ -183,10 +190,29 @@ class PrintView(QtGui.QWidget):
                 image.bottom = self.printArea.height - image.height
             image.screenRect = None
             self.update()
-        else:
+        elif self.dragging == None:
+            hit = False
             for image in self.images:
                 if px >= image.left and px < image.left + image.width:
                     if py >= image.bottom and py < image.bottom + image.height:
-                        self.dragging = image
-                        self.dragImageStart = (image.left, image.bottom)
-                        self.dragStart = (px, py)
+                        hit = True
+                        if pressed:
+                            self.dragging = image
+                            self.dragImageStart = (image.left, image.bottom)
+                            self.dragStart = (px, py)
+                            self.setCursor(QtGui.QCursor(QtCore.Qt.ClosedHandCursor))
+                        else:
+                            self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
+                        break
+            if not hit:
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+
+    def dragEnterEvent(self, e):
+        e.accept()
+
+    def dropEvent(self, e):
+        if e.mimeData().hasUrls():
+            url = str(e.mimeData().urls()[0].path())
+            pixmap = QtGui.QPixmap(url)
+            self.images.append(PrintImage(pixmap))
+            self.update()
