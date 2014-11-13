@@ -50,6 +50,7 @@ class PrintView(QtGui.QWidget):
                     self.printArea.width * printPlateDesignScale[0],
                     height)
         self.images = []
+        self.dragging = None
 
     def calcScreenRects(self):
         if self.lastRect == self.rect():
@@ -117,9 +118,26 @@ class PrintView(QtGui.QWidget):
 
     def printAreaToScreen(self, printRect):
         p = PrintRect(self.printArea.left + printRect.left,
-                      self.printArea.bottom - printRect.bottom,
+                      self.printArea.bottom + printRect.bottom,
                       printRect.width, printRect.height)
         return self.printToScreen(p)
+
+    def screenToPrintArea(self, x, y):
+        r = self.printToScreen(self.printArea)
+        if x < r.left():
+            x = r.left()
+        if x > r.left() + r.width():
+            x = r.left() + r.width()
+        if y < r.top():
+            y = r.top()
+        if y > r.top() + r.height():
+            y = r.top() + r.height()
+
+        dx = x - r.left()
+        dy = y - r.top()
+
+        return (dx * self.printArea.width / r.width(),
+                self.printArea.height - dy * self.printArea.height / r.height())
 
     def paintEvent(self, event):
         self.calcScreenRects()
@@ -138,3 +156,37 @@ class PrintView(QtGui.QWidget):
             print("Can't load image " + inputFileName)
             return
         self.images.append(PrintImage(pixmap))
+
+    def mouseReleaseEvent(self, event):
+        self.dragging = None
+
+    def mouseMoveEvent(self, event):
+        p = self.screenToPrintArea(event.pos().x(), event.pos().y())
+        if p == None:
+            return
+
+        px = p[0]
+        py = p[1]
+        #print("{}, {}".format(px, py))
+
+        if self.dragging != None:
+            image = self.dragging
+            image.left = px - self.dragStart[0] + self.dragImageStart[0]
+            image.bottom = py - self.dragStart[1] + self.dragImageStart[1]
+            if image.left < 0:
+                image.left = 0
+            if image.bottom < 0:
+                image.bottom = 0
+            if image.left + image.width > self.printArea.width:
+                image.left = self.printArea.width - image.width
+            if image.bottom + image.height > self.printArea.height:
+                image.bottom = self.printArea.height - image.height
+            image.screenRect = None
+            self.update()
+        else:
+            for image in self.images:
+                if px >= image.left and px < image.left + image.width:
+                    if py >= image.bottom and py < image.bottom + image.height:
+                        self.dragging = image
+                        self.dragImageStart = (image.left, image.bottom)
+                        self.dragStart = (px, py)
