@@ -37,8 +37,6 @@ class PrintImage(PrintRect):
         filename = os.path.basename(filename)
         if filename.find('.') != -1:
             filename = filename[:filename.find('.')]
-        if len(filename) > 8:
-            filename = filename[:8]
         self.hexFilename = filename + ".hex"
 
     def pixmapRect(self):
