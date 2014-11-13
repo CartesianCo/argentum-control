@@ -8,6 +8,8 @@ author: Michael Shiel
 """
 
 import sys
+import os
+import time
 from PyQt4 import QtGui, QtCore
 
 from serial.tools.list_ports import comports
@@ -80,6 +82,11 @@ class Argentum(QtGui.QMainWindow):
         self.YStepSize = 200
 
         self.options = load_options()
+        try:
+            self.lastRun = self.options['last_run']
+        except:
+            self.lastRun = None
+        self.options['last_run'] = int(time.time())
         save_options(self.options)
 
         #print('Loaded options: {}'.format(self.options))
@@ -111,7 +118,9 @@ class Argentum(QtGui.QMainWindow):
             #pass
             #self.appendOutput('Not packaged - no automatic update support.')
 
-        update_firmware_list()
+        daily = 60*60*24
+        if self.lastRun == None or self.lastRun - int(time.time()) > daily:
+            update_firmware_list()
 
         update_local_firmware()
 
