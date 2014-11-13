@@ -187,13 +187,29 @@ class PrintView(QtGui.QWidget):
 
     def startPrint(self):
         if not self.argentum.printer.connected:
+            print("Printer isn't connected.")
             return
         if len(self.images) == 0:
+            self.argentum.statusBar().showMessage('Add some images to print.')
             return
 
+        self.progress = QtGui.QProgressDialog(self)
+        self.progress.setWindowTitle("Printing")
+        self.progress.setLabelText("Setting up...")
+        self.progress.show()
+
+        if self.argentum.printer.isHomed():
+            self.progress.setValue(10)
+        else:
+            self.argentum.printer.home()
+
+        self.progress.setLabelText("Processing images...")
+        perImage = 40 / len(self.images)
         for image in self.images:
             if not self.isImageProcessed(image):
+                self.progress.setText("Processing image {}.".format(os.path.basename(image.filename)))
                 self.processImage(image)
+            self.progress.setValue(self.progress.value() + perImage)
         hexfiles = [image.hexFilename for image in self.images]
         missing = self.argentum.printer.missingFiles(hexfiles)
         for filename in missing:
@@ -204,11 +220,28 @@ class PrintView(QtGui.QWidget):
             msgbox.setText("One or more files are missing from the printer.")
             msgbox.setDetailedText('\n'.join(missing))
             msgbox.exec_()
+            self.argentum.printer.disconnect()
+            self.argentum.printer.connect()
             missing = self.argentum.printer.missingFiles(hexfiles)
             if len(missing) != 0:
+                self.progress.cancel()
                 return
 
-        print("The print would continue...")
+        if not self.argentum.printer.isHomed():
+            self.progress.cancel()
+            self.argentum.statusBar().showMessage('Print canceled. Printer head needs homing.')
+            return
+
+        self.progress.setValue(50)
+
+        perImage = 50 / len(self.images)
+        for image in self.images:
+            self.argentum.printer.move(image.left + image.width, image.bottom)
+            #self.argentum.printer.print(image.hexFilename, wait=True)
+            self.progress.setValue(self.progress.value() + perImage)
+
+        self.progress.close()
+        self.argentum.statusBar().showMessage('Print complete.')
 
     def mouseReleaseEvent(self, event):
         self.dragging = None

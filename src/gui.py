@@ -355,7 +355,7 @@ class Argentum(QtGui.QMainWindow):
         data = self.printer.monitor()
         if data:
                 self.appendOutput(data.decode('utf-8'))
-        QtCore.QTimer.singleShot(10, self.monitor)
+        QtCore.QTimer.singleShot(100, self.monitor)
 
     ### Button Functions ###
 
@@ -464,7 +464,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.portListCombo.setEnabled(not enabled)
 
-        QtCore.QTimer.singleShot(10, self.monitor)
+        QtCore.QTimer.singleShot(100, self.monitor)
 
     def connectButtonPushed(self):
         if(self.printer.connected):
@@ -546,7 +546,7 @@ class Argentum(QtGui.QMainWindow):
         self.sendStopCommand()
 
     def homeButtonPushed(self):
-        self.printer.move(0, 0)
+        self.printer.home()
 
     def sendButtonPushed(self):
         command = str(self.commandField.text())

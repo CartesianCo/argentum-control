@@ -31,12 +31,15 @@ class ArgentumPrinterController(PrinterController):
       self.serialDevice = None
       self.connected = False
 
-    def command(self, command):
+    def command(self, command, timeout=0):
         if self.serialDevice and self.connected:
+            self.serialDevice.timeout = timeout
             self.serialDevice.write(command.encode('utf-8'))
             self.serialDevice.write(self.delimiter.encode('utf-8'))
+            if timeout != 0:
+                return self.waitForResponse(timeout)
             return True
-        return False
+        return None
 
     def move(self, x, y):
         if x is not None:
@@ -44,6 +47,19 @@ class ArgentumPrinterController(PrinterController):
 
         if y is not None:
             self.command('M Y {}'.format(y))
+
+    def home(self):
+        self.move(0, 0)
+
+    def calibrate(self):
+        self.command('c')
+
+    def isHomed(self):
+        response = self.command('lim', 1)
+        for resp in response:
+            if resp == "+Limits: X- Y- ":
+                return True
+        return False
 
     def fire(self, address, primitive):
         print('[APC] Firing Command - {} - {}'.format(address, primitive))
@@ -63,27 +79,32 @@ class ArgentumPrinterController(PrinterController):
         self.command('S')
 
     def monitor(self):
-        if self.connected and self.serialDevice.inWaiting():
-            data = self.serialDevice.read(1)
+        if (self.connected and
+                self.serialDevice.timeout == 0 and
+                self.serialDevice.inWaiting()):
+            data = None
             n = self.serialDevice.inWaiting()
-            if n:
-                data = data + self.serialDevice.read(n)
+            if n > 0:
+                #print("monitor reading {} bytes.".format(n))
+                data = self.serialDevice.read(n)
 
             if data:
+                #print("monitor returned data.")
                 return data
         return None
 
-    def waitForResponse(self):
+    def waitForResponse(self, timeout=0.5):
         if not self.connected:
             return None
 
-        self.serialDevice.timeout = 0.5
+        self.serialDevice.timeout = timeout
         response = ""
         try:
             while True:
                 data = self.serialDevice.read(1)
                 n = self.serialDevice.inWaiting()
-                if n:
+                if n > 0:
+                    #print("waitForResponse reading {} more bytes.".format(n))
                     data = data + self.serialDevice.read(n)
                 else:
                     break
@@ -94,19 +115,21 @@ class ArgentumPrinterController(PrinterController):
 
         if response == "":
             return None
-        return response
+
+        response = response.split('\n')
+        resp_list = []
+        for resp in response:
+            if resp.find('\r') != -1:
+                resp = resp[:resp.find('\r')]
+            resp_list.append(resp)
+        return resp_list
 
     def missingFiles(self, files):
-        self.command("ls")
-        response = self.waitForResponse()
-        resp_list = response.split("\n")
+        response = self.command("ls", 2)
         missing = []
         for filename in files:
             found = False
-            for resp in resp_list:
-                if resp.find('\r') != -1:
-                    resp = resp[:resp.find('\r')]
-                print(resp)
+            for resp in response:
                 if resp == ("+" + filename):
                     found = True
                     break
