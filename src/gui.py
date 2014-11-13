@@ -278,6 +278,10 @@ class Argentum(QtGui.QMainWindow):
         self.importImageAction.triggered.connect(self.fileImportImageTriggered)
         fileMenu.addAction(self.importImageAction)
         fileMenu.addSeparator()
+        self.printAction = QtGui.QAction('&Print', self)
+        self.printAction.triggered.connect(self.filePrintTriggered)
+        fileMenu.addAction(self.printAction)
+        fileMenu.addSeparator()
         self.exitAction = QtGui.QAction("E&xit", self)
         self.exitAction.triggered.connect(self.close)
         fileMenu.addAction(self.exitAction)
@@ -295,7 +299,7 @@ class Argentum(QtGui.QMainWindow):
         # Create the Print tab
         self.printWidget = QtGui.QWidget(self)
         horizontalLayout = QtGui.QHBoxLayout()
-        self.printView = PrintView()
+        self.printView = PrintView(self)
         horizontalLayout.addWidget(self.printView)
         self.printWidget.setLayout(horizontalLayout)
 
@@ -315,13 +319,16 @@ class Argentum(QtGui.QMainWindow):
         button.setAutoRepeatDelay(100)
         button.setAutoRepeatInterval(80)
 
-    def processImage(self):
+    def getImageProcessor(self):
         ip = ImageProcessor(
             horizontal_offset=int(self.options['horizontal_offset']),
             vertical_offset=int(self.options['vertical_offset']),
             overlap=int(self.options['print_overlap'])
         )
+        return ip
 
+    def processImage(self):
+        ip = self.getImageProcessor()
         inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.filesDir)
 
         inputFileName = str(inputFileName)
@@ -447,8 +454,12 @@ class Argentum(QtGui.QMainWindow):
         if inputFileName:
             self.printView.addImageFile(inputFileName)
 
+    def filePrintTriggered(self):
+        self.printView.startPrint()
+
     def enableConnectionSpecificControls(self, enabled):
         self.flashAction.setEnabled(enabled)
+        self.printAction.setEnabled(enabled)
         #self.optionsAction.setEnabled(enabled)
 
         self.portListCombo.setEnabled(not enabled)

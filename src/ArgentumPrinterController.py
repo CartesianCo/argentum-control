@@ -95,3 +95,19 @@ class ArgentumPrinterController(PrinterController):
         if response == "":
             return None
         return response
+
+    def missingFiles(self, files):
+        self.command("ls")
+        response = self.waitForResponse()
+        resp_list = response.split("\n")
+        missing = []
+        for filename in files:
+            sdFilename = filename.upper()
+            found = False
+            for resp in resp_list:
+                if resp == "+" + sdFilename:
+                    found = True
+                    break
+            if not found:
+                missing.append(filename)
+        return missing

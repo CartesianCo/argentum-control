@@ -34,12 +34,20 @@ class PrintImage(PrintRect):
         self.height = pixmap.height() / imageScale[1]
         self.screenRect = None
 
+        filename = os.path.basename(filename)
+        if filename.find('.') != -1:
+            filename = filename[:filename.find('.')]
+        if len(filename) > 8:
+            filename = filename[:8]
+        self.hexFilename = filename + ".hex"
+
     def pixmapRect(self):
         return QtCore.QRectF(self.pixmap.rect())
 
 class PrintView(QtGui.QWidget):
-    def __init__(self):
+    def __init__(self, argentum):
         super(PrintView, self).__init__()
+        self.argentum = argentum
         self.lastRect = QtCore.QRect()
 
         self.printPlateArea = PrintRect(0, 0, 285, 255)
@@ -158,10 +166,47 @@ class PrintView(QtGui.QWidget):
         if not pixmap:
             print("Can't load image " + inputFileName)
             return
-        pi = PrintImage(pixmap, os.path.basename(inputFileName))
+        pi = PrintImage(pixmap, inputFileName)
         self.images.append(pi)
         self.update()
         return pi
+
+    def isImageProcessed(self, image):
+        hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
+        if not os.path.exists(hexFilename):
+            return False
+        imgModified = os.path.getmtime(image.filename)
+        hexModified = os.path.getmtime(hexFilename)
+        if imgModified < hexModified:
+            return True
+        return False
+
+    def processImage(self, image):
+        ip = self.argentum.getImageProcessor()
+        hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
+        print("processing " + image.filename)
+        ip.sliceImage(image.filename, hexFilename)
+
+    def startPrint(self):
+        if not self.argentum.printer.connected:
+            return
+        if len(self.images) == 0:
+            return
+
+        for image in self.images:
+            if not self.isImageProcessed(image):
+                self.processImage(image)
+        hexfiles = [image.hexFilename for image in self.images]
+        missing = self.argentum.printer.missingFiles(hexfiles)
+        for filename in missing:
+            # I swear on Poseidon's trident, one day I shall remove the need 
+            # for this Sneaker Net bullshit
+            msgbox = QtGui.QMessageBox()
+            msgbox.setWindowTitle("Sneaker Net Required.")
+            msgbox.setText("One or more files are missing from the printer.")
+            msgbox.setDetailedText('\n'.join(missing))
+            msgbox.exec_()
+            return
 
     def mouseReleaseEvent(self, event):
         self.dragging = None
