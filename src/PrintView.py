@@ -161,9 +161,9 @@ class PrintView(QtGui.QWidget):
 
     def addImageFile(self, inputFileName):
         pixmap = QtGui.QPixmap(inputFileName)
-        if not pixmap:
+        if pixmap.isNull():
             print("Can't load image " + inputFileName)
-            return
+            return None
         pi = PrintImage(pixmap, inputFileName)
         self.images.append(pi)
         self.update()
@@ -204,7 +204,11 @@ class PrintView(QtGui.QWidget):
             msgbox.setText("One or more files are missing from the printer.")
             msgbox.setDetailedText('\n'.join(missing))
             msgbox.exec_()
-            return
+            missing = self.argentum.printer.missingFiles(hexfiles)
+            if len(missing) != 0:
+                return
+
+        print("The print would continue...")
 
     def mouseReleaseEvent(self, event):
         self.dragging = None
@@ -263,6 +267,8 @@ class PrintView(QtGui.QWidget):
         if e.mimeData().hasUrls():
             url = str(e.mimeData().urls()[0].path())
             pi = self.addImageFile(url)
+            if pi == None:
+                return
             p = self.screenToPrintArea(e.pos().x(), e.pos().y())
             if p != None:
                 pi.left = p[0] - pi.width / 2

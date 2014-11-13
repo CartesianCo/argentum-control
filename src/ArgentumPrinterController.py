@@ -102,10 +102,12 @@ class ArgentumPrinterController(PrinterController):
         resp_list = response.split("\n")
         missing = []
         for filename in files:
-            sdFilename = filename.upper()
             found = False
             for resp in resp_list:
-                if resp == "+" + sdFilename:
+                if resp.find('\r') != -1:
+                    resp = resp[:resp.find('\r')]
+                print(resp)
+                if resp == ("+" + filename):
                     found = True
                     break
             if not found:
