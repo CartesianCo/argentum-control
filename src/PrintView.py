@@ -21,11 +21,17 @@ class PrintRect:
         self.width  = float(width)
         self.height = float(height)
 
-class PrintImage:
+class PrintImage(PrintRect):
     def __init__(self, pixmap):
         self.pixmap = pixmap
-        self.left = 0
-        self.bottom = 0
+        self.left = 0.0
+        self.bottom = 0.0
+        self.width = pixmap.width()
+        self.height = pixmap.height()
+        self.screenRect = None
+
+    def pixmapRect(self):
+        return QtCore.QRectF(self.pixmap.rect())
 
 class PrintView(QtGui.QWidget):
     def __init__(self):
@@ -38,13 +44,16 @@ class PrintView(QtGui.QWidget):
         self.printPlateDesignScale = [1.0757, 1.2256] # * printArea
         height = self.printArea.height * self.printPlateDesignScale[1]
         self.printPlateDesignArea = PrintRect(12, 
-                    self.printArea.bottom - (height - self.printArea.height), 
+                    50,
                     self.printArea.width * self.printPlateDesignScale[0],
                     height)
         self.images = []
 
-    def calcDrawingRects(self):
+    def calcScreenRects(self):
         if self.lastRect == self.rect():
+            for image in self.images:
+                if image.screenRect == None:
+                    image.screenRect = self.printAreaToScreen(image)
             return
         self.lastRect = self.rect()
 
@@ -75,7 +84,11 @@ class PrintView(QtGui.QWidget):
         #                                             aspectRect.width(),
         #                                             aspectRect.height()))
         self.printPlateRect = aspectRect
+
+        # Now we can make the screen rects
         self.printPlateDesignRect = self.printToScreen(self.printPlateDesignArea)
+        for image in self.images:
+            image.screenRect = self.printAreaToScreen(image)
 
     def printToScreen(self, printRect):
         #print("printRect {}, {} {} x {}".format(printRect.left,
@@ -100,20 +113,22 @@ class PrintView(QtGui.QWidget):
 
         return QtCore.QRectF(left, top, width, height)
 
+    def printAreaToScreen(self, printRect):
+        p = PrintRect(self.printArea.left + printRect.left,
+                      self.printArea.bottom - printRect.bottom,
+                      printRect.width, printRect.height)
+        return self.printToScreen(p)
+
     def paintEvent(self, event):
-        self.calcDrawingRects()
+        self.calcScreenRects()
 
         qp = QtGui.QPainter()
         qp.begin(self)
         qp.fillRect(self.rect(), QtGui.QColor(0,0,0))
         self.printPlateDesign.render(qp, self.printPlateDesignRect)
-
         for image in self.images:
-            qp.drawPixmap(QtCore.QPointF(image.left, 
-                                  self.rect().height() - image.bottom - image.pixmap.height()),
-                          image.pixmap)
-
-        qp.end();
+            qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
+        qp.end()
 
     def addImageFile(self, inputFileName):
         pixmap = QtGui.QPixmap(inputFileName)
