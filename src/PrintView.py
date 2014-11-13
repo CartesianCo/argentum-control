@@ -30,22 +30,30 @@ class PrintImage:
 class PrintView(QtGui.QWidget):
     def __init__(self):
         super(PrintView, self).__init__()
+        self.lastRect = QtCore.QRect()
 
         self.printPlateArea = PrintRect(0, 0, 285, 255)
         self.printArea = PrintRect(24, 73, 247, 127)
         self.printPlateDesign = QtSvg.QSvgRenderer("printPlateDesign.svg")
         self.printPlateDesignScale = [1.0757, 1.2256] # * printArea
-        self.printPlateDesignArea = PrintRect(0, 0, 
-                        self.printArea.width * self.printPlateDesignScale[0],
-                        self.printArea.height * self.printPlateDesignScale[1])
+        height = self.printArea.height * self.printPlateDesignScale[1]
+        self.printPlateDesignArea = PrintRect(12, 
+                    self.printArea.bottom - (height - self.printArea.height), 
+                    self.printArea.width * self.printPlateDesignScale[0],
+                    height)
         self.images = []
 
-    def calcPrintPlateDesignRect(self):
+    def calcDrawingRects(self):
+        if self.lastRect == self.rect():
+            return
+        self.lastRect = self.rect()
+
         # Ensure correct aspect ratio
         aspectRect = QtCore.QRectF(self.rect())
         aspectRatio = aspectRect.width() / aspectRect.height()
-        desiredAspectRatio = self.printArea.width / self.printArea.height
-        #print("window {}x{}".format(aspectRect.width(), aspectRect.height()))
+        desiredAspectRatio = (self.printPlateArea.width / 
+                              self.printPlateArea.height)
+        #print("window {} x {}".format(aspectRect.width(), aspectRect.height()))
         #print("aspect ratio {}".format(aspectRatio))
         #print("desired aspect ratio {}".format(desiredAspectRatio))
 
@@ -62,13 +70,43 @@ class PrintView(QtGui.QWidget):
             aspectRect.setLeft((aspectRect.width() - width) / 2)
             aspectRect.setWidth(width)
 
-        return aspectRect
+        #print("printPlateRect is {}, {} {} x {}".format(aspectRect.left(), 
+        #                                             aspectRect.top(),
+        #                                             aspectRect.width(),
+        #                                             aspectRect.height()))
+        self.printPlateRect = aspectRect
+        self.printPlateDesignRect = self.printToScreen(self.printPlateDesignArea)
+
+    def printToScreen(self, printRect):
+        #print("printRect {}, {} {} x {}".format(printRect.left,
+        #                                        printRect.bottom,
+        #                                        printRect.width,
+        #                                        printRect.height))
+        #print("printPlateArea {} x {}".format(self.printPlateArea.width,
+        #                                      self.printPlateArea.height))
+        left   = (self.printPlateRect.left() + 
+                  printRect.left / self.printPlateArea.width
+                               * self.printPlateRect.width())
+        top    = (self.printPlateRect.top() + self.printPlateRect.height() -
+                  (printRect.bottom + printRect.height) 
+                                 / self.printPlateArea.height
+                               * self.printPlateRect.height())
+        width  = (printRect.width / self.printPlateArea.width
+                               * self.printPlateRect.width())
+        height = (printRect.height / self.printPlateArea.height
+                               * self.printPlateRect.height())
+
+        #print("on screen {}, {} {} x {}".format(left, top, width, height))
+
+        return QtCore.QRectF(left, top, width, height)
 
     def paintEvent(self, event):
+        self.calcDrawingRects()
+
         qp = QtGui.QPainter()
         qp.begin(self)
         qp.fillRect(self.rect(), QtGui.QColor(0,0,0))
-        self.printPlateDesign.render(qp, self.calcPrintPlateDesignRect())
+        self.printPlateDesign.render(qp, self.printPlateDesignRect)
 
         for image in self.images:
             qp.drawPixmap(QtCore.QPointF(image.left, 
