@@ -31,13 +31,13 @@ class ArgentumPrinterController(PrinterController):
       self.serialDevice = None
       self.connected = False
 
-    def command(self, command, timeout=0):
+    def command(self, command, timeout=0, expect=None):
         if self.serialDevice and self.connected:
             self.serialDevice.timeout = timeout
             self.serialDevice.write(command.encode('utf-8'))
             self.serialDevice.write(self.delimiter.encode('utf-8'))
             if timeout != 0:
-                return self.waitForResponse(timeout)
+                return self.waitForResponse(timeout, expect)
             return True
         return None
 
@@ -49,7 +49,7 @@ class ArgentumPrinterController(PrinterController):
             self.command('M Y {}'.format(y))
 
     def home(self):
-        self.move(0, 0)
+        self.command('home', 15, '+Homed')
 
     def calibrate(self):
         self.command('c')
@@ -93,7 +93,7 @@ class ArgentumPrinterController(PrinterController):
                 return data
         return None
 
-    def waitForResponse(self, timeout=0.5):
+    def waitForResponse(self, timeout=0.5, expect=None):
         if not self.connected:
             return None
 
@@ -110,6 +110,10 @@ class ArgentumPrinterController(PrinterController):
                     break
                 if data:
                     response = response + data
+
+                if expect:
+                    if response.find(expect) != -1:
+                        break
         finally:
             self.serialDevice.timeout = 0
 
