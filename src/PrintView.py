@@ -64,6 +64,7 @@ class PrintView(QtGui.QWidget):
         self.printArea = PrintRect(24, 73, 247, 127)
         self.printLims = PrintRect(10, 0, 230, 120)
         self.printPlateDesign = QtSvg.QSvgRenderer("printPlateDesign.svg")
+        self.trashCan         = QtSvg.QSvgRenderer("trashCan.svg")
         height = self.printArea.height * printPlateDesignScale[1]
         self.printPlateDesignArea = PrintRect(12, 
                     50,
@@ -113,6 +114,13 @@ class PrintView(QtGui.QWidget):
         self.printPlateDesignRect = self.printToScreen(self.printPlateDesignArea)
         for image in self.images:
             image.screenRect = self.printAreaToScreen(image)
+        self.trashCanRect = QtCore.QRectF(
+           (self.printPlateDesignRect.left() +
+            self.printPlateDesignRect.width() * 19 / 21),
+           (self.printPlateDesignRect.top() +
+            self.printPlateDesignRect.height() * 5 / 7),
+           self.printPlateDesignRect.width() / 7,
+           self.printPlateDesignRect.height() / 5)
 
     def printToScreen(self, printRect):
         #print("printRect {}, {} {} x {}".format(printRect.left,
@@ -184,6 +192,8 @@ class PrintView(QtGui.QWidget):
         qp.begin(self)
         qp.fillRect(self.rect(), QtGui.QColor(0,0,0))
         self.printPlateDesign.render(qp, self.printPlateDesignRect)
+        if self.dragging:
+            self.trashCan.render(qp, self.trashCanRect)
         for image in self.images:
             qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
         qp.end()
@@ -370,8 +380,15 @@ class PrintView(QtGui.QWidget):
             self.printThread = None
 
     def mouseReleaseEvent(self, event):
+        if self.dragging:
+            screenRect = self.printAreaToScreen(self.dragging)
+            if (screenRect.left > self.trashCanRect.left and
+                    screenRect.top > self.trashCanRect.top):
+                self.images.remove(self.dragging)
+
         self.dragging = None
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.update()
 
     def ensureImageInPrintLims(self, image):
         if image.left < self.printLims.left:
