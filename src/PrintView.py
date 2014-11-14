@@ -190,6 +190,8 @@ class PrintView(QtGui.QWidget):
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
         if not os.path.exists(hexFilename):
             return False
+        if os.path.getsize(hexFilename) == 0:
+            return False
         imgModified = os.path.getmtime(image.filename)
         hexModified = os.path.getmtime(hexFilename)
         if imgModified < hexModified:
@@ -200,7 +202,14 @@ class PrintView(QtGui.QWidget):
         ip = self.argentum.getImageProcessor()
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
         print("processing " + image.filename)
-        ip.sliceImage(image.filename, hexFilename)
+        try:
+            ip.sliceImage(image.filename, hexFilename)
+        except:
+            print("error processing {}.".format(image.filename))
+            self.setProgress(labelText="Error processing {}.".format(image.filename))
+            print("removing {}.".format(hexFilename))
+            os.remove(hexFilename)
+            raise
 
     percent = None
     labelText = None
@@ -341,7 +350,8 @@ class PrintView(QtGui.QWidget):
 
             self.setProgress(statusText='Print complete.', percent=100)
         except:
-            self.setProgress(statusText="Print canceled.")
+            self.setProgress(statusText="Print canceled.", canceled=True)
+            raise
         finally:
             self.printThread = None
 
