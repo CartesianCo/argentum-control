@@ -280,10 +280,6 @@ class PrintView(QtGui.QWidget):
         self.setProgress(percent=100)
 
     def startPrint(self):
-        if not self.argentum.printer.connected:
-            print("Printer isn't connected.")
-            return
-
         if len(self.images) == 0:
             self.argentum.statusBar().showMessage('Add some images to print.')
             return
@@ -312,6 +308,11 @@ class PrintView(QtGui.QWidget):
                     self.setProgress(labelText="Processing image {}.".format(os.path.basename(image.filename)))
                     self.processImage(image)
                 self.setProgress(incPercent=perImage)
+
+            if not self.argentum.printer.connected:
+                self.setProgress(labelText="Printer isn't connected.", statusText="Print aborted.", canceled=True)
+                return
+
 
             self.setProgress(labelText="Looking on the printer...")
             hexfiles = [image.hexFilename for image in self.images]
