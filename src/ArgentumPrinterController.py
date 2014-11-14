@@ -11,13 +11,16 @@ class ArgentumPrinterController(PrinterController):
     def __init__(self, port=None):
         self.port = port
 
-    def connect(self, port=None):
+    def connect(self, port=None, wait=None):
         if port:
             self.port = port
 
         try:
             self.serialDevice = Serial(self.port, 115200, timeout=0)
             self.connected = True
+
+            if wait:
+                self.waitForResponse(timeout=2)
 
             return True
         except SerialException as e:
@@ -31,31 +34,42 @@ class ArgentumPrinterController(PrinterController):
       self.serialDevice = None
       self.connected = False
 
-    def command(self, command, timeout=0, expect=None):
+    def command(self, command, timeout=0, expect=None, wait=False):
         if self.serialDevice and self.connected:
             self.serialDevice.timeout = timeout
             self.serialDevice.write(command.encode('utf-8'))
             self.serialDevice.write(self.delimiter.encode('utf-8'))
+            if wait != False:
+                if timeout == 0:
+                    timeout = 30
+                if expect == None:
+                    expect = command
             if timeout != 0:
                 return self.waitForResponse(timeout, expect)
             return True
         return None
 
-    def move(self, x, y):
+    def move(self, x, y, wait=False):
         if x is not None:
-            self.command('M X {}'.format(x))
+            self.command('M X {}'.format(x), wait=wait)
 
         if y is not None:
-            self.command('M Y {}'.format(y))
+            self.command('M Y {}'.format(y), wait=wait)
 
     def home(self, wait=False):
         if wait:
-            self.command('home', 30, '+Homed')
+            self.command('home', timeout=30, expect='+Homed')
         else:
             self.command('home')
 
     def calibrate(self):
         self.command('c')
+
+    def Print(self, filename, wait=False):
+        if wait:
+            self.command('p ' + filename, timeout=2*60, expect="+Print complete")
+        else:
+            self.command('p ' + filename)
 
     def isHomed(self):
         response = self.command('lim', 1)
@@ -132,7 +146,7 @@ class ArgentumPrinterController(PrinterController):
         return resp_list
 
     def missingFiles(self, files):
-        response = self.command("ls", 2)
+        response = self.command("ls", timeout=2)
         missing = []
         for filename in files:
             found = False

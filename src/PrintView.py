@@ -9,10 +9,14 @@ author: Trent Waddington
 
 import sys
 import os
+import threading
 from PyQt4 import QtGui, QtCore, QtSvg
 
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
 imageScale            = [ 23.52,  23.29] # * print = pixels
+
+# moves / mm
+moveScale             = [3000 / 37, 3000 / 39]
 
 # A kind of annoying Rect
 # Note: (0,0) is the bottom left corner of the printer
@@ -47,9 +51,14 @@ class PrintView(QtGui.QWidget):
         super(PrintView, self).__init__()
         self.argentum = argentum
         self.lastRect = QtCore.QRect()
+        self.printThread = None
+        self.progress = QtGui.QProgressDialog(self)
+        self.progress.setWindowTitle("Printing")
+        QtCore.QTimer.singleShot(100, self.progressUpdater)
 
         self.printPlateArea = PrintRect(0, 0, 285, 255)
         self.printArea = PrintRect(24, 73, 247, 127)
+        self.printLims = PrintRect(10, 0, 230, 120)
         self.printPlateDesign = QtSvg.QSvgRenderer("printPlateDesign.svg")
         height = self.printArea.height * printPlateDesignScale[1]
         self.printPlateDesignArea = PrintRect(12, 
@@ -131,6 +140,13 @@ class PrintView(QtGui.QWidget):
                       printRect.width, printRect.height)
         return self.printToScreen(p)
 
+    def printAreaToMove(self, offsetX, offsetY):
+        x = offsetX * moveScale[0]
+        y = offsetY * moveScale[1]
+        x = int(x)
+        y = int(y)
+        return (x, y)
+
     def screenToPrintArea(self, x, y):
         r = self.printToScreen(self.printArea)
         if x < r.left():
@@ -166,6 +182,7 @@ class PrintView(QtGui.QWidget):
             return None
         pi = PrintImage(pixmap, inputFileName)
         self.images.append(pi)
+        self.ensureImageInPrintLims(pi)
         self.update()
         return pi
 
@@ -185,77 +202,163 @@ class PrintView(QtGui.QWidget):
         print("processing " + image.filename)
         ip.sliceImage(image.filename, hexFilename)
 
+    percent = None
+    labelText = None
+    statusText = None
+    missing = None
+    printCanceled = False
+    def setProgress(self, percent=None,
+                          incPercent=None,
+                          labelText=None,
+                          statusText=None,
+                          missing=None,
+                          canceled=None):
+        if self.printCanceled:
+            raise Exception()
+        if percent:
+            self.percent = percent
+        if incPercent:
+            if self.percent == None:
+                self.percent = 0
+            self.percent = self.percent + incPercent
+        if labelText:
+            self.labelText = labelText
+        if statusText:
+            self.statusText = statusText
+        if missing:
+            canceled = True
+            self.missing = missing
+        if canceled:
+            self.printCanceled = canceled
+
+    def reportMissing(self, missing):
+        # I swear on Poseidon's trident, one day I shall remove the need
+        # for this Sneaker Net bullshit
+        msgbox = QtGui.QMessageBox()
+        msgbox.setWindowTitle("Sneaker Net Required.")
+        msgbox.setText("One or more files are missing from the printer.")
+        msgbox.setDetailedText('\n'.join(missing))
+        msgbox.exec_()
+
+    def progressUpdater(self):
+        QtCore.QTimer.singleShot(100, self.progressUpdater)
+        if self.percent:
+            self.progress.setValue(self.percent)
+            self.percent = None
+        if self.labelText:
+            self.progress.setLabelText(self.labelText)
+            self.labelText = None
+        if self.statusText:
+            self.argentum.statusBar().showMessage(self.statusText)
+            self.statusText = None
+        if self.progress.wasCanceled() or self.printCanceled:
+            if not self.printCanceled:
+                self.argentum.printer.stop()
+            self.printCanceled = True
+            self.progress.hide()
+        if self.missing:
+            missing = self.missing
+            self.missing = None
+            self.reportMissing(missing)
+
+    def printCross(self, x, y):
+        pos = self.printAreaToMove(x, y)
+        self.argentum.printer.move(pos[0], pos[1], wait=True)
+        self.argentum.printer.Print("cross.hex", wait=True)
+
+    def printCrossPattern(self, x, y):
+        self.setProgress(labelText="Printing cross pattern...")
+        self.printCross(x+ 0, y+ 0)
+        self.setProgress(percent=20)
+        self.printCross(x+10, y+ 0)
+        self.setProgress(percent=40)
+        self.printCross(x+20, y+ 0)
+        self.setProgress(percent=60)
+        self.printCross(x+10, y+10)
+        self.setProgress(percent=80)
+        self.printCross(x+10, y+20)
+        self.setProgress(percent=100)
+
     def startPrint(self):
         if not self.argentum.printer.connected:
             print("Printer isn't connected.")
             return
+
         if len(self.images) == 0:
             self.argentum.statusBar().showMessage('Add some images to print.')
             return
 
-        self.progress = QtGui.QProgressDialog(self)
-        self.progress.setWindowTitle("Printing")
-        self.progress.setLabelText("Setting up...")
-        self.progress.show()
-
-        if self.argentum.printer.isHomed():
-            self.progress.setValue(10)
-        else:
-            self.argentum.printer.home()
-
-        self.progress.setLabelText("Processing images...")
-        perImage = 40 / len(self.images)
-        for image in self.images:
-            if not self.isImageProcessed(image):
-                self.progress.setText("Processing image {}.".format(os.path.basename(image.filename)))
-                self.processImage(image)
-            self.progress.setValue(self.progress.value() + perImage)
-        hexfiles = [image.hexFilename for image in self.images]
-        missing = self.argentum.printer.missingFiles(hexfiles)
-        for filename in missing:
-            # I swear on Poseidon's trident, one day I shall remove the need 
-            # for this Sneaker Net bullshit
-            msgbox = QtGui.QMessageBox()
-            msgbox.setWindowTitle("Sneaker Net Required.")
-            msgbox.setText("One or more files are missing from the printer.")
-            msgbox.setDetailedText('\n'.join(missing))
-            msgbox.exec_()
-            self.argentum.printer.disconnect()
-            self.argentum.printer.connect()
-            missing = self.argentum.printer.missingFiles(hexfiles)
-            if len(missing) != 0:
-                self.progress.cancel()
-                return
-
-        if not self.argentum.printer.isHomed():
-            self.progress.cancel()
-            self.argentum.statusBar().showMessage('Print canceled. Printer head needs homing.')
+        if self.printThread != None:
+            print("Already printing!")
             return
 
-        self.progress.setValue(50)
+        self.printCanceled = False
+        self.progress.setLabelText("Starting up...")
+        self.progress.setValue(0)
+        self.progress.show()
 
-        perImage = 50 / len(self.images)
-        for image in self.images:
-            self.argentum.printer.move(image.left + image.width, image.bottom)
-            #self.argentum.printer.print(image.hexFilename, wait=True)
-            self.progress.setValue(self.progress.value() + perImage)
+        self.printThread = threading.Thread(target=self.printLoop)
+        self.printThread.start()
 
-        self.progress.close()
-        self.argentum.statusBar().showMessage('Print complete.')
+    def printLoop(self):
+        try:
+            #self.printCrossPattern(30, 30)
+            #return
+
+            self.setProgress(labelText="Processing images...")
+            perImage = 40 / len(self.images)
+            for image in self.images:
+                if not self.isImageProcessed(image):
+                    self.setProgress(labelText="Processing image {}.".format(os.path.basename(image.filename)))
+                    self.processImage(image)
+                self.setProgress(incPercent=perImage)
+
+            self.setProgress(labelText="Looking on the printer...")
+            hexfiles = [image.hexFilename for image in self.images]
+            missing = self.argentum.printer.missingFiles(hexfiles)
+
+            # Try harder
+            if len(missing) != 0:
+                self.setProgress(labelText="Looking on the printer for {} missing files...".format(len(missing)))
+                self.argentum.printer.disconnect()
+                self.argentum.printer.connect(wait=True)
+                missing = self.argentum.printer.missingFiles(hexfiles)
+
+            # Nope, and this is fatal
+            if len(missing) != 0:
+                self.setProgress(missing=missing, statusText="Print aborted.")
+                return
+
+            self.setProgress(percent=40, labelText="Printing...")
+            perImage = 59 / len(self.images)
+            for image in self.images:
+                pos = self.printAreaToMove(image.left + image.width, image.bottom)
+                self.argentum.printer.home(wait=True)
+                self.argentum.printer.move(pos[0], pos[1], wait=True)
+                self.argentum.printer.Print(image.hexFilename, wait=True)
+                self.setProgress(incPercent=perImage)
+
+            self.setProgress(statusText='Print complete.', percent=100)
+        except:
+            self.setProgress(statusText="Print canceled.")
+        finally:
+            self.printThread = None
 
     def mouseReleaseEvent(self, event):
         self.dragging = None
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
-    def ensureImageInPrintArea(self, image):
-        if image.left < 0:
-            image.left = 0
-        if image.bottom < 0:
-            image.bottom = 0
-        if image.left + image.width > self.printArea.width:
-            image.left = self.printArea.width - image.width
-        if image.bottom + image.height > self.printArea.height:
-            image.bottom = self.printArea.height - image.height
+    def ensureImageInPrintLims(self, image):
+        if image.left < self.printLims.left:
+            image.left = self.printLims.left
+        if image.bottom < self.printLims.bottom:
+            image.bottom = self.printLims.bottom
+        if image.left + image.width > self.printLims.width:
+            image.left = (self.printLims.left +
+                            self.printLims.width - image.width)
+        if image.bottom + image.height > self.printLims.height:
+            image.bottom = (self.printLims.bottom +
+                                self.printLims.height - image.height)
 
     def mouseMoveEvent(self, event):
         pressed = event.buttons() & QtCore.Qt.LeftButton
@@ -273,7 +376,7 @@ class PrintView(QtGui.QWidget):
             image = self.dragging
             image.left = px - self.dragStart[0] + self.dragImageStart[0]
             image.bottom = py - self.dragStart[1] + self.dragImageStart[1]
-            self.ensureImageInPrintArea(image)
+            self.ensureImageInPrintLims(image)
             image.screenRect = None
             self.update()
         elif self.dragging == None:
@@ -308,4 +411,4 @@ class PrintView(QtGui.QWidget):
             if p != None:
                 pi.left = p[0] - pi.width / 2
                 pi.bottom = p[1] - pi.height / 2
-                self.ensureImageInPrintArea(pi)
+                self.ensureImageInPrintLims(pi)
