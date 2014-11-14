@@ -385,6 +385,7 @@ class PrintView(QtGui.QWidget):
             if (screenRect.left > self.trashCanRect.left and
                     screenRect.top > self.trashCanRect.top):
                 self.images.remove(self.dragging)
+                self.layoutChanged = True
 
         self.dragging = None
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
