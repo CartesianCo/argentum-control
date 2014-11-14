@@ -8,6 +8,12 @@ PRIMITIVEOFFSET = 12 # Distance between two different primitives on the same hea
 VOFFSET = -2 # Vertical distance between the two printheads
 """
 
+# Python 3 fail
+try:
+    xrange
+except NameError:
+    xrange = range
+
 class ImageProcessor:
     # Distance between the same line of primitives on two different heads (in pixels)
     # Distance between the two cartridges in pixels
@@ -97,19 +103,19 @@ class ImageProcessor:
         pasteLocations = (
             (
                 self.HEADOFFSET,
-                (int(208 / self.mOffset) * self.mOffset) / 2
+                int((int(208 / self.mOffset) * self.mOffset) / 2)
             ),
             (
                 self.HEADOFFSET + self.PRIMITIVEOFFSET,
-                (int(208 / self.mOffset) * self.mOffset) / 2
+                int((int(208 / self.mOffset) * self.mOffset) / 2)
             ),
             (
                 0,
-                (int(208 / self.mOffset) * self.mOffset) / 2 + self.VOFFSET
+                int((int(208 / self.mOffset) * self.mOffset) / 2 + self.VOFFSET)
             ),
             (
                 self.PRIMITIVEOFFSET,
-                (int(208 / self.mOffset) * self.mOffset) / 2 + self.VOFFSET
+                int((int(208 / self.mOffset) * self.mOffset) / 2 + self.VOFFSET)
             )
         )
 
@@ -134,12 +140,12 @@ class ImageProcessor:
 
         xposition = 0
 
-        for y in xrange(height/self.mOffset*2 + 1):
+        for y in xrange(int(height/self.mOffset)*2 + 1):
             # Print out progress
             if progressFunc:
-                progressFunc(y + 1, height/self.mOffset*2 + 1)
+                progressFunc(y + 1, int(height/self.mOffset)*2 + 1)
             else:
-                print('{} out of {}.'.format(y + 1, height/self.mOffset*2 + 1))
+                print('{} out of {}.'.format(y + 1, int(height/self.mOffset)*2 + 1))
 
             yposition = 0
 
@@ -250,8 +256,8 @@ class ImageProcessor:
 
         # New images to store the split rows. Each image has half the height,
         # since we're splitting the image vertically.
-        odd = Image.new('RGBA', (width, height/2), (255, 255, 255, 255))
-        even = Image.new('RGBA', (width, height/2), (255, 255, 255, 255))
+        odd = Image.new('RGBA', (width, int(height/2)), (255, 255, 255, 255))
+        even = Image.new('RGBA', (width, int(height/2)), (255, 255, 255, 255))
 
         # References to the pixel data.
         evenMatrix = even.load()
@@ -260,7 +266,7 @@ class ImageProcessor:
 
         # Divide by 4 because we're copying two rows at a time (why?)
         # Subtract 1 because of zero-offset.
-        for y in xrange((height / 4) - 1):
+        for y in xrange(int(height / 4) - 1):
             for x in xrange(width):
                 oddMatrix[x, y*2] = inputMatrix[x, y*4]
                 oddMatrix[x, y*2+1] = inputMatrix[x, y*4+1]
@@ -271,7 +277,7 @@ class ImageProcessor:
         # Handle the final row(s) specially
         # This shouldn't be necessary, since we know how many extras
         # (non-existant) we added.
-        y = (height / 4) - 1
+        y = int(height / 4) - 1
         for x in xrange(width):
             if y*4 < image.size[1]: oddMatrix[x, y*2] = inputMatrix[x, y*4]
             if y*4 + 1 < image.size[1]: oddMatrix[x, y*2+1] = inputMatrix[x, y*4+1]
@@ -282,7 +288,7 @@ class ImageProcessor:
         return (odd, even)
 
     def writeMovementCommand(self, axis, steps):
-        self.outputFile.write('M {} {}\n'.format(axis, steps))
+        self.outputFile.write('M {} {}\n'.format(axis, steps).encode('utf-8'))
 
     def writeFiringCommand(self, a, firing1, firing2):
         # The multiplexer doesn't use the first output, for startup reasons.
@@ -297,7 +303,7 @@ class ImageProcessor:
 
 
         if self.USE_TEXTUAL_FIRING:
-            self.outputFile.write('F {:01X}{:02X}{:02X}\n'.format(address, firing1, firing2))
+            self.outputFile.write('F {:01X}{:02X}{:02X}\n'.format(address, firing1, firing2).encode('utf-8'))
         else:
             outputStream = self.outputFile
             outputStream.write(chr(1)) # Fire command
