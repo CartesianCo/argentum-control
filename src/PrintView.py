@@ -472,6 +472,7 @@ class PrintView(QtGui.QWidget):
         lines = file.read().split('\n')
         file.close()
 
+        layoutPath = os.path.dirname(filename)
         bImageSection = False
         image = None
         for line in lines:
@@ -495,7 +496,10 @@ class PrintView(QtGui.QWidget):
                 if key == "filename":
                     if image:
                         self.ensureImageInPrintLims(image)
-                    image = self.addImageFile(value)
+                    filename = value
+                    if not os.path.isabs(filename):
+                        filename = os.path.join(layoutPath, filename)
+                    image = self.addImageFile(filename)
                 if image:
                     if key == "left":
                         image.left = float(value)
@@ -527,9 +531,13 @@ class PrintView(QtGui.QWidget):
         #
         # XXX Saves full pathnames. :(
         file = open(filename, "w")
+        layoutPath = os.path.dirname(filename)
         for image in self.images:
             file.write('[image]\n')
-            file.write('filename={}\n'.format(image.filename))
+            path = os.path.relpath(image.filename, layoutPath)
+            if path.find('..') != -1:
+                path = image.filename
+            file.write('filename={}\n'.format(path))
             file.write('left={}\n'.format(image.left))
             file.write('bottom={}\n'.format(image.bottom))
             file.write('width={}\n'.format(image.width))
