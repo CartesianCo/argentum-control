@@ -409,6 +409,9 @@ class Argentum(QtGui.QMainWindow):
 
             self.programmer = avrdude(port=self.printer.port)
             if self.programmer.flashFile(firmwareFileName):
+                self.flashingProgress = QtGui.QProgressDialog(self)
+                self.flashingProgress.setWindowTitle("Flashing")
+                self.flashingProgress.show()
                 self.pollFlashingTimer = QtCore.QTimer()
                 QtCore.QObject.connect(self.pollFlashingTimer, QtCore.SIGNAL("timeout()"), self.pollFlashing)
                 self.pollFlashingTimer.start(1000)
@@ -419,9 +422,12 @@ class Argentum(QtGui.QMainWindow):
                 self.enableAllButtons()
 
     def pollFlashing(self):
+        self.flashingProgress.setValue(self.flashingProgress.value() + 100 / 30)
         if self.programmer.done():
             self.appendOutput('Flashing completed.')
             self.appendOutput("")
+            self.flashingProgress.close()
+            self.flashingProgress = None
             self.pollFlashingTimer.stop()
             self.pollFlashingTimer = None
             self.programmer = None
