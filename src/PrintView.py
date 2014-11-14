@@ -404,6 +404,9 @@ class PrintView(QtGui.QWidget):
     def dropEvent(self, e):
         if e.mimeData().hasUrls():
             url = str(e.mimeData().urls()[0].path())
+            if url[0] == '/' and url[2] == ':':
+                # Windows
+                url = url[1:]
             pi = self.addImageFile(url)
             if pi == None:
                 return
