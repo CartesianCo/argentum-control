@@ -270,6 +270,9 @@ class Argentum(QtGui.QMainWindow):
         self.saveLayoutAction = QtGui.QAction('&Save Layout', self)
         self.saveLayoutAction.triggered.connect(self.fileSaveLayoutTriggered)
         fileMenu.addAction(self.saveLayoutAction)
+        self.saveLayoutAsAction = QtGui.QAction('S&ave Layout as...', self)
+        self.saveLayoutAsAction.triggered.connect(self.fileSaveLayoutAsTriggered)
+        fileMenu.addAction(self.saveLayoutAsAction)
         self.closeLayoutAction = QtGui.QAction('&Close Layout', self)
         self.closeLayoutAction.triggered.connect(self.fileCloseLayoutTriggered)
         fileMenu.addAction(self.closeLayoutAction)
@@ -283,7 +286,7 @@ class Argentum(QtGui.QMainWindow):
         fileMenu.addAction(self.printAction)
         fileMenu.addSeparator()
         self.exitAction = QtGui.QAction("E&xit", self)
-        self.exitAction.triggered.connect(self.close)
+        self.exitAction.triggered.connect(self.fileExitActionTriggered)
         fileMenu.addAction(self.exitAction)
 
         utilitiesMenu = menubar.addMenu('Utilities')
@@ -447,13 +450,17 @@ class Argentum(QtGui.QMainWindow):
         optionsDialog.exec_()
 
     def fileOpenLayoutTriggered(self):
-        pass
+        self.printView.openLayout()
 
     def fileSaveLayoutTriggered(self):
-        pass
+        self.printView.saveLayout()
+
+    def fileSaveLayoutAsTriggered(self):
+        self.printView.layout = None
+        self.printView.saveLayout()
 
     def fileCloseLayoutTriggered(self):
-        pass
+        self.printView.closeLayout()
 
     def fileImportImageTriggered(self):
         inputFileName = str(QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.filesDir, "Images (*.png *.xpm *.jpg)"))
@@ -462,6 +469,10 @@ class Argentum(QtGui.QMainWindow):
 
     def filePrintTriggered(self):
         self.printView.startPrint()
+
+    def fileExitActionTriggered(self):
+        if self.printView.closeLayout():
+            self.close()
 
     def enableConnectionSpecificControls(self, enabled):
         self.flashAction.setEnabled(enabled)

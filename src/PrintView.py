@@ -47,11 +47,15 @@ class PrintImage(PrintRect):
         return QtCore.QRectF(self.pixmap.rect())
 
 class PrintView(QtGui.QWidget):
+    layout = None
+    layoutChanged = False
+    printThread = None
+    dragging = None
+
     def __init__(self, argentum):
         super(PrintView, self).__init__()
         self.argentum = argentum
         self.lastRect = QtCore.QRect()
-        self.printThread = None
         self.progress = QtGui.QProgressDialog(self)
         self.progress.setWindowTitle("Printing")
         QtCore.QTimer.singleShot(100, self.progressUpdater)
@@ -66,7 +70,6 @@ class PrintView(QtGui.QWidget):
                     self.printArea.width * printPlateDesignScale[0],
                     height)
         self.images = []
-        self.dragging = None
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
 
@@ -164,7 +167,17 @@ class PrintView(QtGui.QWidget):
         return (dx * self.printArea.width / r.width(),
                 self.printArea.height - dy * self.printArea.height / r.height())
 
+    def updateTitle(self):
+        if self.layout:
+            name = os.path.basename(self.layout)
+            if name.find('.layout') == len(name)-7:
+                name = name[:len(name)-7]
+            self.argentum.setWindowTitle(name + " - Argentum Control")
+        else:
+            self.argentum.setWindowTitle("Argentum Control")
+
     def paintEvent(self, event):
+        self.updateTitle()
         self.calcScreenRects()
 
         qp = QtGui.QPainter()
@@ -184,6 +197,7 @@ class PrintView(QtGui.QWidget):
         self.images.append(pi)
         self.ensureImageInPrintLims(pi)
         self.update()
+        self.layoutChanged = True
         return pi
 
     def isImageProcessed(self, image):
@@ -389,6 +403,7 @@ class PrintView(QtGui.QWidget):
             image.bottom = py - self.dragStart[1] + self.dragImageStart[1]
             self.ensureImageInPrintLims(image)
             image.screenRect = None
+            self.layoutChanged = True
             self.update()
         elif self.dragging == None:
             hit = False
@@ -426,3 +441,111 @@ class PrintView(QtGui.QWidget):
                 pi.left = p[0] - pi.width / 2
                 pi.bottom = p[1] - pi.height / 2
                 self.ensureImageInPrintLims(pi)
+
+    def openLayout(self):
+        if self.closeLayout() == False:
+            return
+
+        filename = str(QtGui.QFileDialog.getOpenFileName(self, 'Select a layout', self.argentum.filesDir, "Layouts (*.layout)"))
+        if filename == None:
+            return
+
+        file = open(filename, "r")
+        lines = file.read().split('\n')
+        file.close()
+
+        bImageSection = False
+        image = None
+        for line in lines:
+            if len(line) == 0:
+                continue
+            if line[0] == '#':
+                continue
+            if line[0] == '[':
+                bImageSection = False
+                if line == '[image]':
+                    bImageSection = True
+                continue
+            if line.find('=') == -1:
+                # What is this?
+                continue
+
+            key = line[0:line.find('=')]
+            value = line[line.find('=')+1:]
+
+            if bImageSection:
+                if key == "filename":
+                    if image:
+                        self.ensureImageInPrintLims(image)
+                    image = self.addImageFile(value)
+                if image:
+                    if key == "left":
+                        image.left = float(value)
+                    if key == "bottom":
+                        image.bottom = float(value)
+                    if key == "width":
+                        image.width = float(value)
+                    if key == "height":
+                        image.height = float(value)
+        if image:
+            self.ensureImageInPrintLims(image)
+
+        self.layout = filename
+        self.update()
+
+    def saveLayout(self, filename=None):
+        if self.layout == None:
+            if filename == None:
+                filename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save layout as', self.argentum.filesDir, "Layouts (*.layout)"))
+                if filename == None:
+                    return
+                if filename.find('.layout') != len(filename)-7:
+                    filename = filename + '.layout'
+        else:
+            filename = self.layout
+
+        # TODO we really need to create an archive of the control file
+        #      and all the images used
+        #
+        # XXX Saves full pathnames. :(
+        file = open(filename, "w")
+        for image in self.images:
+            file.write('[image]\n')
+            file.write('filename={}\n'.format(image.filename))
+            file.write('left={}\n'.format(image.left))
+            file.write('bottom={}\n'.format(image.bottom))
+            file.write('width={}\n'.format(image.width))
+            file.write('height={}\n'.format(image.height))
+            file.write('\n')
+        file.close()
+
+        self.layout = filename
+        self.layoutChanged = False
+        self.update()
+        return True
+
+    def closeLayout(self):
+        if len(self.images) == 0:
+            self.layout = None
+            self.layoutChanged = False
+            self.update()
+            return True
+
+        if self.layoutChanged:
+            answer = QtGui.QMessageBox.question(self, "Unsaved Changes",
+                "Would you like to save the current layout?",
+                (QtGui.QMessageBox.Save |
+                 QtGui.QMessageBox.Discard |
+                 QtGui.QMessageBox.Cancel))
+            if answer == QtGui.QMessageBox.Save:
+                if not self.saveLayout():
+                    return False
+            elif answer == QtGui.QMessageBox.Cancel:
+                return False
+
+        self.images = []
+        self.layout = None
+        self.layoutChanged = False
+        self.update()
+
+        return True
