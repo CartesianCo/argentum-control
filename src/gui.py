@@ -218,19 +218,19 @@ class Argentum(QtGui.QMainWindow):
 
         controlRow = QtGui.QHBoxLayout()
 
-        self.printButton = QtGui.QPushButton('Print')
+        self.calibrateButton = QtGui.QPushButton('Calibrate')
         self.pauseButton = QtGui.QPushButton('Pause')
         self.stopButton = QtGui.QPushButton('Stop')
         self.homeButton = QtGui.QPushButton('Home')
         self.processImageButton = QtGui.QPushButton('Process Image')
 
-        self.printButton.clicked.connect(self.printButtonPushed)
+        self.calibrateButton.clicked.connect(self.calibrateButtonPushed)
         self.pauseButton.clicked.connect(self.pauseButtonPushed)
         self.stopButton.clicked.connect(self.stopButtonPushed)
         self.homeButton.clicked.connect(self.homeButtonPushed)
         self.processImageButton.clicked.connect(self.processImageButtonPushed)
 
-        controlRow.addWidget(self.printButton)
+        controlRow.addWidget(self.calibrateButton)
         controlRow.addWidget(self.pauseButton)
         controlRow.addWidget(self.stopButton)
         controlRow.addWidget(self.homeButton)
@@ -381,7 +381,7 @@ class Argentum(QtGui.QMainWindow):
         self.downButton.setEnabled(enabled)
         self.leftButton.setEnabled(enabled)
         self.rightButton.setEnabled(enabled)
-        self.printButton.setEnabled(enabled)
+        self.calibrateButton.setEnabled(enabled)
         self.pauseButton.setEnabled(enabled)
         self.stopButton.setEnabled(enabled)
         self.homeButton.setEnabled(enabled)
@@ -529,8 +529,8 @@ class Argentum(QtGui.QMainWindow):
 
     ### Command Functions ###
 
-    def printButtonPushed(self):
-        self.sendPrintCommand()
+    def calibrateButtonPushed(self):
+        self.printer.calibrate()
 
     def pauseButtonPushed(self):
         if(self.paused):

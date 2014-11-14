@@ -48,8 +48,11 @@ class ArgentumPrinterController(PrinterController):
         if y is not None:
             self.command('M Y {}'.format(y))
 
-    def home(self):
-        self.command('home', 15, '+Homed')
+    def home(self, wait=False):
+        if wait:
+            self.command('home', 30, '+Homed')
+        else:
+            self.command('home')
 
     def calibrate(self):
         self.command('c')
