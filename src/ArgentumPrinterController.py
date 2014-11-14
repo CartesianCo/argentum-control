@@ -125,7 +125,7 @@ class ArgentumPrinterController(PrinterController):
                 else:
                     break
                 if data:
-                    response = response + data
+                    response = response + data.decode('utf-8', 'ignore')
 
                 if expect:
                     if response.find(expect) != -1:
