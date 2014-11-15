@@ -298,7 +298,7 @@ class Argentum(QtGui.QMainWindow):
         self.statusBar().showMessage('Looking for printer...')
 
         self.disableAllButtonsExceptConnect()
-        
+
         # Create the Print tab
         self.printWidget = QtGui.QWidget(self)
         horizontalLayout = QtGui.QHBoxLayout()
@@ -389,7 +389,7 @@ class Argentum(QtGui.QMainWindow):
         self.stopButton.setEnabled(enabled)
         self.homeButton.setEnabled(enabled)
         self.processImageButton.setEnabled(enabled)
-        
+
     def disableAllButtons(self):
         self.enableAllButtons(False)
 
@@ -510,7 +510,7 @@ class Argentum(QtGui.QMainWindow):
 
     def updatePortList(self):
         curPort = str(self.portListCombo.currentText())
-    
+
         self.portListCombo.clear()
 
         portList = []
@@ -543,7 +543,7 @@ class Argentum(QtGui.QMainWindow):
                     self.connectButtonPushed()
                     if self.printer.connected:
                         self.tabWidget.setCurrentWidget(self.printWidget)
-    
+
     def processImageButtonPushed(self):
         self.processImage()
 
