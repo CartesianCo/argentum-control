@@ -350,7 +350,8 @@ class PrintView(QtGui.QWidget):
             if not self.argentum.printer.connected:
                 self.setProgress(labelText="Printer isn't connected.", statusText="Print aborted. Connect your printer.", canceled=True)
                 return
-            if (self.argentum.printer.majorVersion == 0 and
+            if (self.argentum.printer.version == None or
+                    self.argentum.printer.majorVersion == 0 and
                     self.argentum.printer.minorVersion < 15):
                 self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
                 return

@@ -7,6 +7,7 @@ class ArgentumPrinterController(PrinterController):
     connected = False
     delimiter = '\n'
     lastError = None
+    version = None
 
     def __init__(self, port=None):
         self.port = port
@@ -22,6 +23,7 @@ class ArgentumPrinterController(PrinterController):
             response = self.waitForResponse(timeout=2, expect='\n')
             if response == None:
                 self.lastError = "Printer didn't respond."
+                self.connected = False
                 return False
 
             # Parse out the version

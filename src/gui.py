@@ -501,6 +501,9 @@ class Argentum(QtGui.QMainWindow):
                 self.enableAllButtons()
                 self.enableConnectionSpecificControls(True)
                 self.statusBar().showMessage('Connected.')
+
+                if self.printer.version != None:
+                    self.appendOutput("Printer is running: " + self.printer.version)
             else:
                 QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
         self.updatePortList()
