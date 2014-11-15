@@ -343,9 +343,12 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(incPercent=perImage)
 
             if not self.argentum.printer.connected:
-                self.setProgress(labelText="Printer isn't connected.", statusText="Print aborted.", canceled=True)
+                self.setProgress(labelText="Printer isn't connected.", statusText="Print aborted. Connect your printer.", canceled=True)
                 return
-
+            if (self.argentum.printer.majorVersion == 0 and
+                    self.argentum.printer.minorVersion < 15):
+                self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
+                return
 
             self.setProgress(labelText="Looking on the printer...")
             hexfiles = [image.hexFilename for image in self.images]
@@ -355,7 +358,7 @@ class PrintView(QtGui.QWidget):
             if len(missing) != 0:
                 self.setProgress(labelText="Looking on the printer for {} missing files...".format(len(missing)))
                 self.argentum.printer.disconnect()
-                self.argentum.printer.connect(wait=True)
+                self.argentum.printer.connect()
                 missing = self.argentum.printer.missingFiles(hexfiles)
 
             # Nope, and this is fatal

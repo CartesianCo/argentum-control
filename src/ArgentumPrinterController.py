@@ -11,7 +11,7 @@ class ArgentumPrinterController(PrinterController):
     def __init__(self, port=None):
         self.port = port
 
-    def connect(self, port=None, wait=None):
+    def connect(self, port=None):
         if port:
             self.port = port
 
@@ -19,8 +19,52 @@ class ArgentumPrinterController(PrinterController):
             self.serialDevice = Serial(self.port, 115200, timeout=0)
             self.connected = True
 
-            if wait:
-                self.waitForResponse(timeout=2)
+            response = self.waitForResponse(timeout=2, expect='\n')
+            if response == None:
+                self.lastError = "Printer didn't respond."
+                return False
+
+            # Parse out the version
+            for line in response:
+                if line.find('.') == -1:
+                    continue
+                major = line[:line.find('.')]
+                line = line[line.find('.')+1:]
+                if line.find('.') == -1:
+                    continue
+                minor = line[:line.find('.')]
+                line = line[line.find('.')+1:]
+                if line.find('+') == -1:
+                    continue
+                patch = line[:line.find('+')]
+                build = line[line.find('+')+1:].rstrip()
+                if len(build) != 8:
+                    continue
+
+                tag = None
+                if patch.find('-') != -1:
+                    tag = patch[patch.find('-')+1:]
+                    patch = patch[:patch.find('-')]
+
+                try:
+                    major = int(major)
+                    minor = int(minor)
+                    patch = int(patch)
+                except ValueError:
+                    continue
+
+                self.version = "{}.{}.{}".format(major, minor, patch)
+                if tag:
+                    self.version = self.version + "-" + tag
+                self.version = self.version + "+" + build
+                self.majorVersion = major
+                self.minorVersion = minor
+                self.patchVersion = patch
+                self.buildVersion = build
+                self.tagVersion   = tag
+
+                print("Printer is running version: " + self.version)
+                break
 
             return True
         except SerialException as e:
