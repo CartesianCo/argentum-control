@@ -222,12 +222,15 @@ class PrintView(QtGui.QWidget):
             return True
         return False
 
+    def imageProgress(self, y, max_y):
+        self.setProgress(incPercent=(self.perImage / max_y))
+
     def processImage(self, image):
         ip = self.argentum.getImageProcessor()
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
-        print("processing " + image.filename)
         try:
-            ip.sliceImage(image.filename, hexFilename)
+            ip.sliceImage(image.filename, hexFilename,
+                            progressFunc=self.imageProgress)
         except:
             print("error processing {}.".format(image.filename))
             self.setProgress(labelText="Error processing {}.".format(image.filename))
@@ -235,6 +238,7 @@ class PrintView(QtGui.QWidget):
             os.remove(hexFilename)
             raise
 
+    curPercent = 0
     percent = None
     labelText = None
     statusText = None
@@ -250,10 +254,10 @@ class PrintView(QtGui.QWidget):
             raise Exception()
         if percent:
             self.percent = percent
+            self.curPercent = percent
         if incPercent:
-            if self.percent == None:
-                self.percent = 0
-            self.percent = self.percent + incPercent
+            self.curPercent = self.curPercent + incPercent
+            self.percent = self.curPercent
         if labelText:
             self.labelText = labelText
         if statusText:
@@ -335,12 +339,13 @@ class PrintView(QtGui.QWidget):
             #return
 
             self.setProgress(labelText="Processing images...")
-            perImage = 40 / len(self.images)
+            self.perImage = 40.0 / len(self.images)
             for image in self.images:
                 if not self.isImageProcessed(image):
                     self.setProgress(labelText="Processing image {}.".format(os.path.basename(image.filename)))
                     self.processImage(image)
-                self.setProgress(incPercent=perImage)
+                else:
+                    self.setProgress(incPercent=self.perImage)
 
             if not self.argentum.printer.connected:
                 self.setProgress(labelText="Printer isn't connected.", statusText="Print aborted. Connect your printer.", canceled=True)
@@ -367,13 +372,13 @@ class PrintView(QtGui.QWidget):
                 return
 
             self.setProgress(percent=40, labelText="Printing...")
-            perImage = 59 / len(self.images)
+            self.perImage = 59.0 / len(self.images)
             for image in self.images:
                 pos = self.printAreaToMove(image.left + image.width, image.bottom)
                 self.argentum.printer.home(wait=True)
                 self.argentum.printer.move(pos[0], pos[1], wait=True)
                 self.argentum.printer.Print(image.hexFilename, wait=True)
-                self.setProgress(incPercent=perImage)
+                self.setProgress(incPercent=self.perImage)
 
             self.setProgress(statusText='Print complete.', percent=100)
         except:

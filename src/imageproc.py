@@ -54,8 +54,6 @@ class ImageProcessor:
         if overlap:
             self.mOffset = overlap
 
-        print('Image processor with {} {} {}'.format(self.HEADOFFSET, self.VOFFSET, self.mOffset))
-
     def sliceImage(self, inputFileName, outputFileName, progressFunc=None):
         #directory = direct
         # Global variables to hold the images we are working with
