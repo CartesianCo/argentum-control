@@ -27,6 +27,7 @@ class ArgentumPrinterController(PrinterController):
                 return False
 
             # Parse out the version
+            self.version = None
             for line in response:
                 if line.find('.') == -1:
                     continue
@@ -59,6 +60,7 @@ class ArgentumPrinterController(PrinterController):
                 if tag:
                     self.version = self.version + "-" + tag
                 self.version = self.version + "+" + build
+
                 self.majorVersion = major
                 self.minorVersion = minor
                 self.patchVersion = patch
@@ -79,6 +81,7 @@ class ArgentumPrinterController(PrinterController):
       self.serialDevice.close()
       self.serialDevice = None
       self.connected = False
+      self.version = None
 
     def command(self, command, timeout=None, expect=None, wait=False):
         if self.serialDevice and self.connected:
