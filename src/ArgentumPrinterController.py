@@ -1,5 +1,7 @@
 from PrinterController import PrinterController
 from serial import Serial, SerialException
+import hashlib
+import os
 
 class ArgentumPrinterController(PrinterController):
     serialDevice = None
@@ -207,3 +209,39 @@ class ArgentumPrinterController(PrinterController):
             if not found:
                 missing.append(filename)
         return missing
+
+    def checkMd5(self, filename):
+        file = open(filename, 'r')
+        contents = file.read()
+        file.close()
+        m = hashlib.md5()
+        m.update(contents)
+        md5 = m.hexdigest()
+        response = self.command("md5 {}".format(os.path.basename(filename)), timeout=10, expect='\n')
+        for line in response:
+            if line == md5:
+                return True
+        return False
+
+    def checkDJB2(self, filename):
+        file = open(filename, 'r')
+        contents = file.read()
+        file.close()
+
+        hash = 5381
+        for c in contents:
+            cval = ord(c)
+            if cval >= 128:
+                cval = -(256 - cval)
+            hash = hash * 33 + cval
+            hash = hash & 0xffffffff
+        djb2 = "{:08x}".format(hash)
+
+        response = self.command("djb2 {}".format(os.path.basename(filename)), timeout=10, expect='\n')
+        print("looking for:", djb2)
+        for line in response:
+            print("got:", line)
+            if line == djb2:
+                return True
+        return False
+

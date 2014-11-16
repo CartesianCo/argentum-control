@@ -273,7 +273,7 @@ class PrintView(QtGui.QWidget):
         # for this Sneaker Net bullshit
         msgbox = QtGui.QMessageBox()
         msgbox.setWindowTitle("Sneaker Net Required.")
-        msgbox.setText("One or more files are missing from the printer.")
+        msgbox.setText("One or more files are missing from, or different on the printer.")
         msgbox.setDetailedText('\n'.join(missing))
         msgbox.exec_()
 
@@ -366,6 +366,14 @@ class PrintView(QtGui.QWidget):
                 self.argentum.printer.disconnect()
                 self.argentum.printer.connect()
                 missing = self.argentum.printer.missingFiles(hexfiles)
+
+            # Also check the files we did find to see if they're different
+            for filename in hexfiles:
+                if filename in missing:
+                    continue
+                if not self.argentum.printer.checkDJB2(
+                        os.path.join(self.argentum.filesDir, filename)):
+                    missing.append(filename)
 
             # Nope, and this is fatal
             if len(missing) != 0:
