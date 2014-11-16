@@ -391,8 +391,8 @@ class PrintView(QtGui.QWidget):
     def mouseReleaseEvent(self, event):
         if self.dragging:
             screenRect = self.printAreaToScreen(self.dragging)
-            if (screenRect.left > self.trashCanRect.left and
-                    screenRect.top > self.trashCanRect.top):
+            if (screenRect.left() > self.trashCanRect.left() and
+                    screenRect.top() > self.trashCanRect.top()):
                 self.images.remove(self.dragging)
                 self.layoutChanged = True
 
