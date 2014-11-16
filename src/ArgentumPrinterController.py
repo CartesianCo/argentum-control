@@ -85,6 +85,8 @@ class ArgentumPrinterController(PrinterController):
 
     def command(self, command, timeout=None, expect=None, wait=False):
         if self.serialDevice and self.connected:
+            if timeout:
+                self.timeout = timeout
             self.serialDevice.write(command.encode('utf-8'))
             self.serialDevice.write(self.delimiter.encode('utf-8'))
             if wait != False:
