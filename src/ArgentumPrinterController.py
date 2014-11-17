@@ -223,11 +223,7 @@ class ArgentumPrinterController(PrinterController):
                 return True
         return False
 
-    def checkDJB2(self, filename):
-        file = open(filename, 'r')
-        contents = file.read()
-        file.close()
-
+    def calcDJB2(self, contents):
         hash = 5381
         for c in contents:
             cval = ord(c)
@@ -235,13 +231,88 @@ class ArgentumPrinterController(PrinterController):
                 cval = -(256 - cval)
             hash = hash * 33 + cval
             hash = hash & 0xffffffff
+        return hash
+
+    def checkDJB2(self, path):
+        file = open(path, 'r')
+        contents = file.read()
+        file.close()
+
+        hash = self.calcDJB2(contents)
         djb2 = "{:08x}".format(hash)
 
-        response = self.command("djb2 {}".format(os.path.basename(filename)), timeout=10, expect='\n')
-        print("looking for:", djb2)
+        filename = os.path.basename(path)
+        print("asking printer for {} with djb2 {}.".format(filename, djb2))
+
+        response = self.command("djb2 {}".format(filename), timeout=30, expect='\n')
         for line in response:
-            print("got:", line)
             if line == djb2:
                 return True
         return False
 
+    def send(self, path, progressFunc=None):
+        file = open(path, 'r')
+        contents = file.read()
+        file.close()
+
+        filename = os.path.basename(path)
+
+        size = len(contents)
+        response = self.command("recv {} {}".format(size, filename), timeout=10, expect='\n')
+        if response == None:
+            print("no response to recv")
+        if response[0] != "Ready":
+            print(response)
+            return
+
+        print("sending {} bytes.".format(size))
+
+        hash = 5381
+        fails = 0
+        pos = 0
+        while (pos < size):
+            nleft = size - pos
+            blocksize = nleft if nleft < 1024 else 1024
+            block = contents[pos:pos+blocksize]
+            encblock = ""
+            for c in block:
+                encblock = encblock + chr(ord(c) ^ 0x26)
+            self.serialDevice.write(encblock)
+
+            oldhash = hash
+            for c in block:
+                cval = ord(c)
+                if cval >= 128:
+                    cval = -(256 - cval)
+                hash = hash * 33 + cval
+                hash = hash & 0xffffffff
+
+            self.serialDevice.timeout = 10
+            rdjb2 = self.serialDevice.read(10)
+            rdjb2 = rdjb2[:8]
+            if len(rdjb2) != 8:
+                print("didn't get a good remote hash, got '{}'.".format(rdjb2))
+                break
+
+            djb2 = "{:08x}".format(hash)
+            if djb2 != rdjb2:
+                print("got '{}' wanted {}".format(rdjb2, djb2))
+                print("retrying block at {}/{}".format(pos, size))
+                self.serialDevice.write('B')
+                hash = oldhash
+                fails = fails + 1
+                if fails > 12:
+                    print("Too many failures.")
+                    self.serialDevice.timeout = 0
+                    return
+            else:
+                self.serialDevice.write('G')
+                pos = pos + blocksize
+                if progressFunc:
+                    progressFunc(pos, size)
+                else:
+                    print("block is good at {}/{}".format(pos, size))
+
+        self.serialDevice.timeout = 0
+        if progressFunc == None:
+            print("sent.")

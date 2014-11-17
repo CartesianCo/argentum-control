@@ -225,6 +225,9 @@ class PrintView(QtGui.QWidget):
     def imageProgress(self, y, max_y):
         self.setProgress(incPercent=(self.perImage / max_y))
 
+    def sendProgress(self, pos, size):
+        self.setProgress(percent=(20 + self.perImage * pos / size))
+
     def processImage(self, image):
         ip = self.argentum.getImageProcessor()
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
@@ -339,7 +342,7 @@ class PrintView(QtGui.QWidget):
             #return
 
             self.setProgress(labelText="Processing images...")
-            self.perImage = 40.0 / len(self.images)
+            self.perImage = 20.0 / len(self.images)
             for image in self.images:
                 if not self.isImageProcessed(image):
                     self.setProgress(labelText="Processing image {}.".format(os.path.basename(image.filename)))
@@ -371,9 +374,23 @@ class PrintView(QtGui.QWidget):
             for filename in hexfiles:
                 if filename in missing:
                     continue
-                if not self.argentum.printer.checkDJB2(
-                        os.path.join(self.argentum.filesDir, filename)):
+                path = os.path.join(self.argentum.filesDir, filename)
+                if not self.argentum.printer.checkDJB2(path):
                     missing.append(filename)
+
+            # Try sending missing files
+            if len(missing) != 0:
+                self.setProgress(percent=20)
+                self.perImage = 20.0 / len(missing)
+            sent = []
+            for filename in missing:
+                self.setProgress(labelText="Sending {}...".format(filename))
+                path = os.path.join(self.argentum.filesDir, filename)
+                self.argentum.printer.send(path, progressFunc=self.sendProgress)
+                if self.argentum.printer.checkDJB2(path):
+                    sent.append(filename)
+            for filename in sent:
+                missing.remove(sent)
 
             # Nope, and this is fatal
             if len(missing) != 0:
