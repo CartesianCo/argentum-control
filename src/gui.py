@@ -380,6 +380,7 @@ class Argentum(QtGui.QMainWindow):
     def uploadLoop(self):
         self.printer.send(self.uploadThread.filename,
                           progressFunc=self.uploadProgressFunc)
+        self.uploadProgress.hide()
 
     def uploadProgressUpdater(self):
         if self.uploadProgress.wasCanceled():

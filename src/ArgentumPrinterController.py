@@ -266,7 +266,7 @@ class ArgentumPrinterController(PrinterController):
         size = len(contents)
         compressed = self.compress(contents)
         cmd = "recv {} {}"
-        if len(compressed) * 3 < size:
+        if compressed and len(compressed) * 3 < size:
             size = len(compressed)
             contents = compressed
             cmd = "recv {} b {}"
@@ -329,8 +329,10 @@ class ArgentumPrinterController(PrinterController):
                 break
 
         self.serialDevice.timeout = 0
-        if progressFunc == None:
+        if progressFunc:
             print("sent.")
+        else:
+            progressFunc(size, size)
 
         end = time.time()
         print("Sent in {} seconds.".format(end - start))
@@ -349,12 +351,12 @@ class ArgentumPrinterController(PrinterController):
 
                     if len(firings) != len(order):
                         print("firing order changed!")
-                        sys.exit(1)
+                        return None
                     firingLine = None
                     for i in range(len(firings)):
                         if firings[i][0] != order[i]:
                             print("firing order changed!")
-                            sys.exit(1)
+                            return None
                         if firingLine:
                             if firingLine == ".":
                                 firingLine = "," + firings[i][1:]
@@ -371,7 +373,7 @@ class ArgentumPrinterController(PrinterController):
                     lastFiringLine = firingLine
                     if len(firingLine) > MAX_FIRING_LINE_LEN:
                         print("firing line too long.")
-                        sys.exit(1)
+                        return None
                     firings = []
                 if line[2:3] == 'X':
                     compressed.append(line[2:3] + line[4:])
@@ -403,6 +405,6 @@ class ArgentumPrinterController(PrinterController):
                 firings.append(firing)
             else:
                 print("what's this? {}".format(line))
-                sys.exit(1)
+                return None
 
         return '\n'.join(compressed) + "\n"
