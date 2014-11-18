@@ -3,6 +3,9 @@ from serial import Serial, SerialException
 import hashlib
 import os
 
+order = ['8', '4', 'C', '2', 'A', '6', 'E', '1', '9', '5', 'D', '3', 'B'];
+MAX_FIRING_LINE_LEN = 13*4+12
+
 class ArgentumPrinterController(PrinterController):
     serialDevice = None
     port = None
@@ -258,7 +261,13 @@ class ArgentumPrinterController(PrinterController):
         filename = os.path.basename(path)
 
         size = len(contents)
-        response = self.command("recv {} {}".format(size, filename), timeout=10, expect='\n')
+        compressed = self.compress(contents)
+        cmd = "recv {} {}"
+        if len(compressed) < size:
+            size = len(compressed)
+            contents = compressed
+            cmd = "recv {} b {}"
+        response = self.command(cmd.format(size, filename), timeout=10, expect='\n')
         if response == None:
             print("no response to recv")
         if response[0] != "Ready":
@@ -310,8 +319,82 @@ class ArgentumPrinterController(PrinterController):
                     print("block is good at {}/{}".format(pos, size))
             else:
                 print("didn't get a command! got '{}'".format(cmd))
+                rest = self.serialDevice.read(30)
+                print(rest)
                 break
 
         self.serialDevice.timeout = 0
         if progressFunc == None:
             print("sent.")
+
+    def compress(self, contents):
+        compressed = []
+        lastFiringLine = None
+        lastFiring = None
+        lastParts = []
+        firings = []
+        for line in contents.split('\n'):
+            if len(line) == 0:
+                continue
+            if line[0] == 'M':
+                if len(firings) > 0:
+
+                    if len(firings) != len(order):
+                        print("firing order changed!")
+                        sys.exit(1)
+                    firingLine = None
+                    for i in range(len(firings)):
+                        if firings[i][0] != order[i]:
+                            print("firing order changed!")
+                            sys.exit(1)
+                        if firingLine:
+                            if firingLine == ".":
+                                firingLine = "," + firings[i][1:]
+                            else:
+                                firingLine = firingLine + "," + firings[i][1:]
+                        else:
+                            firingLine = firings[i][1:]
+                            if firingLine == None or firingLine == "":
+                                firingLine = "."
+                    if lastFiringLine and firingLine == lastFiringLine:
+                        compressed.append('d')
+                    else:
+                        compressed.append(firingLine)
+                    lastFiringLine = firingLine
+                    if len(firingLine) > MAX_FIRING_LINE_LEN:
+                        print("firing line too long.")
+                        sys.exit(1)
+                    firings = []
+                if line[2:3] == 'X':
+                    compressed.append(line[2:3] + line[4:])
+                else:
+                    compressed.append(line[4:])
+            elif line[0] == 'F':
+                firing = line[2:]
+                if lastFiring and firing[1:] == lastFiring[1:]:
+                    firing = firing[0:1]
+                else:
+                    lastFiring = firing
+                    part = None
+                    if firing[1:] == "0000":
+                        firing = firing[0:1] + 'z'
+                    elif firing[1:3] == "00":
+                        part = firing[3:5]
+                        firing = firing[0:1] + 'z'
+                    elif firing[3:5] == "00":
+                        part = firing[1:3]
+                        firing = firing[0:1]
+                    if part:
+                        if part in lastParts:
+                            firing = firing + chr(ord('a') + lastParts.index(part))
+                        else:
+                            lastParts.append(part)
+                            if len(lastParts) > 25:
+                                lastParts.pop(0)
+                            firing = firing + part
+                firings.append(firing)
+            else:
+                print("what's this? {}".format(line))
+                sys.exit(1)
+
+        return '\n'.join(compressed) + "\n"
