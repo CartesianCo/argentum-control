@@ -141,7 +141,10 @@ class ImageProcessor:
         for y in xrange(int(height/self.mOffset)*2 + 1):
             # Print out progress
             if progressFunc:
-                progressFunc(y + 1, int(height/self.mOffset)*2 + 1)
+                if not progressFunc(y + 1, int(height/self.mOffset)*2 + 1):
+                    outputFile.close()
+                    os.remove(outputFileName)
+                    return
             else:
                 print('{} out of {}.'.format(y + 1, int(height/self.mOffset)*2 + 1))
 

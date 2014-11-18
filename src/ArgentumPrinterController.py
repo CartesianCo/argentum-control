@@ -275,43 +275,42 @@ class ArgentumPrinterController(PrinterController):
             blocksize = nleft if nleft < 1024 else 1024
             block = contents[pos:pos+blocksize]
             encblock = ""
-            for c in block:
-                encblock = encblock + chr(ord(c) ^ 0x26)
-            self.serialDevice.write(encblock)
-
             oldhash = hash
             for c in block:
+                encblock = encblock + chr(ord(c) ^ 0x26)
                 cval = ord(c)
                 if cval >= 128:
                     cval = -(256 - cval)
                 hash = hash * 33 + cval
                 hash = hash & 0xffffffff
+            encblock = encblock + chr( hash        & 0xff)
+            encblock = encblock + chr((hash >>  8) & 0xff)
+            encblock = encblock + chr((hash >> 16) & 0xff)
+            encblock = encblock + chr((hash >> 24) & 0xff)
+            self.serialDevice.write(encblock)
 
             self.serialDevice.timeout = 10
-            rdjb2 = self.serialDevice.read(10)
-            rdjb2 = rdjb2[:8]
-            if len(rdjb2) != 8:
-                print("didn't get a good remote hash, got '{}'.".format(rdjb2))
-                break
+            cmd = self.serialDevice.read(1)
 
-            djb2 = "{:08x}".format(hash)
-            if djb2 != rdjb2:
-                print("got '{}' wanted {}".format(rdjb2, djb2))
-                print("retrying block at {}/{}".format(pos, size))
-                self.serialDevice.write('B')
+            if cmd == "B":
                 hash = oldhash
                 fails = fails + 1
                 if fails > 12:
                     print("Too many failures.")
                     self.serialDevice.timeout = 0
                     return
-            else:
-                self.serialDevice.write('G')
+            elif cmd == "G":
                 pos = pos + blocksize
                 if progressFunc:
-                    progressFunc(pos, size)
+                    if not progressFunc(pos, size):
+                        self.serialDevice.write("C")
+                        print("canceled!")
+                        break
                 else:
                     print("block is good at {}/{}".format(pos, size))
+            else:
+                print("didn't get a command! got '{}'".format(cmd))
+                break
 
         self.serialDevice.timeout = 0
         if progressFunc == None:

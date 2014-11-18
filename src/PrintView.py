@@ -223,10 +223,16 @@ class PrintView(QtGui.QWidget):
         return False
 
     def imageProgress(self, y, max_y):
+        if printCanceled:
+            return False
         self.setProgress(incPercent=(self.perImage / max_y))
+        return True
 
     def sendProgress(self, pos, size):
+        if printCanceled:
+            return False
         self.setProgress(percent=(20 + self.perImage * pos / size))
+        return True
 
     def processImage(self, image):
         ip = self.argentum.getImageProcessor()

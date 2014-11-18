@@ -30,6 +30,7 @@ from firmware_updater import update_firmware_list, get_available_firmware, updat
 
 import subprocess
 from multiprocessing import Process
+import threading
 
 def myrun(cmd):
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -259,6 +260,9 @@ class Argentum(QtGui.QMainWindow):
         self.servoCalibrationAction = QtGui.QAction('Servo Calibration', self)
         self.servoCalibrationAction.triggered.connect(self.servoCalibrationActionTriggered)
 
+        self.uploadFileAction = QtGui.QAction('Upload File', self)
+        self.uploadFileAction.triggered.connect(self.uploadFileActionTriggered)
+
         self.updateAction = QtGui.QAction('&Update', self)
         self.updateAction.triggered.connect(self.updateActionTriggered)
 
@@ -294,6 +298,7 @@ class Argentum(QtGui.QMainWindow):
         utilitiesMenu.addAction(self.optionsAction)
         utilitiesMenu.addAction(self.updateAction)
         utilitiesMenu.addAction(self.servoCalibrationAction)
+        utilitiesMenu.addAction(self.uploadFileAction)
 
         self.statusBar().showMessage('Looking for printer...')
 
@@ -365,6 +370,41 @@ class Argentum(QtGui.QMainWindow):
     def servoCalibrationActionTriggered(self):
         optionsDialog = ServoCalibrationDialog(self, None)
         optionsDialog.exec_()
+
+    def uploadProgressFunc(self, pos, size):
+        if self.uploadProgressCancel:
+            return False
+        self.uploadProgressPercent = pos * 100.0 / size
+        return True
+
+    def uploadLoop(self):
+        self.printer.send(self.uploadThread.filename,
+                          progressFunc=self.uploadProgressFunc)
+
+    def uploadProgressUpdater(self):
+        if self.uploadProgress.wasCanceled():
+            self.uploadProgressCancel = True
+            return
+        if self.uploadProgressPercent:
+            self.uploadProgress.setValue(self.uploadProgressPercent)
+            self.uploadProgressPercent = None
+        QtCore.QTimer.singleShot(100, self.uploadProgressUpdater)
+
+    def uploadFileActionTriggered(self):
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Hex file to upload', self.filesDir)
+        filename = str(filename)
+        if filename:
+            self.uploadProgressPercent = None
+            self.uploadProgressCancel = False
+            self.uploadProgress = QtGui.QProgressDialog(self)
+            self.uploadProgress.setWindowTitle("Uploading")
+            self.uploadProgress.setLabelText(os.path.basename(filename))
+            self.uploadProgress.show()
+            QtCore.QTimer.singleShot(100, self.uploadProgressUpdater)
+
+            self.uploadThread = threading.Thread(target=self.uploadLoop)
+            self.uploadThread.filename = filename
+            self.uploadThread.start()
 
     def updateActionTriggered(self):
         reply = QtGui.QMessageBox.question(self, 'Message',
