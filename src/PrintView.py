@@ -66,7 +66,7 @@ class PrintView(QtGui.QWidget):
         self.printPlateDesign = QtSvg.QSvgRenderer("printPlateDesign.svg")
         self.trashCan         = QtSvg.QSvgRenderer("trashCan.svg")
         height = self.printArea.height * printPlateDesignScale[1]
-        self.printPlateDesignArea = PrintRect(12, 
+        self.printPlateDesignArea = PrintRect(12,
                     50,
                     self.printArea.width * printPlateDesignScale[0],
                     height)
@@ -85,7 +85,7 @@ class PrintView(QtGui.QWidget):
         # Ensure correct aspect ratio
         aspectRect = QtCore.QRectF(self.rect())
         aspectRatio = aspectRect.width() / aspectRect.height()
-        desiredAspectRatio = (self.printPlateArea.width / 
+        desiredAspectRatio = (self.printPlateArea.width /
                               self.printPlateArea.height)
         #print("window {} x {}".format(aspectRect.width(), aspectRect.height()))
         #print("aspect ratio {}".format(aspectRatio))
@@ -129,11 +129,11 @@ class PrintView(QtGui.QWidget):
         #                                        printRect.height))
         #print("printPlateArea {} x {}".format(self.printPlateArea.width,
         #                                      self.printPlateArea.height))
-        left   = (self.printPlateRect.left() + 
+        left   = (self.printPlateRect.left() +
                   printRect.left / self.printPlateArea.width
                                * self.printPlateRect.width())
         top    = (self.printPlateRect.top() + self.printPlateRect.height() -
-                  (printRect.bottom + printRect.height) 
+                  (printRect.bottom + printRect.height)
                                  / self.printPlateArea.height
                                * self.printPlateRect.height())
         width  = (printRect.width / self.printPlateArea.width
