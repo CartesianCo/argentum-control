@@ -2,6 +2,7 @@ from PrinterController import PrinterController
 from serial import Serial, SerialException
 import hashlib
 import os
+import time
 
 order = ['8', '4', 'C', '2', 'A', '6', 'E', '1', '9', '5', 'D', '3', 'B'];
 MAX_FIRING_LINE_LEN = 13*4+12
@@ -260,10 +261,12 @@ class ArgentumPrinterController(PrinterController):
 
         filename = os.path.basename(path)
 
+        start = time.time()
+
         size = len(contents)
         compressed = self.compress(contents)
         cmd = "recv {} {}"
-        if len(compressed) < size:
+        if len(compressed) * 3 < size:
             size = len(compressed)
             contents = compressed
             cmd = "recv {} b {}"
@@ -328,6 +331,9 @@ class ArgentumPrinterController(PrinterController):
         self.serialDevice.timeout = 0
         if progressFunc == None:
             print("sent.")
+
+        end = time.time()
+        print("Sent in {} seconds.".format(end - start))
 
     def compress(self, contents):
         compressed = []
