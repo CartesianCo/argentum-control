@@ -270,7 +270,9 @@ class ArgentumPrinterController(PrinterController):
         response = self.command(cmd.format(size, filename), timeout=10, expect='\n')
         if response == None:
             print("no response to recv")
+            return
         if response[0] != "Ready":
+            print("Didn't get Ready, got: ")
             print(response)
             return
 
