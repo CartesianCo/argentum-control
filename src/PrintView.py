@@ -10,6 +10,7 @@ author: Trent Waddington
 import sys
 import os
 import threading
+import time
 from PyQt4 import QtGui, QtCore, QtSvg
 
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
@@ -36,6 +37,7 @@ class PrintImage(PrintRect):
         self.bottom = 0.0
         self.width = pixmap.width() / imageScale[0]
         self.height = pixmap.height() / imageScale[1]
+        self.lastResized = None
         self.screenRect = None
 
         filename = os.path.basename(filename)
@@ -51,6 +53,7 @@ class PrintView(QtGui.QWidget):
     layoutChanged = False
     printThread = None
     dragging = None
+    resizing = None
 
     def __init__(self, argentum):
         super(PrintView, self).__init__()
@@ -219,17 +222,19 @@ class PrintView(QtGui.QWidget):
         imgModified = os.path.getmtime(image.filename)
         hexModified = os.path.getmtime(hexFilename)
         if imgModified < hexModified:
+            if image.lastResized:
+                return image.lastResized < hexModified
             return True
         return False
 
     def imageProgress(self, y, max_y):
-        if printCanceled:
+        if self.printCanceled:
             return False
         self.setProgress(incPercent=(self.perImage / max_y))
         return True
 
     def sendProgress(self, pos, size):
-        if printCanceled:
+        if self.printCanceled:
             return False
         self.setProgress(percent=(20 + self.perImage * pos / size))
         return True
@@ -238,8 +243,15 @@ class PrintView(QtGui.QWidget):
         ip = self.argentum.getImageProcessor()
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
         try:
+            size = None
+            if image.lastResized != None:
+                width  = image.width  * imageScale[0]
+                height = image.height * imageScale[1]
+                size = (int(width), int(height))
+                print("resizing {} to {},{}.".format(hexFilename, size[0], size[1]))
             ip.sliceImage(image.filename, hexFilename,
-                            progressFunc=self.imageProgress)
+                            progressFunc=self.imageProgress,
+                            size=size)
         except:
             print("error processing {}.".format(image.filename))
             self.setProgress(labelText="Error processing {}.".format(image.filename))
@@ -344,8 +356,7 @@ class PrintView(QtGui.QWidget):
 
     def printLoop(self):
         try:
-            #self.printCrossPattern(30, 30)
-            #return
+            self.setProgress(statusText="Printing.")
 
             self.setProgress(labelText="Processing images...")
             self.perImage = 20.0 / len(self.images)
@@ -396,20 +407,23 @@ class PrintView(QtGui.QWidget):
                 if self.argentum.printer.checkDJB2(path):
                     sent.append(filename)
             for filename in sent:
-                missing.remove(sent)
+                missing.remove(filename)
 
             # Nope, and this is fatal
             if len(missing) != 0:
                 self.setProgress(missing=missing, statusText="Print aborted.")
                 return
 
+            # Now we can actually print!
             self.setProgress(percent=40, labelText="Printing...")
+            self.argentum.printer.disconnect()
+            self.argentum.printer.connect()
             self.perImage = 59.0 / len(self.images)
             for image in self.images:
                 pos = self.printAreaToMove(image.left + image.width, image.bottom)
                 self.argentum.printer.home(wait=True)
-                self.argentum.printer.move(pos[0], pos[1], wait=True)
-                self.argentum.printer.Print(image.hexFilename, wait=True)
+                self.argentum.printer.move(pos[0], pos[1])
+                self.argentum.printer.Print(image.hexFilename)
                 self.setProgress(incPercent=self.perImage)
 
             self.setProgress(statusText='Print complete.', percent=100)
@@ -422,12 +436,13 @@ class PrintView(QtGui.QWidget):
     def mouseReleaseEvent(self, event):
         if self.dragging:
             screenRect = self.printAreaToScreen(self.dragging)
-            if (screenRect.left() > self.trashCanRect.left() and
-                    screenRect.top() > self.trashCanRect.top()):
+            if (event.pos().x() > self.trashCanRect.left() and
+                    event.pos().y() > self.trashCanRect.top()):
                 self.images.remove(self.dragging)
                 self.layoutChanged = True
 
         self.dragging = None
+        self.resizing = None
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.update()
 
@@ -447,7 +462,7 @@ class PrintView(QtGui.QWidget):
         pressed = event.buttons() & QtCore.Qt.LeftButton
         p = self.screenToPrintArea(event.pos().x(), event.pos().y())
         if p == None:
-            if self.dragging == None:
+            if self.dragging == None and self.resizing == None:
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
 
@@ -463,9 +478,81 @@ class PrintView(QtGui.QWidget):
             image.screenRect = None
             self.layoutChanged = True
             self.update()
-        elif self.dragging == None:
+        elif pressed and self.resizing != None:
+            image = self.resizing
+            (leftEdge, rightEdge, topEdge, bottomEdge) = self.resizeEdges
+            (startLeft, startBottom, startWidth, startHeight) = self.resizeImageStart
+            dx = px - self.resizeStart[0]
+            dy = py - self.resizeStart[1]
+            if leftEdge:
+                if dx + startLeft < startLeft + startWidth:
+                    image.left = dx + startLeft
+                    image.width = startWidth + startLeft - image.left
+            elif rightEdge:
+                if dx + startWidth > 0:
+                    image.width = dx + startWidth
+
+            if topEdge:
+                if dy + startHeight > 0:
+                    image.height = dy + startHeight
+            elif bottomEdge:
+                if dy + startBottom < startBottom + startHeight:
+                    image.bottom = dy + startBottom
+                    image.height = startHeight + startBottom - image.bottom
+
+            self.ensureImageInPrintLims(image)
+            image.lastResized = time.time()
+            image.screenRect = None
+            self.layoutChanged = True
+            self.update()
+        elif self.dragging == None and self.resizing == None:
             hit = False
             for image in self.images:
+                leftEdge = False
+                rightEdge = False
+                topEdge = False
+                bottomEdge = False
+                n = 1.1 if pressed else 1.0
+                if (py >= image.bottom - n and
+                        py < image.bottom + image.height + n):
+                    if px >= image.left - n and px <= image.left:
+                        leftEdge = True
+                    if (px < image.left + image.width + n and
+                            px >= image.left + image.width):
+                        rightEdge = True
+                if (px >= image.left - n and
+                        px < image.left + image.width + n):
+                    if py >= image.bottom - n and py <= image.bottom:
+                        bottomEdge = True
+                    if (py < image.bottom + image.height + n and
+                            py >= image.bottom + image.height):
+                        topEdge = True
+
+                anyEdge = True
+                if leftEdge and bottomEdge:
+                    self.setCursor(QtGui.QCursor(QtCore.Qt.SizeBDiagCursor))
+                elif rightEdge and topEdge:
+                    self.setCursor(QtGui.QCursor(QtCore.Qt.SizeBDiagCursor))
+                elif leftEdge and topEdge:
+                    self.setCursor(QtGui.QCursor(QtCore.Qt.SizeFDiagCursor))
+                elif rightEdge and bottomEdge:
+                    self.setCursor(QtGui.QCursor(QtCore.Qt.SizeFDiagCursor))
+                elif leftEdge or rightEdge:
+                    self.setCursor(QtGui.QCursor(QtCore.Qt.SizeHorCursor))
+                elif topEdge or bottomEdge:
+                    self.setCursor(QtGui.QCursor(QtCore.Qt.SizeVerCursor))
+                else:
+                    anyEdge = False
+
+                if anyEdge:
+                    hit = True
+                    if pressed:
+                        self.resizing = image
+                        self.resizeImageStart = (image.left, image.bottom, image.width, image.height)
+                        self.resizeStart = (px, py)
+                        self.resizeEdges = (leftEdge, rightEdge, topEdge, bottomEdge)
+                    break
+
                 if px >= image.left and px < image.left + image.width:
                     if py >= image.bottom and py < image.bottom + image.height:
                         hit = True
@@ -477,6 +564,7 @@ class PrintView(QtGui.QWidget):
                         else:
                             self.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
                         break
+
             if not hit:
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 

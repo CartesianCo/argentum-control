@@ -250,6 +250,8 @@ class ArgentumPrinterController(PrinterController):
 
         response = self.command("djb2 {}".format(filename), timeout=30, expect='\n')
         for line in response:
+            if len(line) == 8:
+                print("printer has " + line)
             if line == djb2:
                 return True
         return False

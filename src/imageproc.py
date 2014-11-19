@@ -54,7 +54,7 @@ class ImageProcessor:
         if overlap:
             self.mOffset = overlap
 
-    def sliceImage(self, inputFileName, outputFileName, progressFunc=None):
+    def sliceImage(self, inputFileName, outputFileName, progressFunc=None, size=None):
         #directory = direct
         # Global variables to hold the images we are working with
         global outputImages
@@ -74,6 +74,8 @@ class ImageProcessor:
         inputImage = Image.open(inputFileName)
         inputImage = inputImage.transpose(Image.FLIP_LEFT_RIGHT);
         inputImage = inputImage.transpose(Image.ROTATE_270);
+        if size:
+            inputImage = inputImage.resize(size, Image.ANTIALIAS)
 
         inputs = self.splitImageTwos(inputImage)
 
