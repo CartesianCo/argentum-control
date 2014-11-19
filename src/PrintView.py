@@ -637,6 +637,8 @@ class PrintView(QtGui.QWidget):
                         image.width = float(value)
                     if key == "height":
                         image.height = float(value)
+                    if key == "lastResized":
+                        image.lastResized = int(value)
         if image:
             self.ensureImageInPrintLims(image)
 
@@ -670,6 +672,8 @@ class PrintView(QtGui.QWidget):
             file.write('bottom={}\n'.format(image.bottom))
             file.write('width={}\n'.format(image.width))
             file.write('height={}\n'.format(image.height))
+            if image.lastResized:
+                file.write('lastResized={}\n'.format(image.lastResized))
             file.write('\n')
         file.close()
 
