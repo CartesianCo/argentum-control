@@ -32,6 +32,8 @@ import subprocess
 from multiprocessing import Process
 import threading
 
+NO_PRINTER="No printer connected."
+
 def myrun(cmd):
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     stdout = []
@@ -536,17 +538,18 @@ class Argentum(QtGui.QMainWindow):
         else:
             port = str(self.portListCombo.currentText())
 
-            if self.printer.connect(port=port):
-                self.connectButton.setText('Disconnect')
+            if port != NO_PRINTER:
+                if self.printer.connect(port=port):
+                    self.connectButton.setText('Disconnect')
 
-                self.enableAllButtons()
-                self.enableConnectionSpecificControls(True)
-                self.statusBar().showMessage('Connected.')
+                    self.enableAllButtons()
+                    self.enableConnectionSpecificControls(True)
+                    self.statusBar().showMessage('Connected.')
 
-                if self.printer.version != None:
-                    self.appendOutput("Printer is running: " + self.printer.version)
-            else:
-                QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
+                    if self.printer.version != None:
+                        self.appendOutput("Printer is running: " + self.printer.version)
+                else:
+                    QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
         self.updatePortList()
 
     def updatePortList(self):
@@ -564,6 +567,7 @@ class Argentum(QtGui.QMainWindow):
 
         if self.portListCombo.count() == 0:
             self.statusBar().showMessage('No printer connected. Connect your printer.')
+            self.portListCombo.addItem(NO_PRINTER)
         else:
             if curPort == "" or self.portListCombo.findText(curPort) == -1:
                 if self.portListCombo.count() == 1:
