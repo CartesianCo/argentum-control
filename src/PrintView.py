@@ -579,6 +579,9 @@ class PrintView(QtGui.QWidget):
             if url[0] == '/' and url[2] == ':':
                 # Windows
                 url = url[1:]
+            if url[-7:] == ".layout":
+                self.openLayout(url)
+                return
             pi = self.addImageFile(url)
             if pi == None:
                 return
@@ -588,11 +591,12 @@ class PrintView(QtGui.QWidget):
                 pi.bottom = p[1] - pi.height / 2
                 self.ensureImageInPrintLims(pi)
 
-    def openLayout(self):
+    def openLayout(self, filename=None):
         if self.closeLayout() == False:
             return
 
-        filename = str(QtGui.QFileDialog.getOpenFileName(self, 'Select a layout', self.argentum.filesDir, "Layouts (*.layout)"))
+        if filename == None:
+            filename = str(QtGui.QFileDialog.getOpenFileName(self, 'Select a layout', self.argentum.filesDir, "Layouts (*.layout)"))
         if filename == None:
             return
 
