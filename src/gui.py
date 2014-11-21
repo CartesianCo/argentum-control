@@ -126,16 +126,8 @@ class Argentum(QtGui.QMainWindow):
 
         daily = 60*60*24
         if self.lastRun == None or self.lastRun - int(time.time()) > daily:
-            update_firmware_list()
-
-        update_local_firmware()
-
-        available_firmware = get_available_firmware()
-
-        self.appendOutput('Available firmware versions:')
-
-        for firmware in available_firmware:
-            self.appendOutput(firmware['version'])
+            updateThread = threading.Thread(target=self.updateFirmwareLoop)
+            updateThread.start()
 
         # Make a directory where we can place processed images
         docsDir = str(QtGui.QDesktopServices.storageLocation(QtGui.QDesktopServices.DocumentsLocation))
@@ -332,6 +324,10 @@ class Argentum(QtGui.QMainWindow):
         self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum Control')
         self.show()
+
+    def updateFirmwareLoop(self):
+        update_firmware_list()
+        update_local_firmware()
 
     def makeButtonRepeatable(self, button):
         button.setAutoRepeat(True)

@@ -7,6 +7,7 @@ firmware_base_url = 'http://update.shiel.io/firmware/'
 firmware_index = 'firmware.txt'
 
 def update_firmware_list():
+    print("Updating firmware list.")
     download_file('firmware.txt', calculate_sha=False)
 
 def parse_firmware_list(filename):
