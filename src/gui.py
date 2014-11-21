@@ -145,7 +145,7 @@ class Argentum(QtGui.QMainWindow):
 
     def initUI(self):
         # Create the console
-        self.consoleWidget = QtGui.QWidget(self)
+        self.console = QtGui.QWidget(self)
 
         # First Row
         connectionRow = QtGui.QHBoxLayout()
@@ -213,6 +213,14 @@ class Argentum(QtGui.QMainWindow):
         self.leftButton.clicked.connect(self.decrementX)
         self.rightButton.clicked.connect(self.incrementX)
 
+        QtGui.QShortcut(QtGui.QKeySequence("Left"), self, self.shortcutLeft);
+        QtGui.QShortcut(QtGui.QKeySequence("Right"), self, self.shortcutRight);
+        QtGui.QShortcut(QtGui.QKeySequence("Up"), self, self.shortcutUp);
+        QtGui.QShortcut(QtGui.QKeySequence("Down"), self, self.shortcutDown);
+        QtGui.QShortcut(QtGui.QKeySequence("Home"), self, self.shortcutHome);
+        QtGui.QShortcut(QtGui.QKeySequence("-"), self, self.shortcutMinus);
+        QtGui.QShortcut(QtGui.QKeySequence("+"), self, self.shortcutPlus);
+
         jogControlsGrid.addWidget(self.upButton, 0, 1)
         jogControlsGrid.addWidget(self.leftButton, 1, 0)
         jogControlsGrid.addWidget(self.rightButton, 1, 2)
@@ -248,7 +256,7 @@ class Argentum(QtGui.QMainWindow):
         verticalLayout.addWidget(self.outputView)
         verticalLayout.addLayout(jogControlsGrid)
         verticalLayout.addLayout(controlRow)
-        self.consoleWidget.setLayout(verticalLayout)
+        self.console.setLayout(verticalLayout)
 
         # Menu Bar Stuff
 
@@ -318,7 +326,7 @@ class Argentum(QtGui.QMainWindow):
         self.tabWidget = QtGui.QTabWidget(self)
         self.tabWidget.setTabPosition(QtGui.QTabWidget.South)
         self.tabWidget.addTab(self.printWidget, "Printer")
-        self.tabWidget.addTab(self.consoleWidget, "Console") # always last
+        self.tabWidget.addTab(self.console, "Console") # always last
         self.setCentralWidget(self.tabWidget)
 
         self.setGeometry(300, 300, 1000, 800)
@@ -576,7 +584,7 @@ class Argentum(QtGui.QMainWindow):
                     curPort = self.portListCombo.itemText(0)
                 else:
                     self.statusBar().showMessage('Multiple printers connected. Please select one.')
-                    self.tabWidget.setCurrentWidget(self.consoleWidget)
+                    self.tabWidget.setCurrentWidget(self.console)
 
         if curPort != "":
             idx = self.portListCombo.findText(curPort)
@@ -660,6 +668,53 @@ class Argentum(QtGui.QMainWindow):
     def decrementY(self):
         self.checkPower()
         self.sendMovementCommand(None, -self.YStepSize)
+
+    def shortcutLeft(self):
+        if self.tabWidget.currentWidget() != self.console:
+            return
+        if self.commandField.hasFocus():
+            return
+        self.decrementX()
+
+    def shortcutRight(self):
+        if self.tabWidget.currentWidget() != self.console:
+            return
+        self.incrementX()
+
+    def shortcutUp(self):
+        if self.tabWidget.currentWidget() != self.console:
+            return
+        if self.commandField.hasFocus():
+            self.commandField.event(QtGui.QKeyEvent(QtCore.QEvent.KeyPress,
+                                                    QtCore.Qt.Key_Up,
+                                                    QtCore.Qt.NoModifier))
+            return
+        self.incrementY()
+
+    def shortcutDown(self):
+        if self.tabWidget.currentWidget() != self.console:
+            return
+        if self.commandField.hasFocus():
+            self.commandField.event(QtGui.QKeyEvent(QtCore.QEvent.KeyPress,
+                                                    QtCore.Qt.Key_Down,
+                                                    QtCore.Qt.NoModifier))
+            return
+        self.decrementY()
+
+    def shortcutHome(self):
+        if self.tabWidget.currentWidget() != self.console:
+            return
+        self.homeButtonPushed()
+
+    def shortcutMinus(self):
+        if self.tabWidget.currentWidget() != self.console:
+            return
+        self.printer.command('--')
+
+    def shortcutPlus(self):
+        if self.tabWidget.currentWidget() != self.console:
+            return
+        self.printer.command('++')
 
     # This function is for future movement functionality (continuous movement)
     def handleClicked(self):
