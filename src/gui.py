@@ -82,6 +82,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.paused = False
         self.autoConnect = True
+        self.sentVolt = False
 
         self.XStepSize = 150
         self.YStepSize = 200
@@ -545,6 +546,7 @@ class Argentum(QtGui.QMainWindow):
                     self.enableAllButtons()
                     self.enableConnectionSpecificControls(True)
                     self.statusBar().showMessage('Connected.')
+                    self.sentVolt = False
 
                     if self.printer.version != None:
                         self.appendOutput("Printer is running: " + self.printer.version)
@@ -611,6 +613,7 @@ class Argentum(QtGui.QMainWindow):
         self.sendStopCommand()
 
     def homeButtonPushed(self):
+        self.checkPower()
         self.printer.home()
 
     def sendButtonPushed(self):
@@ -635,16 +638,27 @@ class Argentum(QtGui.QMainWindow):
     def sendMovementCommand(self, x, y):
         self.printer.move(x, y)
 
+    def checkPower(self):
+        if self.sentVolt or not self.printer.connected:
+            return
+        self.sentVolt = True
+        if self.printer.volt() < 9:
+            QtGui.QMessageBox.information(self, "Printer error", "The power cable is not connected or the power switch is off.")
+
     def incrementX(self):
+        self.checkPower()
         self.sendMovementCommand(self.XStepSize, None)
 
     def incrementY(self):
+        self.checkPower()
         self.sendMovementCommand(None, self.YStepSize)
 
     def decrementX(self):
+        self.checkPower()
         self.sendMovementCommand(-self.XStepSize, None)
 
     def decrementY(self):
+        self.checkPower()
         self.sendMovementCommand(None, -self.YStepSize)
 
     # This function is for future movement functionality (continuous movement)

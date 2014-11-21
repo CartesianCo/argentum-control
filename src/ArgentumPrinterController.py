@@ -410,3 +410,11 @@ class ArgentumPrinterController(PrinterController):
                 return None
 
         return '\n'.join(compressed) + "\n"
+
+    def volt(self):
+        response = self.command("volt", expect='\n', timeout=1)
+        if response:
+            for line in response:
+                if line.find(':') != -1 and line.find('volts.') != -1:
+                    return float(line[line.find(': ') + 2:line.find(' volts')])
+        return 0
