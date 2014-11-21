@@ -14,6 +14,16 @@ try:
 except NameError:
     xrange = range
 
+def calcDJB2(contents):
+    hash = 5381
+    for c in contents:
+        cval = ord(c)
+        if cval >= 128:
+            cval = -(256 - cval)
+        hash = hash * 33 + cval
+        hash = hash & 0xffffffff
+    return hash
+
 class ImageProcessor:
     # Distance between the same line of primitives on two different heads (in pixels)
     # Distance between the two cartridges in pixels
@@ -69,6 +79,7 @@ class ImageProcessor:
         #os.chdir(directory)
         #hexOutput = outputFile
         self.outputFile = outputFile
+        self.outputFileName = outputFileName
 
         # Open our image and split it into its odd rows and even rows
         inputImage = Image.open(inputFileName)
@@ -193,6 +204,17 @@ class ImageProcessor:
         self.writeMovementCommand('Y', 0)
 
         self.outputFile.close()
+
+        # Add the djb2 hash to the start of the file
+        file = open(self.outputFileName, 'r')
+        contents = file.read()
+        file.close()
+        djb2 = calcDJB2(contents)
+
+        file = open(self.outputFileName, 'w')
+        file.write("# {:08x}\n".format(djb2))
+        file.write(contents)
+        file.close()
 
     def calculateFiring(self, xPos, yPos, addr, side):
         # Lookup tables to convert address to position

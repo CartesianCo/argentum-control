@@ -3,6 +3,7 @@ from serial import Serial, SerialException
 import hashlib
 import os
 import time
+from imageproc import calcDJB2
 
 order = ['8', '4', 'C', '2', 'A', '6', 'E', '1', '9', '5', 'D', '3', 'B'];
 MAX_FIRING_LINE_LEN = 13*4+12
@@ -227,23 +228,16 @@ class ArgentumPrinterController(PrinterController):
                 return True
         return False
 
-    def calcDJB2(self, contents):
-        hash = 5381
-        for c in contents:
-            cval = ord(c)
-            if cval >= 128:
-                cval = -(256 - cval)
-            hash = hash * 33 + cval
-            hash = hash & 0xffffffff
-        return hash
-
     def checkDJB2(self, path):
         file = open(path, 'r')
         contents = file.read()
         file.close()
 
-        hash = self.calcDJB2(contents)
-        djb2 = "{:08x}".format(hash)
+        if contents[0] == '#' and contents[1] == ' ' and contents[10] == '\n':
+            djb2 = contents[2:10]
+        else:
+            hash = calcDJB2(contents)
+            djb2 = "{:08x}".format(hash)
 
         filename = os.path.basename(path)
         print("asking printer for {} with djb2 {}.".format(filename, djb2))
@@ -348,6 +342,10 @@ class ArgentumPrinterController(PrinterController):
         for line in contents.split('\n'):
             if len(line) == 0:
                 continue
+            if line[0] == '#':
+                compressed.append(line)
+                continue
+
             if line[0] == 'M':
                 if len(firings) > 0:
 
