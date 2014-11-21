@@ -347,6 +347,7 @@ class PrintView(QtGui.QWidget):
             return
 
         self.printCanceled = False
+        self.progress = QtGui.QProgressDialog(self)
         self.progress.setLabelText("Starting up...")
         self.progress.setValue(0)
         self.progress.show()
