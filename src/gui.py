@@ -120,7 +120,7 @@ class Argentum(QtGui.QMainWindow):
                 pass
         else:
             #self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
-                .format('0.0.6', '0.0.7'))
+            #    .format('0.0.6', '0.0.7'))
             pass
             #self.appendOutput('Not packaged - no automatic update support.')
 
