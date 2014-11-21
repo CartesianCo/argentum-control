@@ -556,6 +556,7 @@ class Argentum(QtGui.QMainWindow):
                         self.appendOutput("Printer is running: " + self.printer.version)
                 else:
                     QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
+                    self.statusBar().showMessage('Connection error.')
         self.updatePortList()
 
     def updatePortList(self):
