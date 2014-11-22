@@ -14,7 +14,7 @@ import time
 from PyQt4 import QtGui, QtCore, QtSvg
 
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
-imageScale            = [ 23.52,  23.29] # * print = pixels
+imageScale            = [ 23.70,  23.70] # * print = pixels
 
 # moves / mm
 moveScale             = [3000 / 37, 3000 / 39]
@@ -155,8 +155,10 @@ class PrintView(QtGui.QWidget):
         return self.printToScreen(p)
 
     def printAreaToMove(self, offsetX, offsetY):
-        x = offsetX * moveScale[0]
-        y = offsetY * moveScale[1]
+        fudgeX = 3
+        fudgeY = 6
+        x = offsetX * moveScale[0] - fudgeX * moveScale[0]
+        y = offsetY * moveScale[1] - fudgeY * moveScale[1]
         x = int(x)
         y = int(y)
         return (x, y)
