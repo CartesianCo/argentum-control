@@ -153,18 +153,21 @@ class ArgentumPrinterController(PrinterController):
         self.command('S')
 
     def monitor(self):
-        if (self.connected and
-                self.serialDevice.timeout == 0 and
-                self.serialDevice.inWaiting()):
-            data = None
-            n = self.serialDevice.inWaiting()
-            if n > 0:
-                #print("monitor reading {} bytes.".format(n))
-                data = self.serialDevice.read(n)
+        try:
+            if (self.connected and
+                    self.serialDevice.timeout == 0 and
+                    self.serialDevice.inWaiting()):
+                data = None
+                n = self.serialDevice.inWaiting()
+                if n > 0:
+                    #print("monitor reading {} bytes.".format(n))
+                    data = self.serialDevice.read(n)
 
-            if data:
-                #print("monitor returned data.")
-                return data
+                if data:
+                    #print("monitor returned data.")
+                    return data
+        except:
+            pass
         return None
 
     def waitForResponse(self, timeout=0.5, expect=None):

@@ -432,7 +432,6 @@ class PrintView(QtGui.QWidget):
             self.setProgress(statusText='Print complete.', percent=100)
         except:
             self.setProgress(statusText="Print canceled.", canceled=True)
-            raise
         finally:
             self.printThread = None
 
