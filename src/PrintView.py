@@ -241,6 +241,12 @@ class PrintView(QtGui.QWidget):
         self.setProgress(percent=(20 + self.perImage * pos / size))
         return True
 
+    def printProgress(self, pos, size):
+        if self.printCanceled:
+            return False
+        self.setProgress(percent=(40 + self.perImage * pos / size))
+        return True
+
     def processImage(self, image):
         ip = self.argentum.getImageProcessor()
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
@@ -356,6 +362,7 @@ class PrintView(QtGui.QWidget):
 
         self.printCanceled = False
         self.progress = QtGui.QProgressDialog(self)
+        self.progress.setWindowTitle("Printing")
         self.progress.setLabelText("Starting up...")
         self.progress.setValue(0)
         self.progress.show()
@@ -431,16 +438,23 @@ class PrintView(QtGui.QWidget):
             self.argentum.printer.disconnect()
             self.argentum.printer.connect()
             self.perImage = 59.0 / len(self.images)
+            nImage = 0
             for image in self.images:
                 pos = self.printAreaToMove(image.left + image.width, image.bottom)
                 self.argentum.printer.home(wait=True)
                 self.argentum.printer.move(pos[0], pos[1])
-                self.argentum.printer.Print(image.hexFilename)
-                self.setProgress(incPercent=self.perImage)
+                path = os.path.join(self.argentum.filesDir, image.hexFilename)
+                self.setProgress(labelText=image.hexFilename)
+                self.argentum.printer.Print(image.hexFilename,
+                                            path=path,
+                                            progressFunc=self.printProgress)
+                nImage = nImage + 1
+                self.setProgress(percent=(40 + self.perImage * nImage))
 
             self.setProgress(statusText='Print complete.', percent=100)
         except:
             self.setProgress(statusText="Print canceled.", canceled=True)
+            #raise
         finally:
             self.printThread = None
 

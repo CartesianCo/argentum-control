@@ -93,7 +93,7 @@ class ArgentumPrinterController(PrinterController):
     def command(self, command, timeout=None, expect=None, wait=False):
         if self.serialDevice and self.connected:
             if timeout:
-                self.timeout = timeout
+                self.serialDevice.timeout = timeout
             self.serialDevice.write(command.encode('utf-8'))
             self.serialDevice.write(self.delimiter.encode('utf-8'))
             if wait != False:
@@ -122,11 +122,50 @@ class ArgentumPrinterController(PrinterController):
     def calibrate(self):
         self.command('c')
 
-    def Print(self, filename, wait=False):
-        if wait:
-            self.command('p ' + filename, timeout=2*60, expect="+Print complete")
-        else:
+    def Print(self, filename, path=None, progressFunc=None):
+        if progressFunc == None:
             self.command('p ' + filename)
+            return
+
+        lines = 100
+        if path:
+            file = open(path, "r")
+            contents = file.read()
+            file.close()
+            lines = 0
+            for line in contents.split('\n'):
+                if len(line) > 3 and line[0] == 'M' and line[2] == 'X':
+                    lines = lines + 1
+            if lines == 0:
+                print("couldn't get number of lines in {}".format(path))
+                return
+            print("{} has {} lines.".format(filename, lines))
+
+        try:
+            self.serialDevice.timeout = 2*60
+            self.command('p ' + filename)
+
+            pos = 0
+            Done = False
+            while not Done:
+                response = self.waitForResponse(timeout=2*60, expect='\n')
+                if response == None:
+                    break
+                for line in response:
+                    if line == ".":
+                        pos = pos + 1
+                        if not progressFunc(pos, lines):
+                            Done = True
+                            break
+                    if line.find("Print complete") != -1:
+                        Done = True
+                        break
+                    if line.find("Stopping") != -1:
+                        Done = True
+                        break
+        finally:
+            self.serialDevice.timeout = 0
+
 
     def isHomed(self):
         response = self.command('lim', 1)
