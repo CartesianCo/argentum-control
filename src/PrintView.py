@@ -382,6 +382,7 @@ class PrintView(QtGui.QWidget):
             self.setProgress(labelText="Looking on the printer...")
             hexfiles = [image.hexFilename for image in self.images]
             missing = self.argentum.printer.missingFiles(hexfiles)
+            print("{} missing files.".format(len(missing)))
 
             # Try harder
             if len(missing) != 0:
@@ -389,6 +390,7 @@ class PrintView(QtGui.QWidget):
                 self.argentum.printer.disconnect()
                 self.argentum.printer.connect()
                 missing = self.argentum.printer.missingFiles(hexfiles)
+                print("{} still missing files.".format(len(missing)))
 
             # Also check the files we did find to see if they're different
             for filename in hexfiles:
@@ -397,6 +399,7 @@ class PrintView(QtGui.QWidget):
                 path = os.path.join(self.argentum.filesDir, filename)
                 if not self.argentum.printer.checkDJB2(path):
                     missing.append(filename)
+                    print("{} is different.".format(filename))
 
             # Try sending missing files
             if len(missing) != 0:

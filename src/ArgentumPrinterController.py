@@ -211,7 +211,7 @@ class ArgentumPrinterController(PrinterController):
         for filename in files:
             found = False
             for resp in response:
-                if resp == ("+" + filename):
+                if resp.lower() == ("+" + filename).lower():
                     found = True
                     break
             if not found:
