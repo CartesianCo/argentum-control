@@ -48,6 +48,9 @@ class PrintImage(PrintRect):
     def pixmapRect(self):
         return QtCore.QRectF(self.pixmap.rect())
 
+class PrintCanceledException(Exception):
+    pass
+
 class PrintView(QtGui.QWidget):
     layout = None
     layoutChanged = False
@@ -286,7 +289,7 @@ class PrintView(QtGui.QWidget):
                           missing=None,
                           canceled=None):
         if self.printCanceled:
-            raise Exception()
+            raise PrintCanceledException()
         if percent:
             self.percent = percent
             self.curPercent = percent
@@ -326,6 +329,8 @@ class PrintView(QtGui.QWidget):
         if self.progress.wasCanceled() or self.printCanceled:
             if not self.printCanceled:
                 self.argentum.printer.stop()
+            if self.progress.wasCanceled():
+                self.argentum.statusBar().showMessage("Print canceled.")
             self.printCanceled = True
             self.progress.hide()
         if self.missing:
@@ -452,9 +457,11 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(percent=(40 + self.perImage * nImage))
 
             self.setProgress(statusText='Print complete.', percent=100)
+        except PrintCanceledException:
+            pass
         except:
-            self.setProgress(statusText="Print canceled.", canceled=True)
-            #raise
+            self.setProgress(statusText="Print error.", canceled=True)
+            raise
         finally:
             self.printThread = None
 
