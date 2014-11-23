@@ -28,11 +28,19 @@ def makeFirmware():
     if not os.path.exists(firmwarePath):
         print("You need to go build the firmware.")
         sys.exit(1)
-    file = open(firmwarePath, "r")
+    file = open(firmwarePath[:-4] + ".elf", "rb")
     contents = file.read()
     file.close()
-    if contents.find(_version + "+2014") == -1:
+    if contents.find(BASEVERSION + "+2014") == -1:
         print("You need to set the version number of the firmware.")
+        if contents.find("+2014") == -1:
+            print("Doesn't seem to have any version.")
+        else:
+            i = contents.find("+2014") - 1
+            e = i + 5 + 4
+            while contents[i] >= '0' and contents[i] <= '0' or contents[i] == '.':
+                i = i - 1
+            print("Seems to be {}.".format(contents[i:e]))
         sys.exit(1)
     shutil.copy2(firmwarePath, firmware_file)
     shutil.copy2(firmware_file, build_out)
