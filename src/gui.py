@@ -566,7 +566,8 @@ class Argentum(QtGui.QMainWindow):
 
         portList = []
         for port in comports():
-            if port[2].find("2341:0042") != -1:
+            if (port[2].find("2341:0042") != -1 or
+                    port[2].find("2341:42") != -1):
                 portList.append(port)
 
         for port in portList:
