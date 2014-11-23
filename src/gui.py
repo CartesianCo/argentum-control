@@ -89,7 +89,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.options = load_options()
         try:
-            self.lastRun = self.options['last_run']
+            self.lastRun = int(self.options['last_run'])
         except:
             self.lastRun = None
         self.options['last_run'] = int(time.time())
@@ -125,7 +125,7 @@ class Argentum(QtGui.QMainWindow):
             #self.appendOutput('Not packaged - no automatic update support.')
 
         daily = 60*60*24
-        if self.lastRun == None or self.lastRun - int(time.time()) > daily:
+        if self.lastRun == None or int(time.time()) - self.lastRun > daily:
             updateThread = threading.Thread(target=self.updateFirmwareLoop)
             updateThread.start()
 

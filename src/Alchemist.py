@@ -47,6 +47,8 @@ class OptionsDialog(QtGui.QDialog):
 
     def addOptions(self, parentLayout, options):
         for optionName, defaultValue in options.items():
+            if optionName == "last_run":
+                continue
             layout = QtGui.QHBoxLayout()
 
             widget = self.createOptionWidget(layout, optionName, defaultValue)
