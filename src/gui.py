@@ -360,6 +360,7 @@ class Argentum(QtGui.QMainWindow):
 
     def progressFunc(self, y, max_y):
         self.appendOutput('{} out of {}.'.format(y, max_y))
+        return True
 
     def appendOutput(self, output):
         self.outputView.append(output)

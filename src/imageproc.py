@@ -1,4 +1,5 @@
 from PIL import Image
+import os
 ### Image Processing Functions
 
 """
@@ -155,8 +156,8 @@ class ImageProcessor:
             # Print out progress
             if progressFunc:
                 if not progressFunc(y + 1, int(height/self.mOffset)*2 + 1):
-                    outputFile.close()
-                    os.remove(outputFileName)
+                    self.outputFile.close()
+                    os.remove(self.outputFileName)
                     return
             else:
                 print('{} out of {}.'.format(y + 1, int(height/self.mOffset)*2 + 1))
