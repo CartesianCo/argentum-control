@@ -25,8 +25,8 @@ from imageproc import ImageProcessor
 from Alchemist import OptionsDialog, CommandLineEdit, ServoCalibrationDialog
 
 import esky
-from setup import VERSION
-from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware
+from setup import VERSION, BASEVERSION
+from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware, is_older_firmware
 
 import subprocess
 from multiprocessing import Process
@@ -446,6 +446,23 @@ class Argentum(QtGui.QMainWindow):
         self.disableAllButtons()
         self.connectButton.setEnabled(True)
 
+    nagged = False
+    def nagFirmwareUpgrade(self):
+        if self.nagged:
+            return
+        self.nagged = True
+        reply = QtGui.QMessageBox.question(self, 'Firmware upgrade',
+            'This printer is running older firmware. To function correctly with this version of the software, it must be upgraded. Do it now?',
+            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+            QtGui.QMessageBox.Yes)
+
+        if reply == QtGui.QMessageBox.Yes:
+            _version = BASEVERSION.replace('.', '_')
+            filename = "argentum_" + _version + ".hex"
+            self.startFlash(filename)
+        else:
+            self.appendOutput('Continuing with older firmware.')
+
     def flashActionTriggered(self):
         if self.programmer != None:
             return
@@ -454,24 +471,27 @@ class Argentum(QtGui.QMainWindow):
         firmwareFileName = str(firmwareFileName)
 
         if firmwareFileName:
-            self.disableAllButtons()
-            self.printer.disconnect()
+            self.startFlash(firmwareFileName)
 
-            self.appendOutput('Flashing {} with {}...'.format(self.printer.port, firmwareFileName))
+    def startFlash(self, firmwareFileName):
+        self.disableAllButtons()
+        self.printer.disconnect()
 
-            self.programmer = avrdude(port=self.printer.port)
-            if self.programmer.flashFile(firmwareFileName):
-                self.flashingProgress = QtGui.QProgressDialog(self)
-                self.flashingProgress.setWindowTitle("Flashing")
-                self.flashingProgress.show()
-                self.pollFlashingTimer = QtCore.QTimer()
-                QtCore.QObject.connect(self.pollFlashingTimer, QtCore.SIGNAL("timeout()"), self.pollFlashing)
-                self.pollFlashingTimer.start(1000)
-            else:
-                self.appendOutput("Can't flash for some reason.")
-                self.appendOutput("")
-                self.printer.connect()
-                self.enableAllButtons()
+        self.appendOutput('Flashing {} with {}...'.format(self.printer.port, firmwareFileName))
+
+        self.programmer = avrdude(port=self.printer.port)
+        if self.programmer.flashFile(firmwareFileName):
+            self.flashingProgress = QtGui.QProgressDialog(self)
+            self.flashingProgress.setWindowTitle("Flashing")
+            self.flashingProgress.show()
+            self.pollFlashingTimer = QtCore.QTimer()
+            QtCore.QObject.connect(self.pollFlashingTimer, QtCore.SIGNAL("timeout()"), self.pollFlashing)
+            self.pollFlashingTimer.start(1000)
+        else:
+            self.appendOutput("Can't flash for some reason.")
+            self.appendOutput("")
+            self.printer.connect()
+            self.enableAllButtons()
 
     def pollFlashing(self):
         self.flashingProgress.setValue(self.flashingProgress.value() + 100 / 30)
@@ -555,6 +575,8 @@ class Argentum(QtGui.QMainWindow):
 
                     if self.printer.version != None:
                         self.appendOutput("Printer is running: " + self.printer.version)
+                        if is_older_firmware(self.printer.version):
+                            self.nagFirmwareUpgrade()
                 else:
                     QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
                     self.statusBar().showMessage('Connection error.')

@@ -73,17 +73,16 @@ def download_file(filename, calculate_sha=True):
 
 def is_older_firmware(firmware):
     if firmware.find('+') != -1:
-        parts = parts[:firmware.find('+')]
+        firmware = firmware[:firmware.find('+')]
     parts = firmware.split('.')
-    version = BASEVERSION.split('+')
-    version = version[0].split('.')
+    version = BASEVERSION.split('.')
     if int(parts[0]) < int(version[0]):
         return True
     if int(parts[0]) == int(version[0]):
         if int(parts[1]) < int(version[1]):
             return True
         if int(parts[1]) == int(version[1]):
-            if len(parts) == 3:
+            if len(parts) == 2:
                 return True
             if int(parts[2]) < int(version[2]):
                 return True
