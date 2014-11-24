@@ -447,6 +447,7 @@ class Argentum(QtGui.QMainWindow):
         self.connectButton.setEnabled(True)
 
     nagged = False
+    checkFlashVersion = None
     def nagFirmwareUpgrade(self):
         if self.nagged:
             return
@@ -457,6 +458,7 @@ class Argentum(QtGui.QMainWindow):
             QtGui.QMessageBox.Yes)
 
         if reply == QtGui.QMessageBox.Yes:
+            self.checkFlashVersion = BASEVERSION
             _version = BASEVERSION.replace('.', '_')
             filename = "argentum_" + _version + ".hex"
             self.startFlash(filename)
@@ -505,6 +507,12 @@ class Argentum(QtGui.QMainWindow):
             self.programmer = None
 
             self.printer.connect()
+            if self.checkFlashVersion:
+                if self.checkFlashVersion != self.printer.version:
+                    QtGui.QMessageBox.information(self,
+                        "Flash error",
+                        "Upgrading the firmware has failed. It is recommended that you exit the program and ensure you have installed the necessary drivers for avrdude.")
+                self.checkFlashVersion = None
             self.enableAllButtons()
 
     def optionsActionTriggered(self):
@@ -575,8 +583,9 @@ class Argentum(QtGui.QMainWindow):
 
                     if self.printer.version != None:
                         self.appendOutput("Printer is running: " + self.printer.version)
-                        if is_older_firmware(self.printer.version):
-                            self.nagFirmwareUpgrade()
+                    if (self.printer.version == None or
+                            is_older_firmware(self.printer.version)):
+                        self.nagFirmwareUpgrade()
                 else:
                     QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
                     self.statusBar().showMessage('Connection error.')
