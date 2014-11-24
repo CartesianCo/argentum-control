@@ -508,7 +508,13 @@ class Argentum(QtGui.QMainWindow):
 
             self.printer.connect()
             if self.checkFlashVersion:
-                if self.checkFlashVersion != self.printer.version:
+                if self.printer.version == None:
+                    self.printer.disconnect()
+                    self.printer.connect()
+                version = self.printer.version
+                if version and version.find('+') != -1:
+                    version = version[:version.find('+')]
+                if self.checkFlashVersion != version:
                     QtGui.QMessageBox.information(self,
                         "Flash error",
                         "Upgrading the firmware has failed. It is recommended that you exit the program and ensure you have installed the necessary drivers for avrdude.")
