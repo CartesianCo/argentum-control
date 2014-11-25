@@ -4,13 +4,23 @@ import os
 import sys
 import tempfile
 import shutil
+import time
 from setup import BASEVERSION
+
+nightly = False
+for opt in sys.argv[1:]:
+    if opt == "--nightly":
+        nightly = True
 
 build = os.path.abspath("../../build")
 build_out = build + "/" + BASEVERSION
 _version = BASEVERSION.replace('.', '_')
 firmware_file = "argentum_{}.hex".format(_version)
 files = []
+
+if nightly:
+    build_out = build_out + "-nightly+" + time.strftime('%Y%m%d')
+    _version = _version + "_nightly_" + time.strftime('%Y%m%d')
 
 def makeBuildOut():
     print("Output will be in {}.".format(build_out))
