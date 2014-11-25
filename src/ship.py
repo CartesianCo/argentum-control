@@ -41,7 +41,10 @@ def makeFirmware():
     file = open(firmwarePath[:-4] + ".elf", "rb")
     contents = file.read()
     file.close()
-    if contents.find(BASEVERSION + "+2014") == -1:
+    tofind = BASEVERSION + "+2014"
+    if nightly:
+        tofind = BASEVERSION + "-nightly+2014"
+    if contents.find(tofind) == -1:
         print("You need to set the version number of the firmware.")
         if contents.find("+2014") == -1:
             print("Doesn't seem to have any version.")
