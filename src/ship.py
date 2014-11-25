@@ -167,6 +167,32 @@ def makeWin32Release():
 
     shutil.rmtree(tmp)
 
+def makeLinuxRelease():
+    print("Making the Linux release...")
+    linux_app_template = build + "/linux-app-template.tar.gz"
+    if not os.path.exists(linux_app_template):
+        print("can't find " + linux_app_template)
+        return
+    tmp = tempfile.mkdtemp()
+    if not tmp or len(tmp) < 3:
+        print("unable to make temp dir!")
+        return
+    os.system("tar -xzf {} --directory={}".format(linux_app_template, tmp))
+
+    cwd = os.getcwd()
+    resourceDir = tmp + "/Argentum-Control-0.0.6.linux/"
+    for file in files:
+        shutil.copy2(file, resourceDir)
+
+    os.chdir(tmp)
+    os.system("mv Argentum-Control-0.0.6.linux Argentum-Control-{}.linux".format(BASEVERSION))
+
+    outputFile = "Argentum-Control-{}-linux.tar.gz".format(_version)
+    os.system("tar -czf {} Argentum-Control-{}.linux".format(outputFile, BASEVERSION))
+    os.system("mv {} {}/".format(outputFile, build_out))
+    os.chdir(cwd)
+
+    shutil.rmtree(tmp)
 
 print("Version {}.".format(BASEVERSION))
 makeBuildOut()
@@ -174,3 +200,4 @@ makeFirmware()
 guessFilesToShip()
 makeMacRelease()
 makeWin32Release()
+makeLinuxRelease()
