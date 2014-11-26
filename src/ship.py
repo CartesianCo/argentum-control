@@ -125,6 +125,19 @@ def makeMacRelease():
     os.system("zip -qr ../site-packages.zip ./")
     os.chdir(tmp + "/Argentum Control.app")
     shutil.rmtree(sitePackagesDir)
+
+    os.chdir(tmp + "/Argentum Control.app/Contents")
+    f = open("Info.plist", "r")
+    plist = f.read()
+    f.close()
+    f = open("Info.plist", "w")
+    for line in plist.split('\n'):
+        if line == "\t<string>0.0.6</string>":
+            line = "\t<string>{}</string>".format(BASEVERSION)
+        f.write(line + "\n")
+    f.close()
+
+    os.chdir(tmp + "/Argentum Control.app")
     os.system("mv Argentum\ Control-0.0.6.macosx-10_9-x86_64 Argentum\ Control-{}.macosx-10_9-x86_64".format(BASEVERSION))
 
     os.chdir(tmp)
