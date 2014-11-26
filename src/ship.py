@@ -207,10 +207,11 @@ def makeLinuxRelease():
 
     shutil.rmtree(tmp)
 
-print("Version {}.".format(BASEVERSION))
-makeBuildOut()
-makeFirmware()
-guessFilesToShip()
-makeMacRelease()
-makeWin32Release()
-makeLinuxRelease()
+if __name__ == '__main__':
+    print("Version {}.".format(BASEVERSION))
+    makeBuildOut()
+    makeFirmware()
+    guessFilesToShip()
+    makeMacRelease()
+    makeWin32Release()
+    makeLinuxRelease()
