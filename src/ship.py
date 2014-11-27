@@ -142,7 +142,7 @@ def makeMacRelease():
 
     os.chdir(tmp)
     outputFile = "Argentum-Control-{}-macosx-10_9-x86_64.zip".format(_version)
-    os.system("zip -qry {} Argentum\\ Control.app".format(outputFile))
+    os.system("zip -qr {} Argentum\\ Control.app".format(outputFile))
     os.system("mv {} {}/".format(outputFile, build_out))
     os.chdir(cwd)
 
