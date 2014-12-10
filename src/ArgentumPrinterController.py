@@ -19,6 +19,14 @@ class ArgentumPrinterController(PrinterController):
     def __init__(self, port=None):
         self.port = port
 
+    def clearVersion(self):
+        self.version = None
+        self.majorVersion = None
+        self.minorVersion = None
+        self.patchVersion = None
+        self.buildVersion = None
+        self.tagVersion   = None
+
     def connect(self, port=None):
         if port:
             self.port = port
@@ -27,14 +35,13 @@ class ArgentumPrinterController(PrinterController):
             self.serialDevice = Serial(self.port, 115200, timeout=0)
             self.connected = True
 
+            self.clearVersion()
             response = self.waitForResponse(timeout=2, expect='\n')
             if response == None:
                 self.lastError = "Printer didn't respond."
-                self.connected = False
-                return False
+                return True
 
             # Parse out the version
-            self.version = None
             for line in response:
                 if line.find('.') == -1:
                     continue
