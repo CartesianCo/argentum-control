@@ -3,6 +3,7 @@
 import sys
 import os
 import subprocess
+import stat
 
 class avrdude:
   def __init__(self, port=None, baud=None, boardType=None, protocol=None):
@@ -62,6 +63,10 @@ class avrdude:
   def assembleCommand(self, firmwareFileName):
     if os.path.isdir('tools'):
         avrdudeString = './tools/avrdude -C avrdude.conf'
+    elif os.path.exists('avrdude') and os.path.exists('avrdude.conf'):
+        avrdudeString = './avrdude -C avrdude.conf'
+        if not os.access('avrdude', os.X_OK):
+            os.chmod('avrdude', stat.S_IREAD | stat.S_IEXEC)
     else:
         # use the system's exe and config
         avrdudeString = 'avrdude'
