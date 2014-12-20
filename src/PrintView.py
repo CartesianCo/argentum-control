@@ -209,7 +209,7 @@ class PrintView(QtGui.QWidget):
     def addImageFile(self, inputFileName):
         pixmap = QtGui.QPixmap(inputFileName)
         if pixmap.isNull():
-            print("Can't load image " + inputFileName)
+            QtGui.QMessageBox.information(self, "Invalid image file", "Can't load image " + inputFileName)
             return None
         pi = PrintImage(pixmap, inputFileName)
         self.images.append(pi)
