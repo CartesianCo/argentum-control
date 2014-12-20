@@ -1,5 +1,7 @@
+#!/usr/bin/python
 from PIL import Image
 import os
+import sys
 ### Image Processing Functions
 
 """
@@ -340,3 +342,10 @@ class ImageProcessor:
             outputStream.write(chr(firing2)) # Relevant firing data, i.e. which primitive(s) to fire
             outputStream.write(chr(address)) # The address we're firing within the primitive(s)
             outputStream.write('\n')
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("usage: imageproc <image file> <hex file>")
+        sys.exit(1)
+    ip = ImageProcessor()
+    ip.sliceImage(sys.argv[1], sys.argv[2])
