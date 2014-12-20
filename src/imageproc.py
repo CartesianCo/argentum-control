@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from PIL import Image
+from PyQt4.QtGui import QImage, QTransform
 import os
 import sys
 ### Image Processing Functions
@@ -85,11 +86,14 @@ class ImageProcessor:
         self.outputFileName = outputFileName
 
         # Open our image and split it into its odd rows and even rows
-        inputImage = Image.open(inputFileName)
-        inputImage = inputImage.transpose(Image.FLIP_LEFT_RIGHT);
-        inputImage = inputImage.transpose(Image.ROTATE_270);
+        inputImage = QImage(inputFileName)
+        inputImage = inputImage.mirrored(horizontal=True, vertical=False)
+        rot270 = QTransform()
+        rot270.rotate(270)
+        inputImage = inputImage.transformed(rot270)
         if size:
-            inputImage = inputImage.resize(size, Image.ANTIALIAS)
+            width, height = size
+            inputImage = inputImage.scaled(width, height, QtCore.Qt.SmoothTransformation)
 
         inputs = self.splitImageTwos(inputImage)
 
@@ -274,7 +278,8 @@ class ImageProcessor:
     Splits an input image into two images.
     '''
     def splitImageTwos(self, image):
-        width, height = image.size
+        width = image.width()
+        height = image.height()
 
         # If the height of the input image isn't a multiple of 4, round it up.
         if height % 4 != 0:
@@ -290,28 +295,36 @@ class ImageProcessor:
         # References to the pixel data.
         evenMatrix = even.load()
         oddMatrix = odd.load()
-        inputMatrix = image.load()
+        inputVector = image.bits()
+        inputVector.setsize(image.byteCount())
+        stride = width*4
+
+        def inputMatrix(x, y):
+            return (ord(inputVector[x*4   + y*stride]),
+                    ord(inputVector[x*4+1 + y*stride]),
+                    ord(inputVector[x*4+2 + y*stride]),
+                    ord(inputVector[x*4+3 + y*stride]))
 
         # Divide by 4 because we're copying two rows at a time (why?)
         # Subtract 1 because of zero-offset.
         for y in xrange(int(height / 4) - 1):
             for x in xrange(width):
-                oddMatrix[x, y*2] = inputMatrix[x, y*4]
-                oddMatrix[x, y*2+1] = inputMatrix[x, y*4+1]
+                oddMatrix[x, y*2] = inputMatrix(x, y*4)
+                oddMatrix[x, y*2+1] = inputMatrix(x, y*4+1)
 
-                evenMatrix[x, y*2] = inputMatrix[x, y*4+2]
-                evenMatrix[x, y*2+1] = inputMatrix[x, y*4+3]
+                evenMatrix[x, y*2] = inputMatrix(x, y*4+2)
+                evenMatrix[x, y*2+1] = inputMatrix(x, y*4+3)
 
         # Handle the final row(s) specially
         # This shouldn't be necessary, since we know how many extras
         # (non-existant) we added.
         y = int(height / 4) - 1
         for x in xrange(width):
-            if y*4 < image.size[1]: oddMatrix[x, y*2] = inputMatrix[x, y*4]
-            if y*4 + 1 < image.size[1]: oddMatrix[x, y*2+1] = inputMatrix[x, y*4+1]
+            if y*4 < image.height(): oddMatrix[x, y*2] = inputMatrix(x, y*4)
+            if y*4 + 1 < image.height(): oddMatrix[x, y*2+1] = inputMatrix(x, y*4+1)
 
-            if y*4 + 2 < image.size[1]: evenMatrix[x, y*2] = inputMatrix[x, y*4+2]
-            if y*4 + 3 < image.size[1]: evenMatrix[x, y*2+1] = inputMatrix[x, y*4+3]
+            if y*4 + 2 < image.height(): evenMatrix[x, y*2] = inputMatrix(x, y*4+2)
+            if y*4 + 3 < image.height(): evenMatrix[x, y*2+1] = inputMatrix(x, y*4+3)
 
         return (odd, even)
 
