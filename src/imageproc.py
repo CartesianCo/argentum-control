@@ -86,7 +86,10 @@ class ImageProcessor:
         self.outputFileName = outputFileName
 
         # Open our image and split it into its odd rows and even rows
-        inputImage = QImage(inputFileName)
+        if type(inputFileName) == type(''):
+            inputImage = QImage(inputFileName)
+        else:
+            inputImage = inputFileName
         inputImage = inputImage.mirrored(horizontal=True, vertical=False)
         rot270 = QTransform()
         rot270.rotate(270)

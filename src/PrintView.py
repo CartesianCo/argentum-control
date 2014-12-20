@@ -12,6 +12,7 @@ import os
 import threading
 import time
 from PyQt4 import QtGui, QtCore, QtSvg
+from gerber import Gerber
 
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
 imageScale            = [ 23.70,  23.70] # * print = pixels
@@ -206,11 +207,46 @@ class PrintView(QtGui.QWidget):
             qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
         qp.end()
 
+    def gerberToPixmap(self, inputFileName):
+        try:
+            f = open(inputFileName, "r")
+            contents = f.read()
+            f.close()
+        except:
+            return None
+        if contents[:3] != "G04":
+            return None
+        g = Gerber()
+        g.parse(contents)
+        if len(g.errors) > 0:
+            str = "Errors parsing Gerber file {}\n".format(inputFileName)
+            for error in g.errors:
+                lineno, msg = error
+                str = str + "{}: {}\n".format(lineno, msg)
+            QtGui.QMessageBox.information(self, "Invalid Gerber file", msg)
+            return False
+        pixmap = QtGui.QPixmap()
+        pixmap.loadFromData(g.toSVG())
+        print("Gerber size {} mm x {} mm".format(g.width, g.height))
+        if g.width > 230 or g.height > 120:
+            QtGui.QMessageBox.information(self, "Gerber file too big", "The design provided is too big for the print area. It will be resized to fit, but this is probably not what you want.")
+        pixmap = pixmap.scaled(g.width  * imageScale[0],
+                               g.height * imageScale[1])
+        return pixmap
+
     def addImageFile(self, inputFileName):
         pixmap = QtGui.QPixmap(inputFileName)
-        if pixmap.isNull():
+        if pixmap == None or pixmap.isNull():
+            pixmap = self.gerberToPixmap(inputFileName)
+            if pixmap == False:
+                return None
+        if pixmap == None or pixmap.isNull():
             QtGui.QMessageBox.information(self, "Invalid image file", "Can't load image " + inputFileName)
             return None
+        if inputFileName[-4:] == ".svg":
+            # Assume SVG files are in millimeters already
+            pixmap = pixmap.scaled(pixmap.width()  * imageScale[0],
+                                   pixmap.height() * imageScale[1])
         pi = PrintImage(pixmap, inputFileName)
         self.images.append(pi)
         self.ensureImageInPrintLims(pi)
@@ -266,7 +302,7 @@ class PrintView(QtGui.QWidget):
                                            image.hexFilename)
                 self.layoutChanged = True
 
-            ip.sliceImage(image.filename, hexFilename,
+            ip.sliceImage(image.pixmap.toImage(), hexFilename,
                             progressFunc=self.imageProgress,
                             size=size)
         except:
