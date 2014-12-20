@@ -345,7 +345,10 @@ class ImageProcessor:
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("usage: imageproc <image file> <hex file>")
+        print("usage: imageproc <image file> <hex file> [width height]")
         sys.exit(1)
+    size = None
+    if len(sys.argv) == 5:
+        size = (int(sys.argv[3]), int(sys.argv[4]))
     ip = ImageProcessor()
-    ip.sliceImage(sys.argv[1], sys.argv[2])
+    ip.sliceImage(sys.argv[1], sys.argv[2], size)
