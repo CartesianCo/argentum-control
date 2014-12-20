@@ -589,7 +589,7 @@ class Argentum(QtGui.QMainWindow):
 
                     if self.printer.version != None:
                         self.appendOutput("Printer is running: " + self.printer.version)
-                    if (self.printer.version == None or
+                    if (self.printer.version != None and
                             is_older_firmware(self.printer.version)):
                         self.nagFirmwareUpgrade()
                 else:
