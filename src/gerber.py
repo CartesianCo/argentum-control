@@ -5,13 +5,66 @@ import os
 import math
 
 class Gerber:
-    color = "#272749"
     comments = []
     errors = []
     lines = []
     attributes = {}
+    macros = {}
     apertures = {}
     levels = []
+
+    class SVG:
+        color = "#272749"
+
+        @staticmethod
+        def circle(x, y, diameter, exposure=True):
+            return '<circle cx="{}" cy="{}" r="{}" fill="{}" />\n'.format(x, y, diameter/2, Gerber.SVG.color)
+
+        @staticmethod
+        def rect(x, y, width, height, exposure=True):
+            return '<rect x="{}" y="{}" width="{}" height="{}" fill="{}" />\n'.format(x - width/2, y - height/2, width, height, Gerber.SVG.color)
+
+        @staticmethod
+        def obround(x, y, width, height, exposure=True):
+            return "<!-- {}, {} unimplemented obround {} {} -->\n".format(x, y, width, height)
+
+        @staticmethod
+        def polygon(x, y, num_vertices, cx, cy, diameter, rot, exposure=True):
+            return "<!-- {}, {} unimplemented polygon {} {} -->\n".format(x, y, diameter, num_vertices)
+
+        @staticmethod
+        def vectorLine(x, y, width, sx, sy, ex, ey, rot, exposure=True):
+            return '<line x1="{}" y1="{}" x2="{}" y2="{}" stroke-width="{}" stroke-linecap="butt" stroke="{}" />\n'.format(x + sx, y + sy, x + ex, y + ey, width, Gerber.SVG.color)
+
+        @staticmethod
+        def centerLine(x, y, width, height, cx, cy, rot, exposure=True):
+            x = x + cx
+            y = y + cy
+            return '<rect x="{}" y="{}" width="{}" height="{}" fill="{}" />\n'.format(x - width/2, y - height/2, width, height, Gerber.SVG.color)
+
+        @staticmethod
+        def lowerLeftLine(x, y, width, height, llx, lly, rot, exposure=True):
+            return '<rect x="{}" y="{}" width="{}" height="{}" fill="{}" />\n'.format(x + llx, y + lly, width, height, Gerber.SVG.color)
+
+        @staticmethod
+        def outline(x, y, points, rot, exposure=True):
+            return '<!-- {} {} unimplemented outline with {} points -->\n'.format(x, y, len(points))
+
+        @staticmethod
+        def moire(x, y, cx, cy, diameter, ring_thickness, ring_gap, ring_count, cross_thickness, cross_length, rot):
+            return '<!-- {} {} unimplemented moire -->\n'.format(x + cx, y + cy)
+
+        @staticmethod
+        def thermal(x, y, cx, cy, outer_diameter, inner_diameter, gap_thickness, rot):
+            return '<!-- {} {} unimplemented thermal -->\n'.format(x + cx, y + cy)
+
+        @staticmethod
+        def path(d, stroke_width, region_mode):
+            if region_mode:
+                return '<path d="{}" fill="{}" />\n'.format(d, Gerber.SVG.color)
+            else:
+                return '<path d="{}" fill="none" stroke="{}" stroke-width="{}" />\n'.format(d, Gerber.SVG.color, stroke_width)
+
 
     class Level:
         operations = []
@@ -26,38 +79,200 @@ class Gerber:
             self.attributes = attributes
 
         def width(self):
-            return float(self.args[0])
+            if self.name in "CROP":
+                return float(self.args[0])
+            return self.macro.width()
 
         def toSVG(self, x, y):
             if self.name == "C":
                 diameter = float(self.args[0])
                 hole = float(self.args[1]) if len(self.args) > 1 else None
-                return '<circle cx="{}" cy="{}" r="{}" fill="{}" />\n'.format(x, y, diameter/2, Gerber.color)
+                return Gerber.SVG.circle(x, y, diameter)
             elif self.name == "R":
                 width = float(self.args[0])
                 height = float(self.args[1])
                 hole = float(self.args[2]) if len(self.args) > 2 else None
-                return '<rect x="{}" y="{}" width="{}" height="{}" fill="{}" />\n'.format(x - width/2, y - height/2, width, height, Gerber.color)
+                return Gerber.SVG.rect(x, y, width, height)
             elif self.name == "O":
                 width = float(self.args[0])
                 height = float(self.args[1])
                 hole = float(self.args[2]) if len(self.args) > 2 else None
-                return "<!-- {}, {} unimplemented obround {} {} -->\n".format(x, y, width, height)
+                return Gerber.SVG.obround(x, y, width, height)
             elif self.name == "P":
                 diameter = float(self.args[0])
                 num_vertices = float(self.args[1])
                 rotation = float(self.args[2]) if len(self.args) > 2 else None
                 hole = float(self.args[3]) if len(self.args) > 3 else None
-                return "<!-- {}, {} unimplemented polygon {} {} -->\n".format(x, y, diameter, num_vertices)
+                return Gerber.SVG.polygon(x, y, num_vertices, 0, 0, diameter, 0)
             else:
-                return "<!-- {}, {} unimplemented macro {} -->\n".format(x, y, self.name)
+                return self.macro.toSVG(x, y, self.args)
+
+    class Macro:
+        def __init__(self, name):
+            self.name = name
+            self.contents = []
+
+        def width(self):
+            return 0
+
+        def append(self, def_or_prim):
+            self.contents.append(def_or_prim)
+
+        class Element:
+            def evalArithExp(self, state, exp):
+                if len(exp)==2 and exp[0]=='$' and exp[1]>='0' and exp[1]<='9':
+                    return state["v" + exp[1]]
+
+                if len(exp) > 1 and exp[0] == '(' and exp[1] == ')':
+                    return self.evalArithExp(state, exp[1:-1])
+
+                if exp.find('x') != -1:
+                    parts = exp.split('x')
+                    return (self.evalArithExp(state, parts[0]) *
+                            self.evalArithExp(state, parts[1]))
+
+                if exp.find('X') != -1:
+                    # Deprecated
+                    parts = exp.split('X')
+                    return (self.evalArithExp(state, parts[0]) *
+                            self.evalArithExp(state, parts[1]))
+
+                if exp.find('/') != -1:
+                    parts = exp.split('/')
+                    return (self.evalArithExp(state, parts[0]) /
+                            self.evalArithExp(state, parts[1]))
+
+                if exp.find('+') != -1:
+                    parts = exp.split('+')
+                    return (self.evalArithExp(state, parts[0]) +
+                            self.evalArithExp(state, parts[1]))
+
+                if exp.find('-') != -1:
+                    parts = exp.split('-')
+                    if parts[0] == '':
+                        return -self.evalArithExp(state, parts[1])
+                    return (self.evalArithExp(state, parts[0]) -
+                            self.evalArithExp(state, parts[1]))
+
+                # TODO
+                return float(exp)
+
+        class VarDef(Element):
+            def __init__(self, K, value):
+                self.K = K
+                self.value = value
+
+            def eval(self, state):
+                state["v" + self.K] = self.evalArithExp(self.value)
+                return state
+
+        class Primitive(Element):
+            def __init__(self, name, modifiers):
+                self.name = name
+                self.modifiers = modifiers
+
+            def eval(self, state):
+                x = state["x"]
+                y = state["y"]
+                svg = state["svg"]
+                args = []
+                for modifier in self.modifiers:
+                    args.append(self.evalArithExp(state, modifier))
+                if self.name == "1":
+                    exposure = (args[0] == 1)
+                    diameter = args[1]
+                    cx = args[2]
+                    cy = args[3]
+                    svg = svg + Gerber.SVG.circle(x + cx, y + cy, diameter, exposure=exposure)
+                elif self.name == "2" or self.name == "20":
+                    exposure = (args[0] == 1)
+                    width = args[1]
+                    sx = args[2]
+                    sy = args[3]
+                    ex = args[4]
+                    ey = args[5]
+                    rot = args[6]
+                    svg = svg + Gerber.SVG.vectorLine(x, y, width, sx, sy, ex, ey, rot, exposure=exposure)
+                elif self.name == "21":
+                    exposure = (args[0] == 1)
+                    width = args[1]
+                    height = args[2]
+                    cx = args[3]
+                    cy = args[4]
+                    rot = args[5]
+                    svg = svg + Gerber.SVG.centerLine(x, y, width, height, cx, cy, rot, exposure=exposure)
+                elif self.name == "22":
+                    exposure = (args[0] == 1)
+                    width = args[1]
+                    height = args[2]
+                    llx = args[3]
+                    lly = args[4]
+                    rot = args[5]
+                    svg = svg + Gerber.SVG.lowerLeftLine(x, y, width, height, llx, lly, rot, exposure=exposure)
+                elif self.name == "4":
+                    exposure = (args[0] == 1)
+                    num_subsequent_points = int(args[1])
+                    sx = args[2]
+                    sy = args[3]
+                    points = [(sx, sy)]
+                    for i in range(num_subsequent_points):
+                        points.append((args[4 + i*2], args[4 + i*2 + 1]))
+                    rot = args[4 + num_subsequent_points*2]
+                    svg = svg + Gerber.SVG.outline(x, y, points, rot, exposure=exposure)
+                elif self.name == "5":
+                    exposure = (args[0] == 1)
+                    num_vertices = args[1]
+                    cx = args[2]
+                    cy = args[3]
+                    diameter = args[4]
+                    rot = args[5]
+                    svg = svg + Gerber.SVG.polygon(x, y, num_vertices, cx, cy, diameter, rot, exposure=exposure)
+                elif self.name == "6":
+                    cx = args[0]
+                    cy = args[1]
+                    diameter = args[2]
+                    ring_thickness = args[3]
+                    ring_gap = args[4]
+                    ring_count = args[5]
+                    cross_thickness = args[6]
+                    cross_length = args[7]
+                    rot = args[8]
+                    svg = svg + Gerber.SVG.moire(x, y, cx, cy, diameter, ring_thickness, ring_gap, ring_count, cross_thickness, cross_length, rot)
+                elif self.name == "7":
+                    cx = args[0]
+                    cy = args[1]
+                    outer_diameter = args[2]
+                    inner_diameter = args[3]
+                    gap_thickness = args[4]
+                    rot = args[5]
+                    svg = svg + Gerber.SVG.thermal(x, y, cx, cy, outer_diameter, inner_diameter, gap_thickness, rot)
+                else:
+                    svg = svg + "<!-- {}, {} unimplemented prim {} in macro -->\n".format(state["x"], state["y"], self.name)
+                state["svg"] = svg
+                return state
+
+        def toSVG(self, x, y, args):
+            state = {"svg": "", "x": x, "y": y}
+            if args:
+                for i in range(len(args)):
+                    state["v{}".format(i+1)] = float(args[i])
+            for elem in self.contents:
+                state = elem.eval(state)
+            return state["svg"]
 
     def parse(self, contents):
         cur_aperture_attributes = {}
         self.lines = contents.split('\n')
+        altlines = contents.split('\r')
+        if len(self.lines) == 1 and len(altlines) > 1:
+            self.lines = altlines
         lineno = 0
+        skip = 0
         for line in self.lines:
             lineno = lineno + 1
+            if skip > 0:
+                skip = skip - 1
+                continue
             line = line.rstrip()
             if line == '':
                 continue
@@ -70,7 +285,10 @@ class Gerber:
                 self.comments.append((lineno, line))
             elif line[0] == '%':
                 line = line[1:]
-                if line[-1:] == '%':
+                while line[-1] != '%':
+                    line = line + self.lines[lineno + skip].rstrip()
+                    skip = skip + 1
+                if line[-1] == '%':
                     line = line[:-1]
                 else:
                     self.errors.append((lineno, "Unterminated parameter code"))
@@ -137,13 +355,35 @@ class Gerber:
 
                     mods = modifiers.split(',')
                     name = mods[0]
-                    args = mods[1].split('X')
+                    args = mods[1].split('X') if len(mods) > 1 else None
 
                     aperture = self.Aperture(name, args, cur_aperture_attributes)
+                    if not name in "CROP":
+                        aperture.macro = self.macros[name]
                     self.apertures[dcode] = aperture
                     continue
                 if code == 'AM':
-                    self.errors.append((lineno, "Aperture macros are not implemented"))
+                    content = line[2:].split('*')
+                    name = content[0]
+                    m = self.Macro(name)
+                    self.macros[name] = m
+                    content = content[1:]
+                    for def_or_prim in content:
+                        if def_or_prim == '':
+                            continue
+                        if def_or_prim[0] == '$' and def_or_prim[2] == '=':
+                            d = self.Macro.VarDef(def_or_prim[1], def_or_prim[3:])
+                            m.append(d)
+                        else:
+                            prim = def_or_prim
+                            if prim[0] == '0':
+                                # throw away comments
+                                continue
+                            modifiers = prim.split(',')
+                            name = modifiers[0]
+                            modifiers = modifiers[1:]
+                            p = self.Macro.Primitive(name, modifiers)
+                            m.append(p)
                     continue
                 if code == 'SR':
                     if modifiers[-1:] == '*':
@@ -247,6 +487,24 @@ class Gerber:
                     del cur_aperture_attributes[modifiers]
                     continue
 
+                # Deprecared parameter codes
+                if code == 'AS':
+                    continue
+                elif code == 'IN':
+                    continue
+                elif code == 'IP':
+                    continue
+                elif code == 'IR':
+                    continue
+                elif code == 'MI':
+                    continue
+                elif code == 'OF':
+                    continue
+                elif code == 'SF':
+                    continue
+                elif code == 'LN':
+                    continue
+
                 self.errors.append((lineno, "Unknown parameter code"))
                 continue
             else:
@@ -273,6 +531,19 @@ class Gerber:
                 elif code == 'G37':
                     operation["region_mode"] = "off"
                     line = line[3:]
+                elif (code == 'G54' or code == 'G55' or
+                      code == 'G90' or code == 'G91' or
+                      code == 'M00' or code == 'M01'):
+                    # Deprecated and superfluous
+                    line = line[3:]
+                elif code == 'G70':
+                    # Deprecated
+                    self.units = "inches"
+                    line = line[3:]
+                elif code == 'G71':
+                    # Deprecated
+                    line = line[3:]
+                    self.units = "millimeters"
                 elif code == 'G74':
                     operation["quadrant_mode"] = "single"
                     line = line[3:]
@@ -345,12 +616,6 @@ class Gerber:
                     self.levels.append(self.Level())
                 self.levels[-1].operations.append(operation)
 
-    def path(self, d, stroke_width, region_mode):
-        if region_mode:
-            return '<path d="{}" fill="{}" />\n'.format(d, self.color)
-        else:
-            return '<path d="{}" fill="none" stroke="{}" stroke-width="{}" />\n'.format(d, self.color, stroke_width)
-
     def toSVG(self):
         stroke_width = 1
 
@@ -362,7 +627,7 @@ class Gerber:
             d = ""
             X = 0
             Y = 0
-            cur_aperture = None
+            cur_aperture = self.apertures[10] if 10 in self.apertures else None
             interpolate_mode = "linear"
             region_mode = False
             quadrant_mode = "single"
@@ -393,7 +658,7 @@ class Gerber:
                         region_mode = True
                     else:
                         if d != "":
-                            body = body + self.path(d, stroke_width, region_mode)
+                            body = body + Gerber.SVG.path(d, stroke_width, region_mode)
                             d = ""
                         region_mode = False
                 if "quadrant_mode" in op:
@@ -401,7 +666,7 @@ class Gerber:
                 action = op["action"] if "action" in op else None
                 if action == "move":
                     if d != "":
-                        body = body + self.path(d, stroke_width, region_mode)
+                        body = body + Gerber.SVG.path(d, stroke_width, region_mode)
                     d = "M {} {}".format(X, Y)
                 elif action == "interpolate":
                     if interpolate_mode == "linear":
@@ -444,11 +709,11 @@ class Gerber:
                     stroke_width = cur_aperture.width()
                 elif action == "flash":
                     if d != "":
-                        body = body + self.path(d, stroke_width, region_mode)
+                        body = body + Gerber.SVG.path(d, stroke_width, region_mode)
                         d = ""
                     body = body + cur_aperture.toSVG(X, Y)
             if d != "":
-                body = body + self.path(d, stroke_width, region_mode)
+                body = body + Gerber.SVG.path(d, stroke_width, region_mode)
 
         self.width = width
         self.height = height
