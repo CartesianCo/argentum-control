@@ -5,13 +5,15 @@ import os
 import math
 
 class Gerber:
-    comments = []
-    errors = []
-    lines = []
-    attributes = {}
-    macros = {}
-    apertures = {}
-    levels = []
+
+    def __init__(self):
+        self.comments = []
+        self.errors = []
+        self.lines = []
+        self.attributes = {}
+        self.macros = {}
+        self.apertures = {}
+        self.levels = []
 
     class SVG:
         color = "#272749"
@@ -26,7 +28,7 @@ class Gerber:
 
         @staticmethod
         def obround(x, y, width, height, exposure=True):
-            return "<!-- {}, {} unimplemented obround {} {} -->\n".format(x, y, width, height)
+            return '<rect x="{}" y="{}" width="{}" height="{}" rx="0.25" ry="0.25" fill="{}" />\n'.format(x - width/2, y - height/2, width, height, Gerber.SVG.color)
 
         @staticmethod
         def polygon(x, y, num_vertices, cx, cy, diameter, rot, exposure=True):
@@ -52,7 +54,27 @@ class Gerber:
 
         @staticmethod
         def moire(x, y, cx, cy, diameter, ring_thickness, ring_gap, ring_count, cross_thickness, cross_length, rot):
-            return '<!-- {} {} unimplemented moire -->\n'.format(x + cx, y + cy)
+            str =       '<line x1="{}" y1="{}" x2="{}" y2="{}" stroke-width="{}" stroke-linecap="butt" stroke="{}" />\n'.format(
+                        x + cx - cross_length/2, y + cy,
+                        x + cx + cross_length/2, y + cy,
+                        cross_thickness, Gerber.SVG.color)
+            str = str + '<line x1="{}" y1="{}" x2="{}" y2="{}" stroke-width="{}" stroke-linecap="butt" stroke="{}" />\n'.format(
+                        x + cx, y + cy - cross_length/2,
+                        x + cx, y + cy + cross_length/2,
+                        cross_thickness, Gerber.SVG.color)
+            n = 0
+            r = diameter / 2
+            while n < ring_count:
+                if r < ring_thickness + ring_gap:
+                    str = str + '<circle cx="{}" cy="{}" r="{}" fill="{}" />\n'.format(
+                        x + cx, y + cy, r, Gerber.SVG.color)
+                    break
+                str = str + '<circle cx="{}" cy="{}" r="{}" fill="none" stroke-width="{}" stroke="{}" />\n'.format(
+                        x + cx, y + cy, r - ring_thickness / 2,
+                        ring_thickness, Gerber.SVG.color)
+                r = r - ring_thickness - ring_gap
+                n = n + 1
+            return str
 
         @staticmethod
         def thermal(x, y, cx, cy, outer_diameter, inner_diameter, gap_thickness, rot):
@@ -67,10 +89,9 @@ class Gerber:
 
 
     class Level:
-        operations = []
-
         def __init__(self, polarity=None):
             self.polarity = polarity
+            self.operations = []
 
     class Aperture:
         def __init__(self, name, args=None, attributes=None):
@@ -247,7 +268,7 @@ class Gerber:
                     rot = args[5]
                     svg = svg + Gerber.SVG.thermal(x, y, cx, cy, outer_diameter, inner_diameter, gap_thickness, rot)
                 else:
-                    svg = svg + "<!-- {}, {} unimplemented prim {} in macro -->\n".format(state["x"], state["y"], self.name)
+                    svg = svg + "<!-- {}, {} unknown prim {} in macro -->\n".format(state["x"], state["y"], self.name)
                 state["svg"] = svg
                 return state
 
@@ -361,6 +382,11 @@ class Gerber:
                     if not name in "CROP":
                         aperture.macro = self.macros[name]
                     self.apertures[dcode] = aperture
+
+                    operation = {"action": "aperture", "aperture": dcode}
+                    if len(self.levels) == 0:
+                        self.levels.append(self.Level())
+                    self.levels[-1].operations.append(operation)
                     continue
                 if code == 'AM':
                     content = line[2:].split('*')
@@ -627,7 +653,7 @@ class Gerber:
             d = ""
             X = 0
             Y = 0
-            cur_aperture = self.apertures[10] if 10 in self.apertures else None
+            cur_aperture = None
             interpolate_mode = "linear"
             region_mode = False
             quadrant_mode = "single"
