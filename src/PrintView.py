@@ -252,6 +252,9 @@ class PrintView(QtGui.QWidget):
             # Assume SVG files are in millimeters already
             pixmap = pixmap.scaled(pixmap.width()  * imageScale[0],
                                    pixmap.height() * imageScale[1])
+            r = QtSvg.QSvgRenderer(inputFileName)
+            p = QtGui.QPainter(pixmap)
+            r.render(p, QtCore.QRectF(pixmap.rect()))
         pi = PrintImage(pixmap, inputFileName)
         self.images.append(pi)
         self.ensureImageInPrintLims(pi)
