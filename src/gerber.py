@@ -32,7 +32,20 @@ class Gerber:
 
         @staticmethod
         def polygon(x, y, num_vertices, cx, cy, diameter, rot, exposure=True):
-            return "<!-- {}, {} unimplemented polygon {} {} -->\n".format(x, y, diameter, num_vertices)
+            points = []
+            if num_vertices == 3:
+                points.append((x + cx + diameter/2, y + cy))
+                points.append((x + cx - diameter/4, y + cy + diameter/2.31))
+                points.append((x + cx - diameter/4, y + cy - diameter/2.31))
+            if len(points) == 0:
+                return "<!-- {}, {} unimplemented polygon {} {} -->\n".format(x, y, diameter, num_vertices)
+            str = ""
+            for point in points:
+                x, y = point
+                if str != "":
+                    str = str + " "
+                str = str + "{},{}".format(x, y)
+            return '<polygon points="{}" fill="{}" />\n'.format(str, Gerber.SVG.color)
 
         @staticmethod
         def vectorLine(x, y, width, sx, sy, ex, ey, rot, exposure=True):
