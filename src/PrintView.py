@@ -225,13 +225,18 @@ class PrintView(QtGui.QWidget):
                 str = str + "{}: {}\n".format(lineno, msg)
             QtGui.QMessageBox.information(self, "Invalid Gerber file", str)
             return False
-        pixmap = QtGui.QPixmap()
-        pixmap.loadFromData(g.toSVG())
-        print("Gerber size {} mm x {} mm".format(g.width, g.height))
-        if g.width > 230 or g.height > 120:
+        r = QtSvg.QSvgRenderer(QtCore.QByteArray(g.toSVG()))
+        print("Gerber size {} x {} {}".format(g.width, g.height, g.units))
+        if g.units == "inches":
+            pixmap = QtGui.QPixmap(g.width  * 25.4 * imageScale[0],
+                                   g.height * 25.4 * imageScale[1])
+        else:
+            pixmap = QtGui.QPixmap(g.width  * imageScale[0],
+                                   g.height * imageScale[1])
+        p = QtGui.QPainter(pixmap)
+        r.render(p, QtCore.QRectF(pixmap.rect()))
+        if pixmap.width() / imageScale[0] > 230 or pixmap.height() / imageScale[1] > 120:
             QtGui.QMessageBox.information(self, "Gerber file too big", "The design provided is too big for the print area. It will be resized to fit, but this is probably not what you want.")
-        pixmap = pixmap.scaled(g.width  * imageScale[0],
-                               g.height * imageScale[1])
         return pixmap
 
     def addImageFile(self, inputFileName):
