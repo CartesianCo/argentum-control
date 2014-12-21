@@ -214,7 +214,7 @@ class PrintView(QtGui.QWidget):
             f.close()
         except:
             return None
-        if contents[:3] != "G04":
+        if contents[:1] != "G" and contents[:1] != '%':
             return None
         g = Gerber()
         g.parse(contents)
@@ -223,7 +223,7 @@ class PrintView(QtGui.QWidget):
             for error in g.errors:
                 lineno, msg = error
                 str = str + "{}: {}\n".format(lineno, msg)
-            QtGui.QMessageBox.information(self, "Invalid Gerber file", msg)
+            QtGui.QMessageBox.information(self, "Invalid Gerber file", str)
             return False
         pixmap = QtGui.QPixmap()
         pixmap.loadFromData(g.toSVG())
