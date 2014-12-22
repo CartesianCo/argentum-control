@@ -37,6 +37,11 @@ class Gerber:
                 points.append((x + cx + diameter/2, y + cy))
                 points.append((x + cx - diameter/4, y + cy + diameter/2.31))
                 points.append((x + cx - diameter/4, y + cy - diameter/2.31))
+            if num_vertices == 4:
+                points.append((x + cx + diameter/2, y + cy))
+                points.append((x + cx, y + cy + diameter/2))
+                points.append((x + cx - diameter/2, y + cy))
+                points.append((x + cx, y + cy - diameter/2))
             if len(points) == 0:
                 return "<!-- {}, {} unimplemented polygon {} {} -->\n".format(x, y, diameter, num_vertices)
             str = ""
@@ -188,7 +193,6 @@ class Gerber:
                     return (self.evalArithExp(state, parts[0]) -
                             self.evalArithExp(state, parts[1]))
 
-                # TODO
                 return float(exp)
 
         class VarDef(Element):
