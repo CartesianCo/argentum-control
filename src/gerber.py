@@ -32,24 +32,22 @@ class Gerber:
 
         @staticmethod
         def polygon(x, y, num_vertices, cx, cy, diameter, rot, exposure=True):
-            points = []
-            if num_vertices == 3:
-                points.append((x + cx + diameter/2, y + cy))
-                points.append((x + cx - diameter/4, y + cy + diameter/2.31))
-                points.append((x + cx - diameter/4, y + cy - diameter/2.31))
-            if num_vertices == 4:
-                points.append((x + cx + diameter/2, y + cy))
-                points.append((x + cx, y + cy + diameter/2))
-                points.append((x + cx - diameter/2, y + cy))
-                points.append((x + cx, y + cy - diameter/2))
-            if len(points) == 0:
-                return "<!-- {}, {} unimplemented polygon {} {} -->\n".format(x, y, diameter, num_vertices)
+            x = 0
+            y = 0
+            start = rot * math.pi/180
+            step = 2*math.pi / num_vertices
+            r = diameter / 2
             str = ""
-            for point in points:
-                x, y = point
+            for i in range(num_vertices):
+                px = r * math.cos(start + i*step)
+                py = r * math.sin(start + i*step)
+                if math.fabs(px) < 0.0000001:
+                    px = 0
+                if math.fabs(py) < 0.0000001:
+                    py = 0
                 if str != "":
                     str = str + " "
-                str = str + "{},{}".format(x, y)
+                str = str + "{},{}".format(x + px, y + py)
             return '<polygon points="{}" fill="{}" />\n'.format(str, Gerber.SVG.color)
 
         @staticmethod
@@ -139,7 +137,7 @@ class Gerber:
                 return Gerber.SVG.obround(x, y, width, height)
             elif self.name == "P":
                 diameter = float(self.args[0])
-                num_vertices = float(self.args[1])
+                num_vertices = int(self.args[1])
                 rotation = float(self.args[2]) if len(self.args) > 2 else None
                 hole = float(self.args[3]) if len(self.args) > 3 else None
                 return Gerber.SVG.polygon(x, y, num_vertices, 0, 0, diameter, 0)
