@@ -66,7 +66,13 @@ class Gerber:
 
         @staticmethod
         def outline(x, y, points, rot, exposure=True):
-            return '<!-- {} {} unimplemented outline with {} points -->\n'.format(x, y, len(points))
+            str = ""
+            for p in points:
+                px, py = p
+                if str != "":
+                    str = str + " "
+                str = str + "{},{}".format(x+px, y+py)
+            return '<polygon points="{}" fill="{}" />\n'.format(str, Gerber.SVG.color)
 
         @staticmethod
         def moire(x, y, cx, cy, diameter, ring_thickness, ring_gap, ring_count, cross_thickness, cross_length, rot):
