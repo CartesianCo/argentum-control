@@ -100,7 +100,23 @@ class Gerber:
 
         @staticmethod
         def thermal(x, y, cx, cy, outer_diameter, inner_diameter, gap_thickness, rot):
-            return '<!-- {} {} unimplemented thermal -->\n'.format(x + cx, y + cy)
+            stroke_width = (outer_diameter - inner_diameter) / 2
+            r = outer_diameter - stroke_width
+            d = ""
+            gr = math.asin(gap_thickness/2/r)
+            theta = 0
+            for i in range(4):
+                if d != "":
+                    d = d + " "
+                dx = r * math.sin(theta + gr)
+                dy = r * math.cos(theta + gr)
+                d = d + "M {} {}".format(x + cx + dx, y + cy + dy)
+                theta = theta + math.pi/2
+                dx = r * math.sin(theta - gr)
+                dy = r * math.cos(theta - gr)
+                d = d + " A {} {} {} {} {} {} {}".format(r, r, 0, 0, 0,
+                    x + cx + dx, y + cy + dy)
+            return Gerber.SVG.path(d, stroke_width, False)
 
         @staticmethod
         def path(d, stroke_width, region_mode):
