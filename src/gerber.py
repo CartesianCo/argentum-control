@@ -32,8 +32,6 @@ class Gerber:
 
         @staticmethod
         def polygon(x, y, num_vertices, cx, cy, diameter, rot, exposure=True):
-            x = 0
-            y = 0
             start = rot * math.pi/180
             step = 2*math.pi / num_vertices
             r = diameter / 2
