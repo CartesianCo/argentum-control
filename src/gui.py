@@ -372,7 +372,6 @@ class Argentum(QtGui.QMainWindow):
     def monitor(self):
         data = self.printer.monitor()
         if data:
-            print("monitor returned {} bytes.".format(len(data)))
             self.appendOutput(data.decode('utf-8', 'ignore'))
         QtCore.QTimer.singleShot(100, self.monitor)
 
