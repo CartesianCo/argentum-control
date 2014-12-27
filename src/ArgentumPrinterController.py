@@ -27,6 +27,9 @@ class ArgentumPrinterController(PrinterController):
         self.buildVersion = None
         self.tagVersion   = None
 
+    def serialWrite(self, strval):
+        self.serialDevice.write(strval.encode('utf-8'))
+
     def connect(self, port=None):
         if port:
             self.port = port
@@ -37,6 +40,7 @@ class ArgentumPrinterController(PrinterController):
 
             self.clearVersion()
             response = self.waitForResponse(timeout=2, expect='\n')
+            self.serialWrite("notacmd\n")
             if response == None:
                 self.lastError = "Printer didn't respond."
                 return True
@@ -99,10 +103,7 @@ class ArgentumPrinterController(PrinterController):
 
     def command(self, command, timeout=None, expect=None, wait=False):
         if self.serialDevice and self.connected:
-            if timeout:
-                self.serialDevice.timeout = timeout
-            self.serialDevice.write(command.encode('utf-8'))
-            self.serialDevice.write(self.delimiter.encode('utf-8'))
+            self.serialWrite(command + self.delimiter)
             if wait != False:
                 if timeout == None:
                     timeout = 30
@@ -200,20 +201,16 @@ class ArgentumPrinterController(PrinterController):
 
     def monitor(self):
         try:
-            if (self.connected and
-                    self.serialDevice.timeout == 0 and
-                    self.serialDevice.inWaiting()):
+            if self.connected and self.serialDevice.timeout == 0:
                 data = None
                 n = self.serialDevice.inWaiting()
                 if n > 0:
-                    #print("monitor reading {} bytes.".format(n))
                     data = self.serialDevice.read(n)
 
                 if data:
-                    #print("monitor returned data.")
                     return data
-        except:
-            pass
+        except e:
+            print("monitor exception: {}".format(e))
         return None
 
     def waitForResponse(self, timeout=0.5, expect=None):
@@ -227,7 +224,6 @@ class ArgentumPrinterController(PrinterController):
                 data = self.serialDevice.read(1)
                 n = self.serialDevice.inWaiting()
                 if n > 0:
-                    #print("waitForResponse reading {} more bytes.".format(n))
                     data = data + self.serialDevice.read(n)
                 else:
                     break
@@ -347,7 +343,7 @@ class ArgentumPrinterController(PrinterController):
             encblock = encblock + chr((hash >>  8) & 0xff)
             encblock = encblock + chr((hash >> 16) & 0xff)
             encblock = encblock + chr((hash >> 24) & 0xff)
-            self.serialDevice.write(encblock)
+            self.serialWrite(encblock)
 
             self.serialDevice.timeout = 10
             cmd = self.serialDevice.read(1)
@@ -363,7 +359,7 @@ class ArgentumPrinterController(PrinterController):
                 pos = pos + blocksize
                 if progressFunc:
                     if not progressFunc(pos, size):
-                        self.serialDevice.write("C")
+                        self.serialWrite("C")
                         print("canceled!")
                         break
                 else:

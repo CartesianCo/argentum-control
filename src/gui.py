@@ -321,6 +321,8 @@ class Argentum(QtGui.QMainWindow):
         self.tabWidget.addTab(self.console, "Console") # always last
         self.setCentralWidget(self.tabWidget)
 
+        QtCore.QTimer.singleShot(100, self.monitor)
+
         self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum Control')
         self.show()
@@ -370,7 +372,8 @@ class Argentum(QtGui.QMainWindow):
     def monitor(self):
         data = self.printer.monitor()
         if data:
-                self.appendOutput(data.decode('utf-8', 'ignore'))
+            print("monitor returned {} bytes.".format(len(data)))
+            self.appendOutput(data.decode('utf-8', 'ignore'))
         QtCore.QTimer.singleShot(100, self.monitor)
 
     ### Button Functions ###
@@ -563,8 +566,6 @@ class Argentum(QtGui.QMainWindow):
         #self.optionsAction.setEnabled(enabled)
 
         self.portListCombo.setEnabled(not enabled)
-
-        QtCore.QTimer.singleShot(100, self.monitor)
 
     def connectButtonPushed(self):
         if(self.printer.connected):
