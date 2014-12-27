@@ -209,7 +209,7 @@ class ArgentumPrinterController(PrinterController):
 
                 if data:
                     return data
-        except e:
+        except Exception as e:
             print("monitor exception: {}".format(e))
         return None
 
