@@ -682,16 +682,16 @@ class Gerber:
 
         width = 0
         height = 0
+        X = 0
+        Y = 0
+        cur_aperture = None
+        interpolate_mode = "linear"
+        region_mode = False
+        quadrant_mode = "single"
 
         body = ""
         for level in self.levels:
             d = ""
-            X = 0
-            Y = 0
-            cur_aperture = None
-            interpolate_mode = "linear"
-            region_mode = False
-            quadrant_mode = "single"
             for op in level.operations:
                 #body = body + "<!-- line {} -->\n".format(op["line"])
                 oldX = X
