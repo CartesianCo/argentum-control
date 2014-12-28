@@ -37,12 +37,12 @@ class avrdude:
             print("Already flashing!")
             return False
 
-    commandString = self.assembleCommand(firmwareFileName)
+    command = self.assembleCommand(firmwareFileName)
 
-    print("Running: " + commandString)
+    print("Running: " + ' '.join(command))
 
     try:
-        self.running = subprocess.Popen(commandString.split()) #, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.running = subprocess.Popen(command) #, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError as e:
         print(e)
         print("This usually means we can't find avrdude.")
@@ -71,10 +71,10 @@ class avrdude:
         # use the system's exe and config
         avrdudeString = 'avrdude'
 
-    commandString = (avrdudeString + ' -v -c {} -p {} -P {} -b {} -D -U flash:w:{}:i').format(self.protocol, 
-              self.boardType, 
-              self.port, 
-              self.baud, 
-              firmwareFileName)
-
-    return commandString
+    command = (avrdudeString + ' -v -c {} -p {} -P {} -b {} -D -U').format(
+              self.protocol,
+              self.boardType,
+              self.port,
+              self.baud).split()
+    command.append('flash:w:{}:i'.format(firmwareFileName))
+    return command
