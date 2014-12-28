@@ -588,6 +588,8 @@ class Argentum(QtGui.QMainWindow):
                     self.sentVolt = False
 
                     if self.printer.version != None:
+                        for line in self.printer.junkBeforeVersion:
+                            self.appendOutput(line)
                         self.appendOutput("Printer is running: " + self.printer.version)
                     if (self.printer.version != None and
                             is_older_firmware(self.printer.version)):

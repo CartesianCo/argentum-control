@@ -39,7 +39,24 @@ class ArgentumPrinterController(PrinterController):
             self.connected = True
 
             self.clearVersion()
-            response = self.waitForResponse(timeout=2, expect='\n')
+            junkBeforeVersion = []
+            while True:
+                response = self.waitForResponse(timeout=5, expect='\n')
+                if response == None:
+                    print("No response from printer")
+                    break
+                goodVersion = None
+                for line in response:
+                    if line.find('+') == -1:
+                        print("Adding junk before version '{}'".format(line))
+                        junkBeforeVersion.append(line)
+                    else:
+                        print("Found a version")
+                        goodVersion = line
+                if goodVersion:
+                    response = [goodVersion]
+                    break
+            self.junkBeforeVersion = junkBeforeVersion
             self.serialWrite("notacmd\n")
             if response == None:
                 self.lastError = "Printer didn't respond."
