@@ -642,6 +642,9 @@ class Argentum(QtGui.QMainWindow):
 
     ### Command Functions ###
 
+    def servocommand(self, cmd):
+        self.printer.command('l ' + cmd)
+
     def calibrateButtonPushed(self):
         self.printer.calibrate()
 
