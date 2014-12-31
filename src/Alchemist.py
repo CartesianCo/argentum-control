@@ -207,16 +207,19 @@ class ServoCalibrationDialog(QtGui.QDialog):
 
     def servoUp(self):
         if self.controller:
-            self.controller.command('')
+            self.controller.servocommand('+')
 
     def servoDown(self):
-        print('Down')
+        if self.controller:
+            self.controller.servocommand('-')
 
     def setRetractedPosition(self):
-        print('Retracted')
+        if self.controller:
+            self.controller.servocommand('R')
 
     def setDeployedPosition(self):
-        print('Deployed')
+        if self.controller:
+            self.controller.servocommand('D')
 
     def addButton(self, parent, label, function):
         button = QtGui.QPushButton(label) #string or icon
