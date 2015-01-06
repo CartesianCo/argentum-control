@@ -40,6 +40,7 @@ class PrintImage(PrintRect):
         self.height = pixmap.height() / imageScale[1]
         self.lastResized = None
         self.screenRect = None
+        self.gerber = None
 
         filename = os.path.basename(filename)
         if filename.find('.') != -1:
@@ -207,7 +208,7 @@ class PrintView(QtGui.QWidget):
             qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
         qp.end()
 
-    def gerberToPixmap(self, inputFileName):
+    def readGerber(self, inputFileName):
         try:
             f = open(inputFileName, "r")
             contents = f.read()
@@ -237,14 +238,17 @@ class PrintView(QtGui.QWidget):
         r.render(p, QtCore.QRectF(pixmap.rect()))
         if pixmap.width() / imageScale[0] > 230 or pixmap.height() / imageScale[1] > 120:
             QtGui.QMessageBox.information(self, "Gerber file too big", "The design provided is too big for the print area. It will be resized to fit, but this is probably not what you want.")
-        return pixmap
+        g.pixmap = pixmap
+        return g
 
     def addImageFile(self, inputFileName):
         pixmap = QtGui.QPixmap(inputFileName)
+        gerber = None
         if pixmap == None or pixmap.isNull():
-            pixmap = self.gerberToPixmap(inputFileName)
-            if pixmap == False:
+            gerber = self.readGerber(inputFileName)
+            if gerber == False:
                 return None
+            pixmap = gerber.pixmap
         if pixmap == None or pixmap.isNull():
             QtGui.QMessageBox.information(self, "Invalid image file", "Can't load image " + inputFileName)
             return None
@@ -256,6 +260,7 @@ class PrintView(QtGui.QWidget):
             p = QtGui.QPainter(pixmap)
             r.render(p, QtCore.QRectF(pixmap.rect()))
         pi = PrintImage(pixmap, inputFileName)
+        pi.gerber = gerber
         self.images.append(pi)
         self.ensureImageInPrintLims(pi)
         self.update()
@@ -263,6 +268,8 @@ class PrintView(QtGui.QWidget):
         return pi
 
     def isImageProcessed(self, image):
+        if image.gerber:
+            return True
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
         if not os.path.exists(hexFilename):
             return False
@@ -441,10 +448,15 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
                 return
 
-            self.setProgress(labelText="Looking on the printer...")
-            hexfiles = [image.hexFilename for image in self.images]
-            missing = self.argentum.printer.missingFiles(hexfiles)
-            print("{} missing files.".format(len(missing)))
+            missing = []
+            hexfiles = []
+            for image in self.images:
+                if not image.gerber:
+                    hexfiles.append(image.hexFilename)
+            if len(hexfiles) > 0:
+                self.setProgress(labelText="Looking on the printer...")
+                missing = self.argentum.printer.missingFiles(hexfiles)
+                print("{} missing files.".format(len(missing)))
 
             # Try harder
             if len(missing) != 0:
@@ -491,12 +503,15 @@ class PrintView(QtGui.QWidget):
             for image in self.images:
                 pos = self.printAreaToMove(image.left + image.width, image.bottom)
                 self.argentum.printer.home(wait=True)
-                self.argentum.printer.move(pos[0], pos[1])
-                path = os.path.join(self.argentum.filesDir, image.hexFilename)
-                self.setProgress(labelText=image.hexFilename)
-                self.argentum.printer.Print(image.hexFilename,
-                                            path=path,
-                                            progressFunc=self.printProgress)
+                if image.gerber:
+                    image.gerber.printTo(Gerber.ArgentumTranslator(self.argentum.printer), pos[0], pos[1])
+                else:
+                    self.argentum.printer.move(pos[0], pos[1])
+                    path = os.path.join(self.argentum.filesDir, image.hexFilename)
+                    self.setProgress(labelText=image.hexFilename)
+                    self.argentum.printer.Print(image.hexFilename,
+                                                path=path,
+                                                progressFunc=self.printProgress)
                 nImage = nImage + 1
                 self.setProgress(percent=(40 + self.perImage * nImage))
 
