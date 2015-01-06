@@ -768,7 +768,7 @@ class Gerber:
                     self.levels.append(self.Level())
                 self.levels[-1].operations.append(operation)
 
-    def printTo(self, printer):
+    def printTo(self, printer, x=0, y=0):
         stroke_width = 1
 
         width = 0
@@ -819,10 +819,10 @@ class Gerber:
                 if action == "move":
                     if len(d) > 0:
                         printer.path(d, stroke_width, region_mode)
-                    d = ["M {} {}".format(X, Y)]
+                    d = ["M {} {}".format(x + X, y + Y)]
                 elif action == "interpolate":
                     if interpolate_mode == "linear":
-                        d.append("L {} {}".format(X, Y))
+                        d.append("L {} {}".format(x + X, y + Y))
                     else:
                         cw = (interpolate_mode == "clockwise")
                         sx, sy = (oldX, oldY)
@@ -853,9 +853,9 @@ class Gerber:
                         if (quadrant_mode == "multi" and
                                 math.fabs(sx-ex) < epsilon and
                                 math.fabs(sy-ey) < epsilon):
-                            d.append("A {} {} {} {} {} {} {}".format(r, r, 0, 0, sf, ex+2*I, ey+2*J))
+                            d.append("A {} {} {} {} {} {} {}".format(r, r, 0, 0, sf, x+ex+2*I, y+ey+2*J))
 
-                        d.append("A {} {} {} {} {} {} {}".format(r, r, 0, laf, sf, ex, ey))
+                        d.append("A {} {} {} {} {} {} {}".format(r, r, 0, laf, sf, x+ex, y+ey))
                 elif action == "aperture":
                     cur_aperture = self.apertures[op["aperture"]]
                     stroke_width = cur_aperture.width()
@@ -863,7 +863,7 @@ class Gerber:
                     if len(d) > 0:
                         printer.path(d, stroke_width, region_mode)
                         d = []
-                    cur_aperture.printTo(printer, X, Y)
+                    cur_aperture.printTo(printer, x + X, y + Y)
             if len(d) > 0:
                 printer.path(d, stroke_width, region_mode)
 
