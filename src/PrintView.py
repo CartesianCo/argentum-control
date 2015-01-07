@@ -268,8 +268,6 @@ class PrintView(QtGui.QWidget):
         return pi
 
     def isImageProcessed(self, image):
-        if image.gerber:
-            return True
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
         if not os.path.exists(hexFilename):
             return False
@@ -430,29 +428,33 @@ class PrintView(QtGui.QWidget):
         try:
             self.setProgress(statusText="Printing.")
 
+            if not self.argentum.printer.connected:
+                self.setProgress(labelText="Printer isn't connected.", statusText="Print aborted. Connect your printer.", canceled=True)
+                return
+            if self.argentum.printer.version == None:
+                self.setProgress(labelText="Printer firmware unidentified.", statusText="Print aborted. Printer firmware not identified.", canceled=True)
+            elif self.argentum.printer.majorVersion == 0 and self.argentum.printer.minorVersion < 15:
+                self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
+                return
+            useVectorPrinting = (self.argentum.printer.majorVersion > 0 or self.argentum.printer.minorVersion == 16)
+
             self.setProgress(labelText="Processing images...")
             self.perImage = 20.0 / len(self.images)
             for image in self.images:
+                if image.gerber and useVectorPrinting:
+                        continue
                 if not self.isImageProcessed(image):
                     self.setProgress(labelText="Processing image {}.".format(os.path.basename(image.filename)))
                     self.processImage(image)
                 else:
                     self.setProgress(incPercent=self.perImage)
 
-            if not self.argentum.printer.connected:
-                self.setProgress(labelText="Printer isn't connected.", statusText="Print aborted. Connect your printer.", canceled=True)
-                return
-            if (self.argentum.printer.version == None or
-                    self.argentum.printer.majorVersion == 0 and
-                    self.argentum.printer.minorVersion < 15):
-                self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
-                return
-
             missing = []
             hexfiles = []
             for image in self.images:
-                if not image.gerber:
-                    hexfiles.append(image.hexFilename)
+                if image.gerber and useVectorPrinting:
+                    continue
+                hexfiles.append(image.hexFilename)
             if len(hexfiles) > 0:
                 self.setProgress(labelText="Looking on the printer...")
                 missing = self.argentum.printer.missingFiles(hexfiles)
@@ -501,12 +503,29 @@ class PrintView(QtGui.QWidget):
             self.perImage = 59.0 / len(self.images)
             nImage = 0
             for image in self.images:
-                pos = self.printAreaToMove(image.left + image.width, image.bottom)
                 self.argentum.printer.home(wait=True)
-                if image.gerber:
-                    image.gerber.printTo(Gerber.ArgentumTranslator(self.argentum.printer), pos[0], pos[1])
+                if image.gerber and useVectorPrinting:
+                    self.setProgress(labelText=os.path.basename(image.filename))
+                    x, y = self.printAreaToMove(image.left, image.bottom)
+                    if x < 0:
+                        x = 0
+                    if y < 0:
+                        y = 0
+                    translator = Gerber.ArgentumTranslator(x, y)
+                    image.gerber.printTo(translator)
+                    cnt = 0
+                    for command in translator.commands:
+                        cmd, delay = command
+                        print("cmd: {}".format(cmd))
+                        if self.printCanceled:
+                            break
+                        self.argentum.printer.command(cmd)
+                        response, waited = self.argentum.printer.waitForLine()
+                        cnt = cnt + 1
+                        self.setProgress(percent=(40 + self.perImage * cnt / len(translator.commands)))
                 else:
-                    self.argentum.printer.move(pos[0], pos[1])
+                    x, y = self.printAreaToMove(image.left + image.width, image.bottom)
+                    self.argentum.printer.move(x, y)
                     path = os.path.join(self.argentum.filesDir, image.hexFilename)
                     self.setProgress(labelText=image.hexFilename)
                     self.argentum.printer.Print(image.hexFilename,

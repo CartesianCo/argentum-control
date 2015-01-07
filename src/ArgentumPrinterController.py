@@ -265,6 +265,31 @@ class ArgentumPrinterController(PrinterController):
             resp_list.append(resp)
         return resp_list
 
+    def waitForLine(self):
+        if not self.connected:
+            return None
+
+        response = ""
+        start = time.time()
+        self.serialDevice.timeout = 0.001
+        try:
+            while True:
+                data = self.serialDevice.read(1)
+                n = self.serialDevice.inWaiting()
+                if n > 0:
+                    data = data + self.serialDevice.read(n)
+                if data:
+                    response = response + data.decode('utf-8', 'ignore')
+
+                if response == '\n':
+                    response = ""
+                if response.find('\n') != -1:
+                        break
+        finally:
+            self.serialDevice.timeout = 0
+
+        return (response, time.time() - start)
+
     def missingFiles(self, files):
         response = self.command("ls", timeout=2)
         missing = []

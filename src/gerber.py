@@ -143,26 +143,56 @@ class Gerber:
             print("path {} {} {}".format(' '.join(data), stroke_width, region_mode))
 
         def moveTo(self, x, y):
-            print("M {} {}".format(x, y))
+            print("moveTo {} {}".format(x, y))
 
         def lineTo(self, x, y, stroke_width):
-            print("L {} {} {}".format(x, y, stroke_width))
+            print("lineTo {} {} {}".format(x, y, stroke_width))
+
+        def command(self, command, wait=False):
+            print(command)
 
     class ArgentumTranslator(Printer):
         # Converts to commands the printer can understand
-        # @printer an ArgentumPrinter class
-        def __init__(self, printer):
-            self.printer = printer
+        def __init__(self, x, y):
+            self.startX = x
+            self.startY = y
+            self.curX = 0
+            self.curY = 0
+            self.commands = []
 
         @staticmethod
         def mm_to_steps(x):
             return int(x * 80)
 
+        mm_per_min = 1500
+
+        def steps_per_min(self):
+            return self.mm_per_min * 80
+
         # TODO filled shapes
 
+        def estimateDelayTo(self, x, y):
+            return abs(x - self.curX) * 60.0 / self.steps_per_min() + abs(y - self.curY) * 60.0 / self.steps_per_min()
+
+        def moveTo(self, x, y):
+            x = x + self.startX
+            y = y + self.startY
+            delay = self.estimateDelayTo(x, y)
+            self.commands.append(("M {} {}".format(x, y), delay))
+            self.curX = x
+            self.curY = y
+
+        def lineTo(self, x, y, stroke_width):
+            x = x + self.startX
+            y = y + self.startY
+            delay = self.estimateDelayTo(x, y)
+            self.commands.append(("L {} {} {}".format(self.startX + x, self.startY + y, stroke_width), delay))
+            self.curX = x
+            self.curY = y
+
         def line(self, x1, y1, x2, y2, width, exposure=True):
-            self.printer.moveTo(self.mm_to_steps(x1), self.mm_to_steps(y1))
-            self.printer.lineTo(self.mm_to_steps(x2), self.mm_to_steps(y2), width)
+            self.moveTo(self.mm_to_steps(x1), self.mm_to_steps(y1))
+            self.lineTo(self.mm_to_steps(x2), self.mm_to_steps(y2), width)
 
         def path(self, data, stroke_width, region_mode):
             if not region_mode:
@@ -171,9 +201,9 @@ class Gerber:
                     x = self.mm_to_steps(float(parts[1]))
                     y = self.mm_to_steps(float(parts[2]))
                     if parts[0] == "M":
-                        self.printer.moveTo(x, y)
+                        self.moveTo(x, y)
                     elif parts[0] == "L":
-                        self.printer.lineTo(x, y, stroke_width)
+                        self.lineTo(x, y, stroke_width)
                     else:
                         pass
 
@@ -768,7 +798,7 @@ class Gerber:
                     self.levels.append(self.Level())
                 self.levels[-1].operations.append(operation)
 
-    def printTo(self, printer, x=0, y=0):
+    def printTo(self, printer):
         stroke_width = 1
 
         width = 0
@@ -819,10 +849,10 @@ class Gerber:
                 if action == "move":
                     if len(d) > 0:
                         printer.path(d, stroke_width, region_mode)
-                    d = ["M {} {}".format(x + X, y + Y)]
+                    d = ["M {} {}".format(X, Y)]
                 elif action == "interpolate":
                     if interpolate_mode == "linear":
-                        d.append("L {} {}".format(x + X, y + Y))
+                        d.append("L {} {}".format(X, Y))
                     else:
                         cw = (interpolate_mode == "clockwise")
                         sx, sy = (oldX, oldY)
@@ -853,9 +883,9 @@ class Gerber:
                         if (quadrant_mode == "multi" and
                                 math.fabs(sx-ex) < epsilon and
                                 math.fabs(sy-ey) < epsilon):
-                            d.append("A {} {} {} {} {} {} {}".format(r, r, 0, 0, sf, x+ex+2*I, y+ey+2*J))
+                            d.append("A {} {} {} {} {} {} {}".format(r, r, 0, 0, sf, ex+2*I, ey+2*J))
 
-                        d.append("A {} {} {} {} {} {} {}".format(r, r, 0, laf, sf, x+ex, y+ey))
+                        d.append("A {} {} {} {} {} {} {}".format(r, r, 0, laf, sf, ex, ey))
                 elif action == "aperture":
                     cur_aperture = self.apertures[op["aperture"]]
                     stroke_width = cur_aperture.width()
@@ -863,7 +893,7 @@ class Gerber:
                     if len(d) > 0:
                         printer.path(d, stroke_width, region_mode)
                         d = []
-                    cur_aperture.printTo(printer, x + X, y + Y)
+                    cur_aperture.printTo(printer, X, Y)
             if len(d) > 0:
                 printer.path(d, stroke_width, region_mode)
 
@@ -911,7 +941,10 @@ def main(args):
     elif debug:
         g.printTo(Gerber.StdoutPrinter())
     else:
-        g.printTo(Gerber.ArgentumTranslator(Gerber.StdoutPrinter()))
+        translator = Gerber.ArgentumTranslator(0, 0)
+        g.printTo(translator)
+        for cmd in translator.commands:
+            print(cmd)
 
     sys.exit(0)
 
