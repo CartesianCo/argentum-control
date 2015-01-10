@@ -32,7 +32,7 @@ import subprocess
 from multiprocessing import Process
 import threading
 
-NO_PRINTER="No printer connected."
+NO_PRINTER = "No printer connected."
 
 def myrun(cmd):
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -205,13 +205,13 @@ class Argentum(QtGui.QMainWindow):
         self.leftButton.clicked.connect(self.decrementX)
         self.rightButton.clicked.connect(self.incrementX)
 
-        QtGui.QShortcut(QtGui.QKeySequence("Left"), self, self.shortcutLeft);
-        QtGui.QShortcut(QtGui.QKeySequence("Right"), self, self.shortcutRight);
-        QtGui.QShortcut(QtGui.QKeySequence("Up"), self, self.shortcutUp);
-        QtGui.QShortcut(QtGui.QKeySequence("Down"), self, self.shortcutDown);
-        QtGui.QShortcut(QtGui.QKeySequence("Home"), self, self.shortcutHome);
-        QtGui.QShortcut(QtGui.QKeySequence("-"), self, self.shortcutMinus);
-        QtGui.QShortcut(QtGui.QKeySequence("+"), self, self.shortcutPlus);
+        QtGui.QShortcut(QtGui.QKeySequence("Left"), self, self.shortcutLeft)
+        QtGui.QShortcut(QtGui.QKeySequence("Right"), self, self.shortcutRight)
+        QtGui.QShortcut(QtGui.QKeySequence("Up"), self, self.shortcutUp)
+        QtGui.QShortcut(QtGui.QKeySequence("Down"), self, self.shortcutDown)
+        QtGui.QShortcut(QtGui.QKeySequence("Home"), self, self.shortcutHome)
+        QtGui.QShortcut(QtGui.QKeySequence("-"), self, self.shortcutMinus)
+        QtGui.QShortcut(QtGui.QKeySequence("+"), self, self.shortcutPlus)
 
         jogControlsGrid.addWidget(self.upButton, 0, 1)
         jogControlsGrid.addWidget(self.leftButton, 1, 0)
@@ -785,11 +785,11 @@ def main():
     app.setOrganizationDomain("cartesianco.com")
     app.setApplicationName("ArgentumControl")
     app_icon = QtGui.QIcon()
-    app_icon.addFile('Icon.ico', QtCore.QSize(16,16))
-    app_icon.addFile('Icon.ico', QtCore.QSize(24,24))
-    app_icon.addFile('Icon.ico', QtCore.QSize(32,32))
-    app_icon.addFile('Icon.ico', QtCore.QSize(48,48))
-    app_icon.addFile('Icon.ico', QtCore.QSize(256,256))
+    app_icon.addFile('Icon.ico', QtCore.QSize(16, 16))
+    app_icon.addFile('Icon.ico', QtCore.QSize(24, 24))
+    app_icon.addFile('Icon.ico', QtCore.QSize(32, 32))
+    app_icon.addFile('Icon.ico', QtCore.QSize(48, 48))
+    app_icon.addFile('Icon.ico', QtCore.QSize(256, 256))
     app.setWindowIcon(app_icon)
     ex = Argentum()
     sys.exit(app.exec_())
