@@ -857,6 +857,9 @@ class Gerber:
 
                         d.append("A {} {} {} {} {} {} {}".format(r, r, 0, laf, sf, x+ex, y+ey))
                 elif action == "aperture":
+                    if len(d) > 0:
+                        printer.path(d, stroke_width, region_mode)
+                        d = []
                     cur_aperture = self.apertures[op["aperture"]]
                     stroke_width = cur_aperture.width()
                 elif action == "flash":
