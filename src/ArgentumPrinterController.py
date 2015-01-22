@@ -361,7 +361,7 @@ class ArgentumPrinterController(PrinterController):
             encblock = encblock + chr((hash >>  8) & 0xff)
             encblock = encblock + chr((hash >> 16) & 0xff)
             encblock = encblock + chr((hash >> 24) & 0xff)
-            self.serialWrite(encblock)
+            self.serialDevice.write(encblock)
 
             self.serialDevice.timeout = 10
             cmd = self.serialDevice.read(1)
