@@ -662,7 +662,6 @@ class Argentum(QtGui.QMainWindow):
         self.sendStopCommand()
 
     def homeButtonPushed(self):
-        self.checkPower()
         self.printer.home()
 
     def sendButtonPushed(self):
@@ -695,19 +694,15 @@ class Argentum(QtGui.QMainWindow):
             QtGui.QMessageBox.information(self, "Printer error", "The power cable is not connected or the power switch is off.")
 
     def incrementX(self):
-        self.checkPower()
         self.sendMovementCommand(self.XStepSize, None)
 
     def incrementY(self):
-        self.checkPower()
         self.sendMovementCommand(None, self.YStepSize)
 
     def decrementX(self):
-        self.checkPower()
         self.sendMovementCommand(-self.XStepSize, None)
 
     def decrementY(self):
-        self.checkPower()
         self.sendMovementCommand(None, -self.YStepSize)
 
     def shortcutLeft(self):
