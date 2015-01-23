@@ -154,6 +154,10 @@ class Argentum(QtGui.QMainWindow):
         QtCore.QObject.connect(self.updatePortListTimer, QtCore.SIGNAL("timeout()"), self.updatePortList)
         self.updatePortListTimer.start(1000)
 
+        self.updatePosDisplayTimer = QtCore.QTimer()
+        QtCore.QObject.connect(self.updatePosDisplayTimer, QtCore.SIGNAL("timeout()"), self.updatePosDisplay)
+        self.updatePosDisplayTimer.start(3000)
+
         self.portListCombo.setSizePolicy(QtGui.QSizePolicy.Expanding,
                          QtGui.QSizePolicy.Fixed)
         self.portListCombo.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToContents)
@@ -197,6 +201,10 @@ class Argentum(QtGui.QMainWindow):
         self.leftButton = QtGui.QPushButton('<')
         self.rightButton = QtGui.QPushButton('>')
 
+        self.xLabel = QtGui.QLabel("0")
+        self.yLabel = QtGui.QLabel("0")
+        self.unitsButton = QtGui.QPushButton("steps")
+
         self.makeButtonRepeatable(self.upButton)
         self.makeButtonRepeatable(self.downButton)
         self.makeButtonRepeatable(self.leftButton)
@@ -220,6 +228,16 @@ class Argentum(QtGui.QMainWindow):
         jogControlsGrid.addWidget(self.rightButton, 1, 2)
         jogControlsGrid.addWidget(self.downButton, 2, 1)
 
+        # Position reporting
+
+        posRow = QtGui.QHBoxLayout()
+        posRow.addStretch(1)
+        posRow.addWidget(QtGui.QLabel("X"))
+        posRow.addWidget(self.xLabel)
+        posRow.addWidget(QtGui.QLabel("Y"))
+        posRow.addWidget(self.yLabel)
+        posRow.addWidget(self.unitsButton)
+
         # Main Controls
 
         controlRow = QtGui.QHBoxLayout()
@@ -235,6 +253,7 @@ class Argentum(QtGui.QMainWindow):
         self.stopButton.clicked.connect(self.stopButtonPushed)
         self.homeButton.clicked.connect(self.homeButtonPushed)
         self.processImageButton.clicked.connect(self.processImageButtonPushed)
+        self.unitsButton.clicked.connect(self.unitsButtonPushed)
 
         controlRow.addWidget(self.calibrateButton)
         controlRow.addWidget(self.pauseButton)
@@ -249,6 +268,7 @@ class Argentum(QtGui.QMainWindow):
         verticalLayout.addLayout(commandRow)
         verticalLayout.addWidget(self.outputView)
         verticalLayout.addLayout(jogControlsGrid)
+        verticalLayout.addLayout(posRow)
         verticalLayout.addLayout(controlRow)
         self.console.setLayout(verticalLayout)
 
@@ -603,6 +623,8 @@ class Argentum(QtGui.QMainWindow):
                         self.options = options
                         save_options(self.options)
 
+                    self.homePrinter()
+
                     if (self.printer.version != None and
                             is_older_firmware(self.printer.version)):
                         self.nagFirmwareUpgrade()
@@ -652,6 +674,33 @@ class Argentum(QtGui.QMainWindow):
     def processImageButtonPushed(self):
         self.processImage()
 
+    def updatePosDisplay(self, pos=None):
+        if pos == None:
+            if not self.printer.connected:
+                return
+            if self.tabWidget.currentWidget() != self.console:
+                return
+            if self.printer.getTimeSinceLastCommand() < 1:
+                return
+            pos = self.printer.getPosition()
+            if pos == None:
+                return
+        self.lastPos = pos
+        (xmm, ymm, x, y) = pos
+        if self.unitsButton.text() == "mm":
+            self.xLabel.setText("{}".format(xmm))
+            self.yLabel.setText("{}".format(ymm))
+        else:
+            self.xLabel.setText("{}".format(x))
+            self.yLabel.setText("{}".format(y))
+
+    def unitsButtonPushed(self):
+        if self.unitsButton.text() == "mm":
+            self.unitsButton.setText("steps")
+        else:
+            self.unitsButton.setText("mm")
+        self.updatePosDisplay(self.lastPos)
+
     ### Command Functions ###
 
     def servocommand(self, cmd):
@@ -674,8 +723,15 @@ class Argentum(QtGui.QMainWindow):
         self.appendOutput('Stop!')
         self.printer.emergencyStop()
 
+    def homeLoop(self):
+        self.printer.home(wait=True)
+
+    def homePrinter(self):
+        homeThread = threading.Thread(target=self.homeLoop)
+        homeThread.start()
+
     def homeButtonPushed(self):
-        self.printer.home()
+        self.homePrinter()
 
     def sendButtonPushed(self):
         command = str(self.commandField.text())

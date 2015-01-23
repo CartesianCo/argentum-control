@@ -18,6 +18,7 @@ class ArgentumPrinterController(PrinterController):
 
     def __init__(self, port=None):
         self.port = port
+        self.lastCommandTime = None
 
     def clearVersion(self):
         self.version = None
@@ -121,7 +122,13 @@ class ArgentumPrinterController(PrinterController):
       self.connected = False
       self.version = None
 
+    def getTimeSinceLastCommand(self):
+        if self.lastCommandTime == None:
+            return None
+        return time.time() - self.lastCommandTime
+
     def command(self, command, timeout=None, expect=None, wait=False):
+        self.lastCommandTime = time.time()
         if self.serialDevice and self.connected:
             self.serialWrite(command + self.delimiter)
             if wait != False:
@@ -515,3 +522,41 @@ class ArgentumPrinterController(PrinterController):
         vertical_offset = options['vertical_offset']
         print_overlap = options['print_overlap']
         self.command("!write po {} {} {}".format(horizontal_offset, vertical_offset, print_overlap))
+
+    def getPosition(self):
+        if not self.connected:
+            return None
+        if self.serialDevice.timeout != 0:
+            return None
+        response = self.command("pos", timeout=1)
+        if response == None:
+            return None
+        response = ''.join(response)
+
+        if response.find('+X:') == -1:
+            return None
+        response = response[response.find('+X: ') + 4:]
+        if response.find(' mm') == -1:
+            return None
+        xmm = float(response[:response.find(' mm')])
+        if response.find(', Y:') == -1:
+            return None
+        response = response[response.find(', Y: ') + 5:]
+        if response.find(' mm') == -1:
+            return None
+        ymm = float(response[:response.find(' mm')])
+
+        if response.find('+X:') == -1:
+            return None
+        response = response[response.find('+X: ') + 4:]
+        if response.find(' steps') == -1:
+            return None
+        xsteps = int(response[:response.find(' steps')])
+        if response.find(', Y:') == -1:
+            return None
+        response = response[response.find(', Y: ') + 5:]
+        if response.find(' steps') == -1:
+            return None
+        ysteps = int(response[:response.find(' steps')])
+
+        return (xmm, ymm, xsteps, ysteps)
