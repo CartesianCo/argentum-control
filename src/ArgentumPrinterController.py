@@ -486,3 +486,32 @@ class ArgentumPrinterController(PrinterController):
                 if line.find(':') != -1 and line.find('volts.') != -1:
                     return float(line[line.find(': ') + 2:line.find(' volts')])
         return 0
+
+    def getOptions(self):
+        response = self.command("?eeprom", expect=']', timeout=1)
+        if response == None:
+            return None
+        response = ''.join(response)
+        if response.find('horizontal_offset:') == -1:
+            return None
+        if response.find('vertical_offset:') == -1:
+            return None
+        if response.find('print_overlap:') == -1:
+            return None
+        if response.find('CRC:') == -1:
+            return None
+        value1 = response[response.find('horizontal_offset:') + 19:]
+        value1 = value1[:value1.find('vertical_offset:')]
+        value2 = response[response.find('vertical_offset:') + 17:]
+        value2 = value2[:value2.find('print_overlap:')]
+        value3 = response[response.find('print_overlap:') + 15:]
+        value3 = value3[:value3.find('CRC:')]
+        return {'horizontal_offset': int(value1),
+                'vertical_offset': int(value2),
+                'print_overlap': int(value3)}
+
+    def updateOptions(self, options):
+        horizontal_offset = options['horizontal_offset']
+        vertical_offset = options['vertical_offset']
+        print_overlap = options['print_overlap']
+        self.command("!write po {} {} {}".format(horizontal_offset, vertical_offset, print_overlap))

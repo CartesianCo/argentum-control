@@ -573,7 +573,7 @@ class Argentum(QtGui.QMainWindow):
         self.portListCombo.setEnabled(not enabled)
 
     def connectButtonPushed(self):
-        if(self.printer.connected):
+        if self.printer.connected:
             self.printer.disconnect()
 
             self.connectButton.setText('Connect')
@@ -597,6 +597,12 @@ class Argentum(QtGui.QMainWindow):
                         for line in self.printer.junkBeforeVersion:
                             self.appendOutput(line)
                         self.appendOutput("Printer is running: " + self.printer.version)
+
+                    options = self.printer.getOptions()
+                    if options != None:
+                        self.options = options
+                        save_options(self.options)
+
                     if (self.printer.version != None and
                             is_older_firmware(self.printer.version)):
                         self.nagFirmwareUpgrade()
@@ -778,6 +784,8 @@ class Argentum(QtGui.QMainWindow):
     def updateOptions(self, val):
         self.options = val
         save_options(self.options)
+        if self.printer.connected:
+            self.printer.updateOptions(self.options)
 
         print('New options values: {}'.format(self.options))
 
