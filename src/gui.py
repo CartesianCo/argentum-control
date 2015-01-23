@@ -135,6 +135,7 @@ class Argentum(QtGui.QMainWindow):
         if not os.path.isdir(self.filesDir):
             os.mkdir(self.filesDir)
         self.lastImportDir = self.filesDir
+        self.lastFirmwareDir = os.getcwd()
 
     def initUI(self):
         # Create the console
@@ -473,10 +474,11 @@ class Argentum(QtGui.QMainWindow):
         if self.programmer != None:
             return
 
-        firmwareFileName = QtGui.QFileDialog.getOpenFileName(self, 'Firmware File', '~')
+        firmwareFileName = QtGui.QFileDialog.getOpenFileName(self, 'Firmware File', self.lastFirmwareDir)
         firmwareFileName = str(firmwareFileName)
 
         if firmwareFileName:
+            self.lastFirmwareDir = os.path.dirname(firmwareFileName)
             self.startFlash(firmwareFileName)
 
     def startFlash(self, firmwareFileName):
