@@ -52,6 +52,8 @@ class ArgentumPrinterController(PrinterController):
                             print("Adding junk before version '{}'".format(line))
                             junkBeforeVersion.append(line)
                     else:
+                        if line.find('+', line.find('+') + 1) != -1:
+                            line = line[line.find('+') + 1:]
                         print("Found a version: {}".format(line))
                         goodVersion = line
                 if goodVersion:
