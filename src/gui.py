@@ -134,6 +134,7 @@ class Argentum(QtGui.QMainWindow):
         self.filesDir = os.path.join(docsDir, 'Argentum')
         if not os.path.isdir(self.filesDir):
             os.mkdir(self.filesDir)
+        self.lastImportDir = self.filesDir
 
     def initUI(self):
         # Create the console
@@ -346,11 +347,12 @@ class Argentum(QtGui.QMainWindow):
 
     def processImage(self):
         ip = self.getImageProcessor()
-        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.filesDir)
+        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.lastImportDir)
 
         inputFileName = str(inputFileName)
 
         if inputFileName:
+            self.lastImportDir = os.path.dirname(inputFileName)
             self.appendOutput('Processing Image ' + inputFileName)
             baseName = os.path.basename(inputFileName)
             if baseName.find('.') != -1:
@@ -548,8 +550,9 @@ class Argentum(QtGui.QMainWindow):
         self.printView.closeLayout()
 
     def fileImportImageTriggered(self):
-        inputFileName = str(QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.filesDir, "Image Files (*.png *.xpm *.jpg *.svg *.bmp);;All Files (*.*)"))
+        inputFileName = str(QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.lastImportDir, "Image Files (*.png *.xpm *.jpg *.svg *.bmp);;All Files (*.*)"))
         if inputFileName:
+            self.lastImportDir = os.path.dirname(inputFileName)
             self.printView.addImageFile(inputFileName)
 
     def filePrintTriggered(self):
