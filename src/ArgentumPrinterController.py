@@ -219,6 +219,10 @@ class ArgentumPrinterController(PrinterController):
     def stop(self):
         self.command('S')
 
+    def emergencyStop(self):
+        self.disconnect()
+        self.connect(self.port)
+
     def monitor(self):
         try:
             if self.connected and self.serialDevice.timeout == 0:

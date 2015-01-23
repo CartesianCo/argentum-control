@@ -665,7 +665,8 @@ class Argentum(QtGui.QMainWindow):
             self.sendPauseCommand()
 
     def stopButtonPushed(self):
-        self.sendStopCommand()
+        self.appendOutput('Stop!')
+        self.printer.emergencyStop()
 
     def homeButtonPushed(self):
         self.printer.home()
