@@ -264,6 +264,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.servoCalibrationAction = QtGui.QAction('Servo Calibration', self)
         self.servoCalibrationAction.triggered.connect(self.servoCalibrationActionTriggered)
+        self.servoCalibrationAction.setEnabled(False)
 
         self.uploadFileAction = QtGui.QAction('Upload File', self)
         self.uploadFileAction.triggered.connect(self.uploadFileActionTriggered)
