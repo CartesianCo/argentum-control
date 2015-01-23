@@ -72,6 +72,8 @@ class PrintView(QtGui.QWidget):
         self.printLims = PrintRect(10, 0, 230, 120)
         self.printPlateDesign = QtSvg.QSvgRenderer("printPlateDesign.svg")
         self.trashCan         = QtSvg.QSvgRenderer("trashCan.svg")
+        self.trashCanOpen     = QtSvg.QSvgRenderer("trashCanOpen.svg")
+        self.showTrashCanOpen = False
         height = self.printArea.height * printPlateDesignScale[1]
         self.printPlateDesignArea = PrintRect(12,
                     50,
@@ -202,7 +204,10 @@ class PrintView(QtGui.QWidget):
         qp.fillRect(self.rect(), QtGui.QColor(0,0,0))
         self.printPlateDesign.render(qp, self.printPlateDesignRect)
         if self.dragging:
-            self.trashCan.render(qp, self.trashCanRect)
+            if self.showTrashCanOpen:
+                self.trashCanOpen.render(qp, self.trashCanRect)
+            else:
+                self.trashCan.render(qp, self.trashCanRect)
         for image in self.images:
             qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
         qp.end()
@@ -509,13 +514,13 @@ class PrintView(QtGui.QWidget):
         finally:
             self.printThread = None
 
+    def inTrashCan(self, x, y):
+        return x > self.trashCanRect.left() and y > self.trashCanRect.top()
+
     def mouseReleaseEvent(self, event):
-        if self.dragging:
-            screenRect = self.printAreaToScreen(self.dragging)
-            if (event.pos().x() > self.trashCanRect.left() and
-                    event.pos().y() > self.trashCanRect.top()):
-                self.images.remove(self.dragging)
-                self.layoutChanged = True
+        if self.dragging and self.inTrashCan(event.pos().x(), event.pos().y()):
+            self.images.remove(self.dragging)
+            self.layoutChanged = True
 
         self.dragging = None
         self.resizing = None
@@ -541,6 +546,9 @@ class PrintView(QtGui.QWidget):
             if self.dragging == None and self.resizing == None:
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
+
+        self.showTrashCanOpen = (self.dragging and
+            self.inTrashCan(event.pos().x(), event.pos().y()))
 
         px = p[0]
         py = p[1]
