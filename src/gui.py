@@ -280,7 +280,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.optionsAction = QtGui.QAction('Processing &Options', self)
         self.optionsAction.triggered.connect(self.optionsActionTriggered)
-        #self.optionsAction.setEnabled(False)
+        self.optionsAction.setEnabled(False)
 
         self.servoCalibrationAction = QtGui.QAction('Servo Calibration', self)
         self.servoCalibrationAction.triggered.connect(self.servoCalibrationActionTriggered)
@@ -288,9 +288,10 @@ class Argentum(QtGui.QMainWindow):
 
         self.uploadFileAction = QtGui.QAction('Upload File', self)
         self.uploadFileAction.triggered.connect(self.uploadFileActionTriggered)
+        self.uploadFileAction.setEnabled(False)
 
-        self.updateAction = QtGui.QAction('&Update', self)
-        self.updateAction.triggered.connect(self.updateActionTriggered)
+        #self.updateAction = QtGui.QAction('&Update', self)
+        #self.updateAction.triggered.connect(self.updateActionTriggered)
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('File')
@@ -312,6 +313,7 @@ class Argentum(QtGui.QMainWindow):
         fileMenu.addAction(self.importImageAction)
         fileMenu.addSeparator()
         self.printAction = QtGui.QAction('&Print', self)
+        self.printAction.setEnabled(False)
         self.printAction.triggered.connect(self.filePrintTriggered)
         fileMenu.addAction(self.printAction)
         fileMenu.addSeparator()
@@ -322,8 +324,8 @@ class Argentum(QtGui.QMainWindow):
         utilitiesMenu = menubar.addMenu('Utilities')
         utilitiesMenu.addAction(self.flashAction)
         utilitiesMenu.addAction(self.optionsAction)
-        utilitiesMenu.addAction(self.updateAction)
-        utilitiesMenu.addAction(self.servoCalibrationAction)
+        #utilitiesMenu.addAction(self.updateAction)
+        #utilitiesMenu.addAction(self.servoCalibrationAction)
         utilitiesMenu.addAction(self.uploadFileAction)
 
         self.statusBar().showMessage('Looking for printer...')
@@ -588,7 +590,8 @@ class Argentum(QtGui.QMainWindow):
     def enableConnectionSpecificControls(self, enabled):
         self.flashAction.setEnabled(enabled)
         self.printAction.setEnabled(enabled)
-        #self.optionsAction.setEnabled(enabled)
+        self.optionsAction.setEnabled(enabled)
+        self.uploadFileAction.setEnabled(enabled)
 
         self.portListCombo.setEnabled(not enabled)
 
