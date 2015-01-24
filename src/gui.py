@@ -193,6 +193,22 @@ class Argentum(QtGui.QMainWindow):
         self.outputView.setSizePolicy(QtGui.QSizePolicy.Minimum,
                          QtGui.QSizePolicy.Expanding)
 
+        # Position reporting
+
+        self.posOptionsButton = QtGui.QPushButton("^")
+        self.posOptionsButton.setMaximumWidth(20)
+        self.xLabel = QtGui.QLabel("0")
+        self.yLabel = QtGui.QLabel("0")
+        self.unitsButton = QtGui.QPushButton("steps")
+
+        self.posListWidget = QtGui.QListWidget()
+        self.posListWidget.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
+        self.posListWidget.itemClicked.connect(self.posListWidgetItemClicked)
+        self.posSaveButton = QtGui.QPushButton("Save")
+        self.posSaveButton.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
+        self.posSaveButton.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+        self.posSaveButton.clicked.connect(self.posSaveButtonPushed)
+
         # Jog Frame
 
         jogControlsGrid = QtGui.QGridLayout()
@@ -201,10 +217,6 @@ class Argentum(QtGui.QMainWindow):
         self.downButton = QtGui.QPushButton('v')
         self.leftButton = QtGui.QPushButton('<')
         self.rightButton = QtGui.QPushButton('>')
-
-        self.xLabel = QtGui.QLabel("0")
-        self.yLabel = QtGui.QLabel("0")
-        self.unitsButton = QtGui.QPushButton("steps")
 
         self.makeButtonRepeatable(self.upButton)
         self.makeButtonRepeatable(self.downButton)
@@ -233,6 +245,7 @@ class Argentum(QtGui.QMainWindow):
 
         posRow = QtGui.QHBoxLayout()
         posRow.addStretch(1)
+        posRow.addWidget(self.posOptionsButton)
         posRow.addWidget(QtGui.QLabel("X"))
         posRow.addWidget(self.xLabel)
         posRow.addWidget(QtGui.QLabel("Y"))
@@ -255,6 +268,7 @@ class Argentum(QtGui.QMainWindow):
         self.homeButton.clicked.connect(self.homeButtonPushed)
         self.processImageButton.clicked.connect(self.processImageButtonPushed)
         self.unitsButton.clicked.connect(self.unitsButtonPushed)
+        self.posOptionsButton.clicked.connect(self.posOptionsButtonPushed)
 
         controlRow.addWidget(self.calibrateButton)
         controlRow.addWidget(self.printButton)
@@ -708,6 +722,46 @@ class Argentum(QtGui.QMainWindow):
             self.unitsButton.setText("mm")
         self.updatePosDisplay(self.lastPos)
 
+    def posOptionsButtonPushed(self):
+        if self.posSaveButton.isVisible():
+            self.hidePosOptions()
+        else:
+            self.showPosOptions()
+
+    def showPosOptions(self):
+            gp1 = self.posOptionsButton.mapToGlobal(self.posOptionsButton.rect().topLeft())
+            gp2 = self.unitsButton.mapToGlobal(self.unitsButton.rect().bottomRight())
+            width = gp2.x() - gp1.x();
+            height = width
+            saveButtonHeight = gp2.y() - gp1.y()
+            self.posListWidget.resize(width, height)
+            self.posListWidget.move(gp1.x(), gp1.y() - height - saveButtonHeight)
+            self.posSaveButton.move(gp1.x(), gp1.y() - saveButtonHeight)
+            self.posSaveButton.show()
+            if self.posListWidget.count() > 0:
+                self.posListWidget.show()
+
+    def hidePosOptions(self):
+        self.posListWidget.hide()
+        self.posSaveButton.hide()
+
+    def posSaveButtonPushed(self):
+        (xmm, ymm, x, y) = self.lastPos
+        str = "{}, {} mm {}, {} steps".format(xmm, ymm, x, y)
+        match = self.posListWidget.findItems(str, QtCore.Qt.MatchFlags())
+        if len(match) == 0:
+            self.posListWidget.addItem(str)
+        self.hidePosOptions()
+
+    def posListWidgetItemClicked(self, item):
+        s = str(item.text())
+        s = s[s.find('mm ')+3:]
+        x = int(s[:s.find(', ')])
+        y = int(s[s.find(', ') + 2:s.find(' steps')])
+        self.hidePosOptions()
+        self.printer.home(wait=True)
+        self.printer.move(x, y)
+
     ### Command Functions ###
 
     def servocommand(self, cmd):
@@ -862,6 +916,9 @@ class Argentum(QtGui.QMainWindow):
             self.printer.updateOptions(self.options)
 
         print('New options values: {}'.format(self.options))
+
+    def closeEvent(self, evt):
+        sys.exit(0)
 
 def main():
     app = QtGui.QApplication(sys.argv)
