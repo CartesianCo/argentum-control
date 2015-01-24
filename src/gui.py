@@ -747,6 +747,7 @@ class Argentum(QtGui.QMainWindow):
         self.posSaveButton.hide()
 
     def posSaveButtonPushed(self):
+        self.updatePosDisplay()
         (xmm, ymm, x, y) = self.lastPos
         str = "{}, {} mm {}, {} steps".format(xmm, ymm, x, y)
         match = self.posListWidget.findItems(str, QtCore.Qt.MatchFlags())
