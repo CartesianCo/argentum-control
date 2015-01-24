@@ -167,6 +167,9 @@ def makeWin32Release():
             siteFiles.append(file)
         else:
             resources.append(file)
+    resources.append('platforms/windows/tools/avrdude.exe')
+    resources.append('platforms/windows/tools/avrdude.conf')
+    resources.append('platforms/windows/tools/libusb0.dll')
 
     resourceDir = tmp + "/Argentum Control-0.0.6.win32/"
     sitePackagesDir = resourceDir + "library"

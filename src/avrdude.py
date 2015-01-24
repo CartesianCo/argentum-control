@@ -4,6 +4,7 @@ import sys
 import os
 import subprocess
 import stat
+import platform
 
 class avrdude:
   def __init__(self, port=None, baud=None, boardType=None, protocol=None):
@@ -71,10 +72,14 @@ class avrdude:
         # use the system's exe and config
         avrdudeString = 'avrdude'
 
+    port = self.port
+    if platform.system() == "Windows":
+        port = "\\\\.\\" + port
+
     command = (avrdudeString + ' -v -c {} -p {} -P {} -b {} -D -U').format(
               self.protocol,
               self.boardType,
-              self.port,
+              port,
               self.baud).split()
     command.append('flash:w:{}:i'.format(firmwareFileName))
     return command
