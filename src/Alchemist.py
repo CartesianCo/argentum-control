@@ -5,6 +5,7 @@ class OptionsDialog(QtGui.QDialog):
     Argentum Options Dialog
     '''
 
+    optionsToAdd = ['horizontal_offset', 'vertical_offset', 'print_overlap']
     created = {}
 
     def __init__(self, parent=None, options=None):
@@ -46,9 +47,12 @@ class OptionsDialog(QtGui.QDialog):
         return optionLineEdit
 
     def addOptions(self, parentLayout, options):
-        for optionName, defaultValue in options.items():
-            if optionName == "last_run":
+        for optionName in self.optionsToAdd:
+            if optionName not in self.options:
                 continue
+
+            defaultValue = self.options[optionName]
+
             layout = QtGui.QHBoxLayout()
 
             widget = self.createOptionWidget(layout, optionName, defaultValue)
@@ -63,7 +67,7 @@ class OptionsDialog(QtGui.QDialog):
         layout.addWidget(label)
 
     def gatherValues(self):
-        options = {}
+        options = self.options
 
         for name, widget in self.created.items():
             options[name] = str(widget.text())

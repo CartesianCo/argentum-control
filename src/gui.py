@@ -201,7 +201,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.posListWidget = QtGui.QListWidget()
         self.posListWidget.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
-        self.posListWidget.itemClicked.connect(self.posListWidgetItemClicked)
+        self.posListWidget.itemActivated.connect(self.posListWidgetItemActivated)
         self.posSaveButton = QtGui.QPushButton("Save")
         self.posSaveButton.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
         self.posSaveButton.setAttribute(QtCore.Qt.WA_TranslucentBackground)
@@ -210,6 +210,12 @@ class Argentum(QtGui.QMainWindow):
         self.posRemoveButton.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
         self.posRemoveButton.setAttribute(QtCore.Qt.WA_TranslucentBackground)
         self.posRemoveButton.clicked.connect(self.posRemoveButtonPushed)
+
+        try:
+            for pos in self.options["saved_positions"]:
+                self.posListWidget.addItem(pos)
+        except:
+            pass
 
         # Jog Frame
 
@@ -638,7 +644,8 @@ class Argentum(QtGui.QMainWindow):
 
                     options = self.printer.getOptions()
                     if options != None:
-                        self.options = options
+                        for key, value in options.items():
+                            self.options[key] = value
                         save_options(self.options)
 
                     self.homePrinter()
@@ -734,20 +741,36 @@ class Argentum(QtGui.QMainWindow):
         self.posSaveButton.hide()
         self.posRemoveButton.hide()
 
+    def savePosList(self):
+        savedPositions = []
+        for n in range(0, self.posListWidget.count()):
+            item = self.posListWidget.item(n)
+            savedPositions.append(str(item.text()))
+        self.options["saved_positions"] = savedPositions
+        save_options(self.options)
+
     def posSaveButtonPushed(self):
         self.updatePosDisplay()
         (xmm, ymm, x, y) = self.lastPos
         str = "{}, {} mm {}, {} steps".format(xmm, ymm, x, y)
+        for n in range(0, self.posListWidget.count()):
+            item = self.posListWidget.item(n)
+            self.posListWidget.setItemSelected(item, False)
         match = self.posListWidget.findItems(str, QtCore.Qt.MatchFlags())
-        if len(match) == 0:
-            self.posListWidget.addItem(str)
-        self.hidePosOptions()
+        if len(match) > 0:
+            for item in match:
+                self.posListWidget.setItemSelected(item, True)
+        else:
+            item = self.posListWidget.addItem(str)
+            self.posListWidget.setItemSelected(item, True)
+            self.savePosList()
 
     def posRemoveButtonPushed(self):
         for item in self.posListWidget.selectedItems():
             self.posListWidget.takeItem(self.posListWidget.indexFromItem(item).row())
+            self.savePosList()
 
-    def posListWidgetItemClicked(self, item):
+    def posListWidgetItemActivated(self, item):
         s = str(item.text())
         s = s[s.find('mm ')+3:]
         x = int(s[:s.find(', ')])
@@ -908,8 +931,6 @@ class Argentum(QtGui.QMainWindow):
         save_options(self.options)
         if self.printer.connected:
             self.printer.updateOptions(self.options)
-
-        print('New options values: {}'.format(self.options))
 
     def closeEvent(self, evt):
         sys.exit(0)
