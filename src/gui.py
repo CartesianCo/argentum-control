@@ -197,16 +197,19 @@ class Argentum(QtGui.QMainWindow):
 
         self.posOptionsButton = QtGui.QPushButton("^")
         self.posOptionsButton.setMaximumWidth(20)
-        self.posLabel = QtGui.QLabel("0, 0 mm 0, 0 steps")
+        self.posLabel = QtGui.QLabel("0.0, 0.0 mm 0, 0 steps")
 
         self.posListWidget = QtGui.QListWidget()
         self.posListWidget.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
         self.posListWidget.itemClicked.connect(self.posListWidgetItemClicked)
-        self.posListWidget.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
         self.posSaveButton = QtGui.QPushButton("Save")
         self.posSaveButton.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
         self.posSaveButton.setAttribute(QtCore.Qt.WA_TranslucentBackground)
         self.posSaveButton.clicked.connect(self.posSaveButtonPushed)
+        self.posRemoveButton = QtGui.QPushButton("Remove")
+        self.posRemoveButton.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
+        self.posRemoveButton.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+        self.posRemoveButton.clicked.connect(self.posRemoveButtonPushed)
 
         # Jog Frame
 
@@ -721,11 +724,15 @@ class Argentum(QtGui.QMainWindow):
             self.posSaveButton.move(gp1.x(), gp1.y() - saveButtonHeight)
             self.posSaveButton.show()
             if self.posListWidget.count() > 0:
+                self.posRemoveButton.move(gp1.x() + self.posSaveButton.rect().width(), gp1.y() - saveButtonHeight)
+                self.posRemoveButton.show()
                 self.posListWidget.show()
+                self.posListWidget.setFocus()
 
     def hidePosOptions(self):
         self.posListWidget.hide()
         self.posSaveButton.hide()
+        self.posRemoveButton.hide()
 
     def posSaveButtonPushed(self):
         self.updatePosDisplay()
@@ -735,6 +742,10 @@ class Argentum(QtGui.QMainWindow):
         if len(match) == 0:
             self.posListWidget.addItem(str)
         self.hidePosOptions()
+
+    def posRemoveButtonPushed(self):
+        for item in self.posListWidget.selectedItems():
+            self.posListWidget.takeItem(self.posListWidget.indexFromItem(item).row())
 
     def posListWidgetItemClicked(self, item):
         s = str(item.text())
