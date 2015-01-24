@@ -80,6 +80,7 @@ class Argentum(QtGui.QMainWindow):
         self.printer = ArgentumPrinterController()
         self.programmer = None
 
+        self.printing = False
         self.paused = False
         self.autoConnect = True
         self.sentVolt = False
@@ -243,20 +244,20 @@ class Argentum(QtGui.QMainWindow):
         controlRow = QtGui.QHBoxLayout()
 
         self.calibrateButton = QtGui.QPushButton('Calibrate')
-        self.pauseButton = QtGui.QPushButton('Pause')
+        self.printButton = QtGui.QPushButton('Print')
         self.stopButton = QtGui.QPushButton('Stop')
         self.homeButton = QtGui.QPushButton('Home')
         self.processImageButton = QtGui.QPushButton('Process Image')
 
         self.calibrateButton.clicked.connect(self.calibrateButtonPushed)
-        self.pauseButton.clicked.connect(self.pauseButtonPushed)
+        self.printButton.clicked.connect(self.printButtonPushed)
         self.stopButton.clicked.connect(self.stopButtonPushed)
         self.homeButton.clicked.connect(self.homeButtonPushed)
         self.processImageButton.clicked.connect(self.processImageButtonPushed)
         self.unitsButton.clicked.connect(self.unitsButtonPushed)
 
         controlRow.addWidget(self.calibrateButton)
-        controlRow.addWidget(self.pauseButton)
+        controlRow.addWidget(self.printButton)
         controlRow.addWidget(self.stopButton)
         controlRow.addWidget(self.homeButton)
         controlRow.addWidget(self.processImageButton)
@@ -392,6 +393,8 @@ class Argentum(QtGui.QMainWindow):
         return True
 
     def appendOutput(self, output):
+        if output.find('+Print complete') != -1:
+            self.printComplete()
         self.outputView.append(output)
         # Allow the gui to update during long processing
         QtGui.QApplication.processEvents()
@@ -463,7 +466,7 @@ class Argentum(QtGui.QMainWindow):
         self.leftButton.setEnabled(enabled)
         self.rightButton.setEnabled(enabled)
         self.calibrateButton.setEnabled(enabled)
-        self.pauseButton.setEnabled(enabled)
+        self.printButton.setEnabled(enabled)
         self.stopButton.setEnabled(enabled)
         self.homeButton.setEnabled(enabled)
         self.processImageButton.setEnabled(enabled)
@@ -713,19 +716,30 @@ class Argentum(QtGui.QMainWindow):
     def calibrateButtonPushed(self):
         self.printer.calibrate()
 
-    def pauseButtonPushed(self):
-        if(self.paused):
-            self.paused = False
-            self.pauseButton.setText('Pause')
-            self.sendResumeCommand()
+    def printButtonPushed(self):
+        if self.printing:
+            if self.paused:
+                self.paused = False
+                self.printButton.setText('Pause')
+                self.sendResumeCommand()
+            else:
+                self.paused = True
+                self.printButton.setText('Resume')
+                self.sendPauseCommand()
         else:
-            self.paused = True
-            self.pauseButton.setText('Resume')
-            self.sendPauseCommand()
+            self.printing = True
+            self.paused = False
+            self.printButton.setText('Pause')
+            self.sendPrintCommand()
 
     def stopButtonPushed(self):
         self.appendOutput('Stop!')
         self.printer.emergencyStop()
+        self.printComplete()
+
+    def printComplete(self):
+        self.printing = False
+        self.printButton.setText('Print')
 
     def homeLoop(self):
         self.printer.home(wait=True)
