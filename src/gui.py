@@ -197,9 +197,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.posOptionsButton = QtGui.QPushButton("^")
         self.posOptionsButton.setMaximumWidth(20)
-        self.xLabel = QtGui.QLabel("0")
-        self.yLabel = QtGui.QLabel("0")
-        self.unitsButton = QtGui.QPushButton("steps")
+        self.posLabel = QtGui.QLabel("0, 0 mm 0, 0 steps")
 
         self.posListWidget = QtGui.QListWidget()
         self.posListWidget.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
@@ -247,11 +245,7 @@ class Argentum(QtGui.QMainWindow):
         posRow = QtGui.QHBoxLayout()
         posRow.addStretch(1)
         posRow.addWidget(self.posOptionsButton)
-        posRow.addWidget(QtGui.QLabel("X"))
-        posRow.addWidget(self.xLabel)
-        posRow.addWidget(QtGui.QLabel("Y"))
-        posRow.addWidget(self.yLabel)
-        posRow.addWidget(self.unitsButton)
+        posRow.addWidget(self.posLabel)
 
         # Main Controls
 
@@ -268,7 +262,6 @@ class Argentum(QtGui.QMainWindow):
         self.stopButton.clicked.connect(self.stopButtonPushed)
         self.homeButton.clicked.connect(self.homeButtonPushed)
         self.processImageButton.clicked.connect(self.processImageButtonPushed)
-        self.unitsButton.clicked.connect(self.unitsButtonPushed)
         self.posOptionsButton.clicked.connect(self.posOptionsButtonPushed)
 
         controlRow.addWidget(self.calibrateButton)
@@ -709,19 +702,7 @@ class Argentum(QtGui.QMainWindow):
                 return
         self.lastPos = pos
         (xmm, ymm, x, y) = pos
-        if self.unitsButton.text() == "mm":
-            self.xLabel.setText("{}".format(xmm))
-            self.yLabel.setText("{}".format(ymm))
-        else:
-            self.xLabel.setText("{}".format(x))
-            self.yLabel.setText("{}".format(y))
-
-    def unitsButtonPushed(self):
-        if self.unitsButton.text() == "mm":
-            self.unitsButton.setText("steps")
-        else:
-            self.unitsButton.setText("mm")
-        self.updatePosDisplay(self.lastPos)
+        self.posLabel.setText("{}, {} mm {}, {} steps".format(xmm, ymm, x, y))
 
     def posOptionsButtonPushed(self):
         if self.posSaveButton.isVisible():
@@ -731,7 +712,7 @@ class Argentum(QtGui.QMainWindow):
 
     def showPosOptions(self):
             gp1 = self.posOptionsButton.mapToGlobal(self.posOptionsButton.rect().topLeft())
-            gp2 = self.unitsButton.mapToGlobal(self.unitsButton.rect().bottomRight())
+            gp2 = self.posLabel.mapToGlobal(self.posLabel.rect().bottomRight())
             width = gp2.x() - gp1.x();
             height = width
             saveButtonHeight = gp2.y() - gp1.y()
