@@ -353,8 +353,9 @@ class Argentum(QtGui.QMainWindow):
         self.show()
 
     def updateFirmwareLoop(self):
-        update_firmware_list()
-        update_local_firmware()
+        #update_firmware_list()
+        #update_local_firmware()
+        pass
 
     def makeButtonRepeatable(self, button):
         button.setAutoRepeat(True)
