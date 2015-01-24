@@ -204,6 +204,7 @@ class Argentum(QtGui.QMainWindow):
         self.posListWidget = QtGui.QListWidget()
         self.posListWidget.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
         self.posListWidget.itemClicked.connect(self.posListWidgetItemClicked)
+        self.posListWidget.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
         self.posSaveButton = QtGui.QPushButton("Save")
         self.posSaveButton.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
         self.posSaveButton.setAttribute(QtCore.Qt.WA_TranslucentBackground)
