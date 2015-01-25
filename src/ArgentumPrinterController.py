@@ -16,6 +16,8 @@ class ArgentumPrinterController(PrinterController):
     lastError = None
     version = None
     lightsOn = False
+    leftFanOn = False
+    rightFanOn = False
 
     def __init__(self, port=None):
         self.port = port
@@ -40,6 +42,8 @@ class ArgentumPrinterController(PrinterController):
             self.serialDevice = Serial(self.port, 115200, timeout=0)
             self.connected = True
             self.lightsOn = False
+            self.leftFanOn = False
+            self.rightFanOn = False
 
             self.clearVersion()
             junkBeforeVersion = []
@@ -570,3 +574,19 @@ class ArgentumPrinterController(PrinterController):
     def turnLightsOff(self):
         self.command("pwm 8 0")
         self.lightsOn = False
+
+    def turnLeftFanOn(self):
+        self.command("pwm 7 255")
+        self.leftFanOn = True
+
+    def turnLeftFanOff(self):
+        self.command("pwm 7 0")
+        self.leftFanOn = False
+
+    def turnRightFanOn(self):
+        self.command("pwm 9 255")
+        self.rightFanOn = True
+
+    def turnRightFanOff(self):
+        self.command("pwm 9 0")
+        self.rightFanOn = False

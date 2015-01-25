@@ -66,6 +66,8 @@ class PrintView(QtGui.QWidget):
         self.progress = QtGui.QProgressDialog(self)
         self.progress.setWindowTitle("Printing")
         QtCore.QTimer.singleShot(100, self.progressUpdater)
+        self.fanSpeed = 4
+        QtCore.QTimer.singleShot(1000 / self.fanSpeed, self.fanAnimator)
 
         self.printPlateArea = PrintRect(0, 0, 285, 255)
         self.printArea = PrintRect(24, 73, 247, 127)
@@ -141,6 +143,13 @@ class PrintView(QtGui.QWidget):
         self.bottomLightRects.append(QtCore.QRectF(ppdr.left() + ppdr.width()*0.05, self.leftLightsRect.bottom() + my, mmx, mmx))
         self.bottomLightRects.append(QtCore.QRectF(ppdr.left() + ppdr.width()/2 - mmx/2, self.leftLightsRect.bottom() + my, mmx, mmx))
         self.bottomLightRects.append(QtCore.QRectF(ppdr.right() - ppdr.width()/13, self.leftLightsRect.bottom() + my, mmx, mmx))
+
+        self.fanImage1 = QtGui.QPixmap("fan1.png")
+        self.fanImage2 = QtGui.QPixmap("fan2.png")
+        self.fanImage = self.fanImage1
+        fw = ppdr.width() / 13
+        self.leftFanRect = QtCore.QRectF(ppdr.left(), ppdr.top() - fw*2, fw, fw)
+        self.rightFanRect = QtCore.QRectF(ppdr.right() - fw, ppdr.top() - fw*2, fw, fw)
 
     def printToScreen(self, printRect):
         #print("printRect {}, {} {} x {}".format(printRect.left,
@@ -230,6 +239,14 @@ class PrintView(QtGui.QWidget):
         qp.drawRoundedRect(self.rightLightsRect, 20.0, 15.0)
         for r in self.bottomLightRects:
             qp.drawRect(r)
+        fanImage = self.fanImage1
+        if self.argentum.printer.leftFanOn:
+            fanImage = self.fanImage
+        qp.drawPixmap(self.leftFanRect, fanImage, QtCore.QRectF(fanImage.rect()))
+        fanImage = self.fanImage1
+        if self.argentum.printer.rightFanOn:
+            fanImage = self.fanImage
+        qp.drawPixmap(self.rightFanRect, fanImage, QtCore.QRectF(fanImage.rect()))
         qp.end()
 
     def gerberToPixmap(self, inputFileName):
@@ -407,6 +424,15 @@ class PrintView(QtGui.QWidget):
             self.missing = None
             self.reportMissing(missing)
 
+    def fanAnimator(self):
+        QtCore.QTimer.singleShot(1000 / self.fanSpeed, self.fanAnimator)
+        if self.argentum.printer.leftFanOn or self.argentum.printer.rightFanOn:
+            if self.fanImage == self.fanImage1:
+                self.fanImage = self.fanImage2
+            else:
+                self.fanImage = self.fanImage1
+            self.update()
+
     def printCross(self, x, y):
         pos = self.printAreaToMove(x, y)
         self.argentum.printer.move(pos[0], pos[1], wait=True)
@@ -555,6 +581,19 @@ class PrintView(QtGui.QWidget):
                 self.argentum.printer.turnLightsOff()
             else:
                 self.argentum.printer.turnLightsOn()
+
+        if self.leftFanRect.contains(event.pos()):
+            if self.argentum.printer.leftFanOn:
+                self.argentum.printer.turnLeftFanOff()
+            else:
+                self.argentum.printer.turnLeftFanOn()
+
+        if self.rightFanRect.contains(event.pos()):
+            if self.argentum.printer.rightFanOn:
+                self.argentum.printer.turnRightFanOff()
+            else:
+                self.argentum.printer.turnRightFanOn()
+
 
         self.dragging = None
         self.resizing = None
