@@ -85,6 +85,21 @@ class PrintView(QtGui.QWidget):
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
 
+        self.kerfPen = QtGui.QPen(QtGui.QColor(0, 0, 0))
+        self.kerfPen.setWidth(10)
+        self.kerfPen.setCapStyle(QtCore.Qt.RoundCap)
+
+        self.kerfOutlinePen = QtGui.QPen(QtGui.QColor(255, 255, 255))
+        self.kerfOutlinePen.setWidth(13)
+        self.kerfOutlinePen.setCapStyle(QtCore.Qt.RoundCap)
+
+        self.fanImage1 = QtGui.QPixmap("fan1.png")
+        self.fanImage2 = QtGui.QPixmap("fan2.png")
+
+        self.colorPicker = QtGui.QColorDialog()
+        self.pickColorFor = None
+        self.colorPicker.colorSelected.connect(self.colorPicked)
+
     def calcScreenRects(self):
         if self.lastRect == self.rect():
             for image in self.images:
@@ -144,8 +159,9 @@ class PrintView(QtGui.QWidget):
         self.bottomLightRects.append(QtCore.QRectF(ppdr.left() + ppdr.width()/2 - mmx/2, self.leftLightsRect.bottom() + my, mmx, mmx))
         self.bottomLightRects.append(QtCore.QRectF(ppdr.right() - ppdr.width()/13, self.leftLightsRect.bottom() + my, mmx, mmx))
 
-        self.fanImage1 = QtGui.QPixmap("fan1.png")
-        self.fanImage2 = QtGui.QPixmap("fan2.png")
+        self.leftKerfRect = QtCore.QRectF(ppdr.left() - mx*2, ppdr.bottom(), mx*2, my*2 + mmx*2)
+        self.rightKerfRect = QtCore.QRectF(ppdr.right(), ppdr.bottom(), mx*2, my*2 + mmx*2)
+
         self.fanImage = self.fanImage1
         fw = ppdr.width() / 13
         self.leftFanRect = QtCore.QRectF(ppdr.left(), ppdr.top() - fw*2, fw, fw)
@@ -223,13 +239,16 @@ class PrintView(QtGui.QWidget):
         qp.begin(self)
         qp.fillRect(self.rect(), QtGui.QColor(0,0,0))
         self.printPlateDesign.render(qp, self.printPlateDesignRect)
+
         if self.dragging:
             if self.showTrashCanOpen:
                 self.trashCanOpen.render(qp, self.trashCanRect)
             else:
                 self.trashCan.render(qp, self.trashCanRect)
+
         for image in self.images:
             qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
+
         if self.argentum.printer.connected and self.argentum.printer.lightsOn:
             qp.setBrush(QtGui.QColor(0xff, 0xff, 0xff))
         else:
@@ -239,6 +258,16 @@ class PrintView(QtGui.QWidget):
         qp.drawRoundedRect(self.rightLightsRect, 20.0, 15.0)
         for r in self.bottomLightRects:
             qp.drawRect(r)
+
+        qp.setPen(self.kerfOutlinePen)
+        qp.drawArc(self.leftKerfRect, 180*16, 90*16)
+        qp.setPen(self.kerfPen)
+        qp.drawArc(self.leftKerfRect, 180*16, 90*16)
+        qp.setPen(self.kerfOutlinePen)
+        qp.drawArc(self.rightKerfRect, 270*16, 90*16)
+        qp.setPen(self.kerfPen)
+        qp.drawArc(self.rightKerfRect, 270*16, 90*16)
+
         fanImage = self.fanImage1
         if self.argentum.printer.leftFanOn:
             fanImage = self.fanImage
@@ -594,10 +623,27 @@ class PrintView(QtGui.QWidget):
             else:
                 self.argentum.printer.turnRightFanOn()
 
+        kerf = False
+        if self.leftKerfRect.contains(event.pos()):
+            kerf = True
+        if self.rightKerfRect.contains(event.pos()):
+            kerf = True
+        if kerf:
+            if self.colorPicker.isVisible():
+                self.colorPicker.hide()
+            else:
+                self.colorPicker.show()
 
         self.dragging = None
         self.resizing = None
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.update()
+
+    def colorPicked(self, color):
+        self.argentum.printer.command("red {}".format(color.red()))
+        self.argentum.printer.command("green {}".format(color.green()))
+        self.argentum.printer.command("blue {}".format(color.blue()))
+        self.kerfPen.setColor(color)
         self.update()
 
     def ensureImageInPrintLims(self, image):
