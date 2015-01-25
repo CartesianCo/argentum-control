@@ -95,10 +95,46 @@ class PrintView(QtGui.QWidget):
 
         self.fanImage1 = QtGui.QPixmap("fan1.png")
         self.fanImage2 = QtGui.QPixmap("fan2.png")
+        self.printHeadPixmap = QtGui.QPixmap("printhead.png")
+
+        self.printHeadImage = PrintImage(self.printHeadPixmap, "")
+        self.printHeadImage.minLeft = -24 + 10
+        self.printHeadImage.left = self.printHeadImage.minLeft
+        self.printHeadImage.minBottom = -73 + 11
+        self.printHeadImage.bottom = self.printHeadImage.minBottom
+        #self.printHeadImage.width = 95
+        #self.printHeadImage.height = 90
+        self.printHeadImage.width = 98
+        self.printHeadImage.height = 95
+        self.images.append(self.printHeadImage)
 
         self.colorPicker = QtGui.QColorDialog()
         self.pickColorFor = None
         self.colorPicker.colorSelected.connect(self.colorPicked)
+
+        self.showPrintHeadAction = QtGui.QAction('&Show Print Head', self)
+        self.showPrintHeadAction.triggered.connect(self.showPrintHeadActionTriggered)
+        self.argentum.utilitiesMenu.addAction(self.showPrintHeadAction)
+        self.showingPrintHead = False
+
+    def updatePrintHeadPos(self, pos):
+        if self.dragging == self.printHeadImage:
+            return
+        (xmm, ymm, x, y) = pos
+        self.printHeadImage.left = self.printHeadImage.minLeft + xmm
+        self.printHeadImage.bottom = self.printHeadImage.minBottom + ymm
+        self.printHeadImage.screenRect = None
+        self.update()
+
+    def showPrintHeadActionTriggered(self):
+        if self.showingPrintHead:
+            self.showingPrintHead = False
+            self.showPrintHeadAction.setText("&Show Print Head")
+        else:
+            self.showingPrintHead = True
+            self.showPrintHeadAction.setText("&Hide Print Head")
+            self.argentum.updatePosDisplay()
+        self.update()
 
     def calcScreenRects(self):
         if self.lastRect == self.rect():
@@ -151,7 +187,7 @@ class PrintView(QtGui.QWidget):
         ppdr = self.printPlateDesignRect
         my = 30
         mx = 30
-        self.leftLightsRect = QtCore.QRectF(ppdr.left() - mx, ppdr.top() - my, mx, ppdr.height() + my*2)
+        self.leftLightsRect = QtCore.QRectF(ppdr.left() - mx - 10, ppdr.top() - my, mx, ppdr.height() + my*2)
         self.rightLightsRect = QtCore.QRectF(ppdr.right(), ppdr.top() - my, mx, ppdr.height() + my*2)
         self.bottomLightRects = []
         mmx = mx/3
@@ -240,13 +276,15 @@ class PrintView(QtGui.QWidget):
         qp.fillRect(self.rect(), QtGui.QColor(0,0,0))
         self.printPlateDesign.render(qp, self.printPlateDesignRect)
 
-        if self.dragging:
+        if self.dragging and self.dragging != self.printHeadImage:
             if self.showTrashCanOpen:
                 self.trashCanOpen.render(qp, self.trashCanRect)
             else:
                 self.trashCan.render(qp, self.trashCanRect)
 
         for image in self.images:
+            if image == self.printHeadImage and not self.showingPrintHead:
+                continue
             qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
 
         if self.argentum.printer.connected and self.argentum.printer.lightsOn:
@@ -481,7 +519,7 @@ class PrintView(QtGui.QWidget):
         self.setProgress(percent=100)
 
     def startPrint(self):
-        if len(self.images) == 0:
+        if len(self.images) == 1:
             self.argentum.statusBar().showMessage('Add some images to print.')
             return
 
@@ -504,8 +542,10 @@ class PrintView(QtGui.QWidget):
             self.setProgress(statusText="Printing.")
 
             self.setProgress(labelText="Processing images...")
-            self.perImage = 20.0 / len(self.images)
+            self.perImage = 20.0 / (len(self.images) - 1)
             for image in self.images:
+                if image == self.printHeadImage:
+                    continue
                 if not self.isImageProcessed(image):
                     self.setProgress(labelText="Processing image {}.".format(os.path.basename(image.filename)))
                     self.processImage(image)
@@ -522,7 +562,10 @@ class PrintView(QtGui.QWidget):
                 return
 
             self.setProgress(labelText="Looking on the printer...")
-            hexfiles = [image.hexFilename for image in self.images]
+            hexfiles = []
+            for image in self.images:
+                if image != self.printHeadImage:
+                    hexfiles.append(image.hexFilename)
             missing = self.argentum.printer.missingFiles(hexfiles)
             print("{} missing files.".format(len(missing)))
 
@@ -566,9 +609,11 @@ class PrintView(QtGui.QWidget):
             self.setProgress(percent=40, labelText="Printing...")
             self.argentum.printer.disconnect()
             self.argentum.printer.connect()
-            self.perImage = 59.0 / len(self.images)
+            self.perImage = 59.0 / (len(self.images) - 1)
             nImage = 0
             for image in self.images:
+                if image == self.printHeadImage:
+                    continue
                 pos = self.printAreaToMove(image.left + image.width, image.bottom)
                 self.argentum.printer.home(wait=True)
                 self.argentum.printer.move(pos[0], pos[1])
@@ -589,13 +634,22 @@ class PrintView(QtGui.QWidget):
         finally:
             self.printThread = None
 
+    def movePrintHead(self):
+        xmm = self.printHeadImage.left - self.printHeadImage.minLeft
+        ymm = self.printHeadImage.bottom - self.printHeadImage.minBottom
+        self.argentum.moveTo(xmm * 80, ymm * 80)
+
     def inTrashCan(self, x, y):
         return x > self.trashCanRect.left() and y > self.trashCanRect.top()
 
     def mouseReleaseEvent(self, event):
-        if self.dragging and self.inTrashCan(event.pos().x(), event.pos().y()):
-            self.images.remove(self.dragging)
-            self.layoutChanged = True
+        if self.dragging:
+            if self.dragging == self.printHeadImage:
+                self.movePrintHead()
+            else:
+                if self.inTrashCan(event.pos().x(), event.pos().y()):
+                    self.images.remove(self.dragging)
+                    self.layoutChanged = True
 
         lights = False
         if self.leftLightsRect.contains(event.pos()):
@@ -647,6 +701,13 @@ class PrintView(QtGui.QWidget):
         self.update()
 
     def ensureImageInPrintLims(self, image):
+        if image == self.printHeadImage:
+            if image.left < image.minLeft:
+                image.left = image.minLeft
+            if image.bottom < image.minBottom:
+                image.left = image.minBottom
+            return
+
         if image.left < self.printLims.left:
             image.left = self.printLims.left
         if image.bottom < self.printLims.bottom:
@@ -711,6 +772,8 @@ class PrintView(QtGui.QWidget):
         elif self.dragging == None and self.resizing == None:
             hit = False
             for image in self.images:
+                if image == self.printHeadImage and not self.showingPrintHead:
+                    continue
                 leftEdge = False
                 rightEdge = False
                 topEdge = False
@@ -745,6 +808,9 @@ class PrintView(QtGui.QWidget):
                 elif topEdge or bottomEdge:
                     self.setCursor(QtGui.QCursor(QtCore.Qt.SizeVerCursor))
                 else:
+                    anyEdge = False
+
+                if image == self.printHeadImage:
                     anyEdge = False
 
                 if anyEdge:
@@ -870,6 +936,8 @@ class PrintView(QtGui.QWidget):
         file = open(filename, "w")
         layoutPath = os.path.dirname(filename)
         for image in self.images:
+            if image == self.printHeadImage:
+                continue
             file.write('[image]\n')
             path = os.path.relpath(image.filename, layoutPath)
             if path.find('..') != -1:
@@ -890,7 +958,7 @@ class PrintView(QtGui.QWidget):
         return True
 
     def closeLayout(self):
-        if len(self.images) == 0:
+        if len(self.images) == 1:
             self.layout = None
             self.layoutChanged = False
             self.update()
@@ -908,7 +976,7 @@ class PrintView(QtGui.QWidget):
             elif answer == QtGui.QMessageBox.Cancel:
                 return False
 
-        self.images = []
+        self.images = [self.printHeadImage]
         self.layout = None
         self.layoutChanged = False
         self.update()

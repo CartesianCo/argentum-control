@@ -88,6 +88,8 @@ class Argentum(QtGui.QMainWindow):
         self.XStepSize = 150
         self.YStepSize = 200
 
+        self.lastPos = None
+
         self.options = load_options()
         try:
             self.lastRun = int(self.options['last_run'])
@@ -340,6 +342,7 @@ class Argentum(QtGui.QMainWindow):
         fileMenu.addAction(self.exitAction)
 
         utilitiesMenu = menubar.addMenu('Utilities')
+        self.utilitiesMenu = utilitiesMenu
         utilitiesMenu.addAction(self.flashAction)
         utilitiesMenu.addAction(self.optionsAction)
         #utilitiesMenu.addAction(self.updateAction)
@@ -703,8 +706,6 @@ class Argentum(QtGui.QMainWindow):
         if pos == None:
             if not self.printer.connected:
                 return
-            if self.tabWidget.currentWidget() != self.console:
-                return
             if self.printer.getTimeSinceLastCommand() < 1:
                 return
             pos = self.printer.getPosition()
@@ -713,6 +714,7 @@ class Argentum(QtGui.QMainWindow):
         self.lastPos = pos
         (xmm, ymm, x, y) = pos
         self.posLabel.setText("{}, {} mm {}, {} steps".format(xmm, ymm, x, y))
+        self.printView.updatePrintHeadPos(pos)
 
     def posOptionsButtonPushed(self):
         if self.posSaveButton.isVisible():
@@ -776,6 +778,9 @@ class Argentum(QtGui.QMainWindow):
         x = int(s[:s.find(', ')])
         y = int(s[s.find(', ') + 2:s.find(' steps')])
         self.hidePosOptions()
+        self.moveTo(x, y)
+
+    def moveTo(self, x, y):
         self.printer.home(wait=True)
         self.printer.move(x, y)
 
@@ -864,20 +869,14 @@ class Argentum(QtGui.QMainWindow):
         self.sendMovementCommand(None, -self.YStepSize)
 
     def shortcutLeft(self):
-        if self.tabWidget.currentWidget() != self.console:
-            return
         if self.commandField.hasFocus():
             return
         self.decrementX()
 
     def shortcutRight(self):
-        if self.tabWidget.currentWidget() != self.console:
-            return
         self.incrementX()
 
     def shortcutUp(self):
-        if self.tabWidget.currentWidget() != self.console:
-            return
         if self.commandField.hasFocus():
             self.commandField.event(QtGui.QKeyEvent(QtCore.QEvent.KeyPress,
                                                     QtCore.Qt.Key_Up,
@@ -886,8 +885,6 @@ class Argentum(QtGui.QMainWindow):
         self.incrementY()
 
     def shortcutDown(self):
-        if self.tabWidget.currentWidget() != self.console:
-            return
         if self.commandField.hasFocus():
             self.commandField.event(QtGui.QKeyEvent(QtCore.QEvent.KeyPress,
                                                     QtCore.Qt.Key_Down,
@@ -896,18 +893,12 @@ class Argentum(QtGui.QMainWindow):
         self.decrementY()
 
     def shortcutHome(self):
-        if self.tabWidget.currentWidget() != self.console:
-            return
         self.homeButtonPushed()
 
     def shortcutMinus(self):
-        if self.tabWidget.currentWidget() != self.console:
-            return
         self.printer.command('--')
 
     def shortcutPlus(self):
-        if self.tabWidget.currentWidget() != self.console:
-            return
         self.printer.command('++')
 
     # This function is for future movement functionality (continuous movement)
