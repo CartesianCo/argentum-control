@@ -131,6 +131,17 @@ class PrintView(QtGui.QWidget):
            self.printPlateDesignRect.width() / 7,
            self.printPlateDesignRect.height() / 5)
 
+        ppdr = self.printPlateDesignRect
+        my = 30
+        mx = 30
+        self.leftLightsRect = QtCore.QRectF(ppdr.left() - mx, ppdr.top() - my, mx, ppdr.height() + my*2)
+        self.rightLightsRect = QtCore.QRectF(ppdr.right(), ppdr.top() - my, mx, ppdr.height() + my*2)
+        self.bottomLightRects = []
+        mmx = mx/3
+        self.bottomLightRects.append(QtCore.QRectF(ppdr.left() + ppdr.width()*0.05, self.leftLightsRect.bottom() + my, mmx, mmx))
+        self.bottomLightRects.append(QtCore.QRectF(ppdr.left() + ppdr.width()/2 - mmx/2, self.leftLightsRect.bottom() + my, mmx, mmx))
+        self.bottomLightRects.append(QtCore.QRectF(ppdr.right() - ppdr.width()/13, self.leftLightsRect.bottom() + my, mmx, mmx))
+
     def printToScreen(self, printRect):
         #print("printRect {}, {} {} x {}".format(printRect.left,
         #                                        printRect.bottom,
@@ -210,6 +221,15 @@ class PrintView(QtGui.QWidget):
                 self.trashCan.render(qp, self.trashCanRect)
         for image in self.images:
             qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
+        if self.argentum.printer.connected and self.argentum.printer.lightsOn:
+            qp.setBrush(QtGui.QColor(0xff, 0xff, 0xff))
+        else:
+            qp.setBrush(QtGui.QColor(0xc6, 0xac, 0xac))
+        qp.setPen(QtGui.QColor(0, 0, 0))
+        qp.drawRoundedRect(self.leftLightsRect, 20.0, 15.0)
+        qp.drawRoundedRect(self.rightLightsRect, 20.0, 15.0)
+        for r in self.bottomLightRects:
+            qp.drawRect(r)
         qp.end()
 
     def gerberToPixmap(self, inputFileName):
@@ -521,6 +541,20 @@ class PrintView(QtGui.QWidget):
         if self.dragging and self.inTrashCan(event.pos().x(), event.pos().y()):
             self.images.remove(self.dragging)
             self.layoutChanged = True
+
+        lights = False
+        if self.leftLightsRect.contains(event.pos()):
+            lights = True
+        if self.rightLightsRect.contains(event.pos()):
+            lights = True
+        for light in self.bottomLightRects:
+            if light.contains(event.pos()):
+                lights = True
+        if lights:
+            if self.argentum.printer.lightsOn:
+                self.argentum.printer.turnLightsOff()
+            else:
+                self.argentum.printer.turnLightsOn()
 
         self.dragging = None
         self.resizing = None

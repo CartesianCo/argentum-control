@@ -15,6 +15,7 @@ class ArgentumPrinterController(PrinterController):
     delimiter = '\n'
     lastError = None
     version = None
+    lightsOn = False
 
     def __init__(self, port=None):
         self.port = port
@@ -38,6 +39,7 @@ class ArgentumPrinterController(PrinterController):
         try:
             self.serialDevice = Serial(self.port, 115200, timeout=0)
             self.connected = True
+            self.lightsOn = False
 
             self.clearVersion()
             junkBeforeVersion = []
@@ -560,3 +562,11 @@ class ArgentumPrinterController(PrinterController):
         ysteps = int(response[:response.find(' steps')])
 
         return (xmm, ymm, xsteps, ysteps)
+
+    def turnLightsOn(self):
+        self.command("pwm 8 255")
+        self.lightsOn = True
+
+    def turnLightsOff(self):
+        self.command("pwm 8 0")
+        self.lightsOn = False
