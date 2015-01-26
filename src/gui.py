@@ -708,6 +708,8 @@ class Argentum(QtGui.QMainWindow):
                 return
             if self.printer.getTimeSinceLastCommand() < 1:
                 return
+            if self.printing or self.printer.printing:
+                return
             pos = self.printer.getPosition()
             if pos == None:
                 return

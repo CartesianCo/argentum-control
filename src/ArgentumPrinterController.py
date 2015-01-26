@@ -18,6 +18,7 @@ class ArgentumPrinterController(PrinterController):
     lightsOn = False
     leftFanOn = False
     rightFanOn = False
+    printing = False
 
     def __init__(self, port=None):
         self.port = port
@@ -168,6 +169,8 @@ class ArgentumPrinterController(PrinterController):
             self.command('p ' + filename)
             return
 
+        self.printing = True
+
         lines = 100
         if path:
             file = open(path, "r")
@@ -206,6 +209,7 @@ class ArgentumPrinterController(PrinterController):
                         break
         finally:
             self.serialDevice.timeout = 0
+            self.printing = False
 
 
     def isHomed(self):
