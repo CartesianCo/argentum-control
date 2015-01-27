@@ -485,7 +485,7 @@ class Argentum(QtGui.QMainWindow):
         self.printButton.setEnabled(enabled)
         self.stopButton.setEnabled(enabled)
         self.homeButton.setEnabled(enabled)
-        self.processImageButton.setEnabled(enabled)
+        #self.processImageButton.setEnabled(enabled)
 
     def disableAllButtons(self):
         self.enableAllButtons(False)
@@ -837,6 +837,7 @@ class Argentum(QtGui.QMainWindow):
             self.printing = True
             self.paused = False
             self.printButton.setText('Pause')
+            self.turnLightsOn()
             self.sendPrintCommand()
 
     def stopButtonPushed(self):
