@@ -11,12 +11,14 @@ author: Trent Waddington
 import sys
 import os
 import time
+import webbrowser
 from PyQt4 import QtGui, QtCore
 
 from serial.tools.list_ports import comports
 from ArgentumPrinterController import ArgentumPrinterController
 from PrintView import PrintView
 from avrdude import avrdude
+import urllib2
 
 import pickle
 
@@ -89,14 +91,9 @@ class Argentum(QtGui.QMainWindow):
         self.YStepSize = 200
 
         self.lastPos = None
+        self.latestVersion = None
 
         self.options = load_options()
-        try:
-            self.lastRun = int(self.options['last_run'])
-        except:
-            self.lastRun = None
-        self.options['last_run'] = int(time.time())
-        save_options(self.options)
 
         #print('Loaded options: {}'.format(self.options))
 
@@ -127,10 +124,8 @@ class Argentum(QtGui.QMainWindow):
             pass
             #self.appendOutput('Not packaged - no automatic update support.')
 
-        daily = 60*60*24
-        if self.lastRun == None or int(time.time()) - self.lastRun > daily:
-            updateThread = threading.Thread(target=self.updateFirmwareLoop)
-            updateThread.start()
+        updateThread = threading.Thread(target=self.updateLoop)
+        updateThread.start()
 
         # Make a directory where we can place processed images
         docsDir = str(QtGui.QDesktopServices.storageLocation(QtGui.QDesktopServices.DocumentsLocation))
@@ -310,8 +305,8 @@ class Argentum(QtGui.QMainWindow):
         self.uploadFileAction.triggered.connect(self.uploadFileActionTriggered)
         self.uploadFileAction.setEnabled(False)
 
-        #self.updateAction = QtGui.QAction('&Update', self)
-        #self.updateAction.triggered.connect(self.updateActionTriggered)
+        self.updateAction = QtGui.QAction('&Update', self)
+        self.updateAction.triggered.connect(self.updateActionTriggered)
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('File')
@@ -345,7 +340,7 @@ class Argentum(QtGui.QMainWindow):
         self.utilitiesMenu = utilitiesMenu
         utilitiesMenu.addAction(self.flashAction)
         utilitiesMenu.addAction(self.optionsAction)
-        #utilitiesMenu.addAction(self.updateAction)
+        utilitiesMenu.addAction(self.updateAction)
         #utilitiesMenu.addAction(self.servoCalibrationAction)
         utilitiesMenu.addAction(self.uploadFileAction)
 
@@ -368,15 +363,27 @@ class Argentum(QtGui.QMainWindow):
         self.setCentralWidget(self.tabWidget)
 
         QtCore.QTimer.singleShot(100, self.monitor)
+        QtCore.QTimer.singleShot(3000, self.nowAndThen)
 
         self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum Control')
         self.show()
 
-    def updateFirmwareLoop(self):
-        #update_firmware_list()
-        #update_local_firmware()
-        pass
+    def updateLoop(self):
+        try:
+            result = urllib2.urlopen('http://www.cartesianco.com/software/version/')
+            result = result.read()
+            tagVS = '#VersionStart#'
+            tagVE = '#VersionEnd#'
+            if result.find(tagVS) != -1:
+                result = result[result.find(tagVS) + len(tagVS):]
+                if result.find(tagVE) != -1:
+                    result = result[:result.find(tagVE)]
+                    result = result.strip()
+                    self.latestVersion = result
+            return True
+        except:
+            return False
 
     def makeButtonRepeatable(self, button):
         button.setAutoRepeat(True)
@@ -418,6 +425,10 @@ class Argentum(QtGui.QMainWindow):
         self.outputView.append(output)
         # Allow the gui to update during long processing
         QtGui.QApplication.processEvents()
+
+    def nowAndThen(self):
+        if not self.naggedUpdate:
+            self.nagUpdate()
 
     def monitor(self):
         data = self.printer.monitor()
@@ -467,14 +478,17 @@ class Argentum(QtGui.QMainWindow):
             self.uploadThread.start()
 
     def updateActionTriggered(self):
-        reply = QtGui.QMessageBox.question(self, 'Message',
-            'But are you sure?', QtGui.QMessageBox.Yes |
-            QtGui.QMessageBox.No, QtGui.QMessageBox.Yes)
+        if not self.updateLoop():
+            QtGui.QMessageBox.information(self,
+                        "Software update",
+                        "The software was unable to connect to the Internet. Ensure your Internet connection is working and that any firewall programs are allowing the software to access the Internet.")
+            return
 
-        if reply == QtGui.QMessageBox.Yes:
-            self.app.auto_update()
-        else:
-            self.appendOutput('Crisis Averted!')
+        self.naggedUpdate = False
+        if not self.nagUpdate():
+            QtGui.QMessageBox.information(self,
+                        "Software update",
+                        "You are running the latest version of the software.")
 
     def enableAllButtons(self, enabled=True):
         self.connectButton.setEnabled(enabled)
@@ -497,12 +511,45 @@ class Argentum(QtGui.QMainWindow):
         self.disableAllButtons()
         self.connectButton.setEnabled(True)
 
-    nagged = False
+    def versionIsNewer(self, latest):
+        if latest.find('+') != -1:
+            latest = latest[:latest.find('+')]
+        parts = latest.split('.')
+        version = BASEVERSION.split('.')
+        if int(parts[0]) > int(version[0]):
+            return True
+        if int(parts[0]) == int(version[0]):
+            if int(parts[1]) > int(version[1]):
+                return True
+            if int(parts[1]) == int(version[1]):
+                if int(parts[2]) > int(version[2]):
+                    return True
+        return False
+
+    naggedUpdate = False
+    def nagUpdate(self):
+        if self.latestVersion == None:
+            return None
+        self.naggedUpdate = True
+        if not self.versionIsNewer(self.latestVersion):
+            return False
+
+        reply = QtGui.QMessageBox.question(self, 'Software update',
+            'There is a newer version of the software available. It is advisable that you update to get the newest features and bug fixes. Would you like to do this now?',
+            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+            QtGui.QMessageBox.Yes)
+
+        if reply == QtGui.QMessageBox.Yes:
+            webbrowser.open("http://www.cartesianco.com/software/", 2)
+
+        return True
+
+    naggedFirmwareUpgrade = False
     checkFlashVersion = None
     def nagFirmwareUpgrade(self):
-        if self.nagged:
+        if self.naggedFirmwareUpgrade:
             return
-        self.nagged = True
+        self.naggedFirmwareUpgrade = True
         reply = QtGui.QMessageBox.question(self, 'Firmware upgrade',
             'This printer is running older firmware. To function correctly with this version of the software, it must be upgraded. Do it now?',
             QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
