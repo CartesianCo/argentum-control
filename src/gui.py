@@ -101,29 +101,6 @@ class Argentum(QtGui.QMainWindow):
 
         self.appendOutput('Argentum Control, Version {}'.format(VERSION))
 
-        if hasattr(sys, "frozen"):
-            try:
-                app = esky.Esky(sys.executable, 'http://files.cartesianco.com')
-
-                new_version = app.find_update()
-
-                if new_version:
-                    self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
-                        .format(app.active_version, new_version))
-
-                    self.statusBar().showMessage('Update available!')
-
-            except Exception as e:
-                self.appendOutput('Update exception.')
-                self.appendOutput(str(e))
-
-                pass
-        else:
-            #self.appendOutput('Update available! Select update from the Utilities menu to upgrade. [{} -> {}]'
-            #    .format('0.0.6', '0.0.7'))
-            pass
-            #self.appendOutput('Not packaged - no automatic update support.')
-
         updateThread = threading.Thread(target=self.updateLoop)
         updateThread.start()
 
