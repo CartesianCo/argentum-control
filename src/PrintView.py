@@ -13,6 +13,7 @@ import threading
 import time
 from PyQt4 import QtGui, QtCore, QtSvg
 from gerber import Gerber
+import requests
 
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
 imageScale            = [ 23.70,  23.70] # * print = pixels
@@ -51,6 +52,69 @@ class PrintImage(PrintRect):
 
 class PrintCanceledException(Exception):
     pass
+
+class RateYourPrintDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowTitle("Rate Your Print")
+        mainLayout = QtGui.QVBoxLayout()
+
+        info = QtGui.QLabel("How was your print?")
+        mainLayout.addWidget(info)
+        mainLayout.addWidget(QtGui.QLabel(" "))
+        layout = QtGui.QHBoxLayout()
+        for n in range(1, 6):
+            label = QtGui.QLabel(str(n))
+            if n == 1:
+                label.setAlignment(QtCore.Qt.AlignLeft)
+            if n == 2:
+                label.setAlignment(QtCore.Qt.AlignLeft)
+                layout.addSpacing(45)
+            if n == 3:
+                label.setAlignment(QtCore.Qt.AlignHCenter)
+            if n == 4:
+                label.setAlignment(QtCore.Qt.AlignRight)
+            if n == 5:
+                layout.addSpacing(45)
+                label.setAlignment(QtCore.Qt.AlignRight)
+            layout.addWidget(label)
+        mainLayout.addLayout(layout)
+        self.slider = QtGui.QSlider(QtCore.Qt.Horizontal, self)
+        self.slider.setRange(1, 5)
+        self.slider.setValue(3)
+        self.slider.setTickInterval(1)
+        self.slider.setTickPosition(self.slider.TicksAbove)
+        mainLayout.addWidget(self.slider)
+        mainLayout.addWidget(QtGui.QLabel(" "))
+        info = QtGui.QLabel("Your feedback is important. Please let us know how we can make your print better.")
+        mainLayout.addWidget(info)
+        self.comments = QtGui.QTextEdit(self)
+        mainLayout.addWidget(self.comments)
+
+        layout = QtGui.QHBoxLayout()
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(self.reject)
+        layout.addWidget(cancelButton)
+        self.sendButton = QtGui.QPushButton("Send Report")
+        self.sendButton.clicked.connect(self.sendReport)
+        layout.addWidget(self.sendButton)
+        mainLayout.addLayout(layout)
+
+        self.sendButton.setDefault(True)
+
+        self.setLayout(mainLayout)
+
+    def sendLoop(self):
+        r = requests.post("http://cartesianco.com/feedback/print.php", dict(rate=self.rate, comments=self.commentText))
+        print(r.text)
+
+    def sendReport(self):
+        self.sendButton.setText("Sending...")
+        self.rate = self.slider.sliderPosition()
+        self.commentText = str(self.comments.toPlainText())
+        updateThread = threading.Thread(target=self.sendLoop)
+        updateThread.start()
+        self.accept()
 
 class PrintView(QtGui.QWidget):
     layout = None
@@ -117,6 +181,10 @@ class PrintView(QtGui.QWidget):
         self.argentum.utilitiesMenu.addAction(self.showPrintHeadAction)
         self.showingPrintHead = False
 
+        self.ratePrintAction = QtGui.QAction('&Rate Last Print', self)
+        self.ratePrintAction.triggered.connect(self.ratePrintActionTriggered)
+        self.argentum.utilitiesMenu.addAction(self.ratePrintAction)
+
     def updatePrintHeadPos(self, pos):
         if self.dragging == self.printHeadImage:
             return
@@ -135,6 +203,10 @@ class PrintView(QtGui.QWidget):
             self.showPrintHeadAction.setText("&Hide Print Head")
             self.argentum.updatePosDisplay()
         self.update()
+
+    def ratePrintActionTriggered(self):
+        rateDialog = RateYourPrintDialog(self)
+        rateDialog.exec_()
 
     def calcScreenRects(self):
         if self.lastRect == self.rect():
@@ -626,6 +698,7 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(percent=(40 + self.perImage * nImage))
 
             self.setProgress(statusText='Print complete.', percent=100)
+            self.argentum.printingCompleted = True
         except PrintCanceledException:
             pass
         except:

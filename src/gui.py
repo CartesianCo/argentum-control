@@ -339,6 +339,8 @@ class Argentum(QtGui.QMainWindow):
         self.tabWidget.addTab(self.console, "Console") # always last
         self.setCentralWidget(self.tabWidget)
 
+        self.printingCompleted = False
+
         QtCore.QTimer.singleShot(100, self.monitor)
         QtCore.QTimer.singleShot(3000, self.nowAndThen)
 
@@ -397,15 +399,19 @@ class Argentum(QtGui.QMainWindow):
         return True
 
     def appendOutput(self, output):
-        if output.find('+Print complete') != -1:
-            self.printComplete()
         self.outputView.append(output)
         # Allow the gui to update during long processing
         QtGui.QApplication.processEvents()
+        if output.find('+Print complete') != -1:
+            self.printComplete()
 
     def nowAndThen(self):
+        QtCore.QTimer.singleShot(3000, self.nowAndThen)
         if not self.naggedUpdate:
             self.nagUpdate()
+        if self.printingCompleted:
+            self.printingCompleted = False
+            self.printView.ratePrintActionTriggered()
 
     def monitor(self):
         data = self.printer.monitor()
@@ -841,6 +847,7 @@ class Argentum(QtGui.QMainWindow):
     def printComplete(self):
         self.printing = False
         self.printButton.setText('Print')
+        self.printingCompleted = True
 
     def homeLoop(self):
         self.printer.home(wait=True)
