@@ -5,7 +5,9 @@ class OptionsDialog(QtGui.QDialog):
     Argentum Options Dialog
     '''
 
-    optionsToAdd = ['horizontal_offset', 'vertical_offset', 'print_overlap']
+    optionsToAdd = {'horizontal_offset': 'Distance between cartridges',
+                    'vertical_offset': 'Misalignment of print heads on cartridges',
+                    'print_overlap': 'Distance to move between lines'}
     created = {}
 
     def __init__(self, parent=None, options=None):
@@ -38,7 +40,7 @@ class OptionsDialog(QtGui.QDialog):
         # Create a Sub-Layout for this option
         #layout = QtGui.QHBoxLayout()
 
-        self.addLabel(parentLayout, optionName)
+        self.addLabel(parentLayout, self.optionsToAdd[optionName])
 
         # Make sure it's a string with str(...)
         optionLineEdit = QtGui.QLineEdit(str(defaultValue))
