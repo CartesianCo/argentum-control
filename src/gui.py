@@ -26,7 +26,6 @@ from imageproc import ImageProcessor
 
 from Alchemist import OptionsDialog, CommandLineEdit, ServoCalibrationDialog
 
-import esky
 from setup import VERSION, BASEVERSION
 from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware, is_older_firmware
 
