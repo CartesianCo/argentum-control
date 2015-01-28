@@ -58,6 +58,7 @@ class RateYourPrintDialog(QtGui.QDialog):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowTitle("Rate Your Print")
         mainLayout = QtGui.QVBoxLayout()
+        self.argentum = parent.argentum
 
         info = QtGui.QLabel("How was your print?")
         mainLayout.addWidget(info)
@@ -90,6 +91,15 @@ class RateYourPrintDialog(QtGui.QDialog):
         mainLayout.addWidget(info)
         self.comments = QtGui.QTextEdit(self)
         mainLayout.addWidget(self.comments)
+        layout = QtGui.QHBoxLayout()
+        info = QtGui.QLabel("Your printer number:")
+        layout.addWidget(info)
+        self.printerNum = QtGui.QLineEdit(self)
+        if self.argentum.getPrinterNumber():
+            self.printerNum.setText(self.argentum.getPrinterNumber())
+        layout.addWidget(self.printerNum)
+        self.printerNum.setToolTip("Look on the back of your printer.")
+        mainLayout.addLayout(layout)
 
         layout = QtGui.QHBoxLayout()
         cancelButton = QtGui.QPushButton("Cancel")
@@ -105,11 +115,21 @@ class RateYourPrintDialog(QtGui.QDialog):
         self.setLayout(mainLayout)
 
     def sendLoop(self):
-        r = requests.post("http://cartesianco.com/feedback/print.php", dict(rate=self.rate, comments=self.commentText))
+        data = {"rate": self.rate,
+                "comments": self.commentText,
+                "printernum": self.printerNumText,
+                "ts_processing_images": self.argentum.getTimeSpentProcessingImages(),
+                "ts_sending_files": self.argentum.getTimeSpentSendingFiles(),
+                "ts_printing": self.argentum.getTimeSpentPrinting()
+               }
+        r = requests.post("http://www.cartesianco.com/feedback/print.php", data=data)
         print(r.text)
 
     def sendReport(self):
         self.sendButton.setText("Sending...")
+        self.printerNumText = str(self.printerNum.text())
+        if self.printerNumText != "":
+            self.argentum.setPrinterNumber(self.printerNumText)
         self.rate = self.slider.sliderPosition()
         self.commentText = str(self.comments.toPlainText())
         updateThread = threading.Thread(target=self.sendLoop)
@@ -613,6 +633,8 @@ class PrintView(QtGui.QWidget):
         try:
             self.setProgress(statusText="Printing.")
 
+            processingStart = time.time()
+
             self.setProgress(labelText="Processing images...")
             self.perImage = 20.0 / (len(self.images) - 1)
             for image in self.images:
@@ -624,6 +646,9 @@ class PrintView(QtGui.QWidget):
                 else:
                     self.setProgress(incPercent=self.perImage)
 
+            processingEnd = time.time()
+            self.argentum.addTimeSpentProcessingImages(processingEnd - processingStart)
+
             if not self.argentum.printer.connected:
                 self.setProgress(labelText="Printer isn't connected.", statusText="Print aborted. Connect your printer.", canceled=True)
                 return
@@ -632,6 +657,8 @@ class PrintView(QtGui.QWidget):
                     self.argentum.printer.minorVersion < 15):
                 self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
                 return
+
+            sendingStart = time.time()
 
             self.setProgress(labelText="Looking on the printer...")
             hexfiles = []
@@ -672,12 +699,16 @@ class PrintView(QtGui.QWidget):
             for filename in sent:
                 missing.remove(filename)
 
+            sendingEnd = time.time()
+            self.argentum.addTimeSpentSendingFiles(sendingEnd - sendingStart)
+
             # Nope, and this is fatal
             if len(missing) != 0:
                 self.setProgress(missing=missing, statusText="Print aborted.")
                 return
 
             # Now we can actually print!
+            printingStart = time.time()
             self.setProgress(percent=40, labelText="Printing...")
             self.argentum.printer.disconnect()
             self.argentum.printer.connect()
@@ -698,14 +729,17 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(percent=(40 + self.perImage * nImage))
 
             self.setProgress(statusText='Print complete.', percent=100)
-            self.argentum.printingCompleted = True
+            printingEnd = time.time()
+            self.argentum.addTimeSpentPrinting(printingEnd - printingStart)
+
         except PrintCanceledException:
             pass
         except:
             self.setProgress(statusText="Print error.", canceled=True)
-            raise
+            #raise
         finally:
             self.printThread = None
+            self.argentum.printingCompleted = True
 
     def movePrintHead(self):
         xmm = self.printHeadImage.left - self.printHeadImage.minLeft

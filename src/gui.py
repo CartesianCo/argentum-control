@@ -112,6 +112,8 @@ class Argentum(QtGui.QMainWindow):
         self.lastImportDir = self.filesDir
         self.lastFirmwareDir = os.getcwd()
 
+        self.printStartTime = None
+
     def initUI(self):
         # Create the console
         self.console = QtGui.QWidget(self)
@@ -432,8 +434,11 @@ class Argentum(QtGui.QMainWindow):
         return True
 
     def uploadLoop(self):
+        uploadStart = time.time()
         self.printer.send(self.uploadThread.filename,
                           progressFunc=self.uploadProgressFunc)
+        uploadEnd = time.time()
+        self.addTimeSpentSendingFiles(uploadEnd - uploadStart)
 
     def uploadProgressUpdater(self):
         if self.uploadProgress.wasCanceled():
@@ -848,6 +853,10 @@ class Argentum(QtGui.QMainWindow):
     def printComplete(self):
         self.printing = False
         self.printButton.setText('Print')
+        if self.printStartTime:
+            printEndTime = time.time()
+            self.addTimeSpentPrinting(printEndTime - self.printStartTime)
+            self.printStartTime = None
         self.printingCompleted = True
 
     def homeLoop(self):
@@ -868,6 +877,7 @@ class Argentum(QtGui.QMainWindow):
         self.printer.command(command)
 
     def sendPrintCommand(self):
+        self.printStartTime = time.time()
         self.printer.start()
 
     def sendPauseCommand(self):
@@ -955,6 +965,43 @@ class Argentum(QtGui.QMainWindow):
         save_options(self.options)
         if self.printer.connected:
             self.printer.updateOptions(self.options)
+
+    def getPrinterNumber(self):
+        try:
+            return self.options["printer_number"]
+        except:
+            return None
+
+    def setPrinterNumber(self, val):
+        self.options["printer_number"] = val
+        save_options(self.options)
+
+    def getTimeSpent(self, name):
+        cur = 0
+        try:
+            cur = self.options[name]
+        except:
+            pass
+        return cur
+
+    def addTimeSpent(self, name, val):
+        self.options[name] = self.getTimeSpent(name) + val
+        save_options(self.options)
+
+    def getTimeSpentProcessingImages(self):
+        return self.getTimeSpent("ts_processing_images")
+    def addTimeSpentProcessingImages(self, val):
+        self.addTimeSpent("ts_processing_images", val)
+
+    def getTimeSpentSendingFiles(self):
+        return self.getTimeSpent("ts_sending_files")
+    def addTimeSpentSendingFiles(self, val):
+        self.addTimeSpent("ts_sending_files", val)
+
+    def getTimeSpentPrinting(self):
+        return self.getTimeSpent("ts_printing")
+    def addTimeSpentPrinting(self, val):
+        self.addTimeSpent("ts_printing", val)
 
     def closeEvent(self, evt):
         sys.exit(0)
