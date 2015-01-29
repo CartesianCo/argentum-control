@@ -116,13 +116,17 @@ class RateYourPrintDialog(QtGui.QDialog):
         self.setLayout(mainLayout)
 
     def sendLoop(self):
+        firmware = ""
+        if self.argentum.printer != None:
+            firmware = self.argentum.printer.version
         data = {"rate": self.rate,
                 "comments": self.commentText,
                 "printernum": self.printerNumText,
                 "ts_processing_images": self.argentum.getTimeSpentProcessingImages(),
                 "ts_sending_files": self.argentum.getTimeSpentSendingFiles(),
                 "ts_printing": self.argentum.getTimeSpentPrinting(),
-                "version": BASEVERSION
+                "version": BASEVERSION,
+                "firmware": firmware
                }
         r = requests.post("http://www.cartesianco.com/feedback/print.php", data=data)
         print(r.text)
