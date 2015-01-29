@@ -11,7 +11,10 @@ author: Trent Waddington
 import sys
 import os
 import time
-import webbrowser
+#import webbrowser
+import zipfile
+import tempfile
+import shutil
 from PyQt4 import QtGui, QtCore
 
 from serial.tools.list_ports import comports
@@ -133,6 +136,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.lastPos = None
         self.latestVersion = None
+        self.inlineUpdateUrl = None
 
         self.options = load_options()
 
@@ -412,14 +416,25 @@ class Argentum(QtGui.QMainWindow):
             tagVS = '#VersionStart#'
             tagVE = '#VersionEnd#'
             if result.find(tagVS) != -1:
-                result = result[result.find(tagVS) + len(tagVS):]
-                if result.find(tagVE) != -1:
-                    result = result[:result.find(tagVE)]
-                    result = result.strip()
-                    self.latestVersion = result
+                tagV = result[result.find(tagVS) + len(tagVS):]
+                if tagV.find(tagVE) != -1:
+                    tagV = tagV[:tagV.find(tagVE)]
+                    tagV = tagV.strip()
+                    self.latestVersion = tagV
                     print("Latest version is " + self.latestVersion)
+            tagIUS = "#InlineUpdateStart#"
+            tagIUE = "#InlineUpdateEnd#"
+            if result.find(tagIUS) != -1:
+                tagIU = result[result.find(tagIUS) + len(tagIUS):]
+                if tagIU.find(tagIUE) != -1:
+                    tagIU = tagIU[:tagIU.find(tagIUE)]
+                    tagIU = tagIU.strip()
+                    if tagIU.startswith("https://") or tagIU.startswith("http://"):
+                        self.inlineUpdateUrl = tagIU
+                        print("Inline update url is " + self.inlineUpdateUrl)
             return True
-        except:
+        except Exception as e:
+            print("updateLoop exception: {}".format(e))
             return False
 
     def makeButtonRepeatable(self, button):
@@ -577,6 +592,8 @@ class Argentum(QtGui.QMainWindow):
         self.naggedUpdate = True
         if not self.versionIsNewer(self.latestVersion):
             return False
+        if self.inlineUpdateUrl == None:
+            return False
 
         reply = QtGui.QMessageBox.question(self, 'Software update',
             'There is a newer version of the software available. It is advisable that you update to get the newest features and bug fixes. Would you like to do this now?',
@@ -584,9 +601,143 @@ class Argentum(QtGui.QMainWindow):
             QtGui.QMessageBox.Yes)
 
         if reply == QtGui.QMessageBox.Yes:
-            webbrowser.open("http://www.cartesianco.com/software/", 2)
+            self.startInlineUpdate()
+            #else:
+            #    webbrowser.open("http://www.cartesianco.com/software/", 2)
 
         return True
+
+    def startInlineUpdate(self):
+        self.downloadProgressPercent = None
+        self.downloadProgressCancel = False
+        self.downloadProgress = QtGui.QProgressDialog(self)
+        self.downloadProgress.setWindowTitle("Updating")
+        self.downloadProgress.setLabelText("Downloading version " + self.latestVersion)
+        self.downloadProgress.show()
+        QtCore.QTimer.singleShot(100, self.downloadProgressUpdater)
+
+        self.downloadThread = threading.Thread(target=self.downloadLoop)
+        self.downloadThread.start()
+
+    def downloadLoop(self):
+        tmpdir = tempfile.mkdtemp()
+        update_filename = tmpdir + "/update.zip"
+        print("Writing update to " + update_filename)
+        f = open(update_filename, "wb")
+
+        r = requests.get(self.inlineUpdateUrl, stream=True)
+        total_length = r.headers.get('content-length')
+        if total_length == None:
+            self.downloadError = True
+            return
+
+        total_length = int(total_length)
+        dl = 0
+        for data in r.iter_content():
+            dl += len(data)
+            f.write(data)
+            self.downloadProgressPercent = dl * 80.0 / total_length
+            if self.downloadProgressCancel:
+                return
+        f.close()
+
+        print("Update downloaded. Extracting..")
+
+        new_files_dir = tmpdir + "/new"
+        z = zipfile.ZipFile(update_filename, 'r')
+        z.extractall(new_files_dir)
+        z.close()
+
+        # What kind of install are we?
+        site_packages = None
+        resources_dir = os.getcwd()
+        gui_in_site_packages = False
+        rename_gui_to = None
+        program_path = sys.argv[0]
+        cur_dir_name = os.path.basename(os.getcwd())
+        if cur_dir_name == "src":
+            print("This looks like a source build, use git to update.")
+            return
+        elif cur_dir_name.lower() == "resources":
+            print("This looks like a Mac build.")
+            site_packages = "lib/python2.7/site-packages.zip"
+            program_path = "../MacOS/gui"
+        elif os.path.exists("gui.exe"):
+            print("This looks like a Windows build.")
+            site_packages = "library.zip"
+            gui_in_site_packages = True
+            rename_gui_to = 'gui__main__.py'
+            program_path = "gui.exe"
+        else:
+            print("This looks like a Linux build.")
+
+        resources = os.listdir(new_files_dir)
+        if site_packages:
+            print("Extracting site packages..")
+            site_packages_dir = tmpdir + "/site_packages"
+            z = zipfile.ZipFile(site_packages, 'r')
+            z.extractall(site_packages_dir)
+            z.close()
+
+            print("Copy files to site packages..")
+            resources = []
+            for fname in os.listdir(new_files_dir):
+                if not fname.endswith(".py"):
+                    resources.append(fname)
+                    continue
+                if fname == "gui.py":
+                    if not gui_in_site_packages:
+                        resources.append(fname)
+                        continue
+                    if rename_gui_to:
+                        shutil.copy(new_files_dir + "/" + fname,
+                                    site_packages_dir + "/" + rename_gui_to)
+                        continue
+                shutil.copy(new_files_dir + "/" + fname, site_packages_dir)
+
+            print("Zipping up the site packages..")
+            z = zipfile.ZipFile(tmpdir + "/" + os.path.basename(site_packages), 'w')
+            todo = os.listdir(site_packages_dir)
+            for fname in todo:
+                if os.path.isdir(site_packages_dir + "/" + fname):
+                    for sfname in os.listdir(site_packages_dir + "/" + fname):
+                        todo.append(fname + "/" + sfname)
+                else:
+                    z.write(site_packages_dir + "/" + fname, fname)
+            z.close()
+
+            print("Overwriting the site packages..")
+            shutil.copy(tmpdir + "/" + os.path.basename(site_packages), site_packages)
+
+        print("Overwriting the resources..")
+        for fname in resources:
+            shutil.copy(new_files_dir + "/" + fname, resources_dir)
+
+        print("Removing temporary files.")
+        self.downloadProgressPercent = 90.0
+        #shutil.rmtree(tmpdir)
+
+        print("Restarting.")
+        self.downloadProgressPercent = 100.0
+        if self.printer.connected:
+            self.printer.disconnect()
+        time.sleep(1.5)
+        os.execv(program_path, [program_path])
+
+    def downloadProgressUpdater(self):
+        if self.downloadProgress.wasCanceled():
+            self.downloadProgressCancel = True
+            return
+        if self.downloadProgressPercent:
+            self.downloadProgress.setValue(self.downloadProgressPercent)
+            if self.downloadProgressPercent == 80.0:
+                self.downloadProgress.setLabelText("Applying update...")
+            if self.downloadProgressPercent == 90.0:
+                self.downloadProgress.setLabelText("Cleaning up...")
+            if self.downloadProgressPercent == 100.0:
+                self.downloadProgress.setLabelText("Restarting.")
+            self.downloadProgressPercent = None
+        QtCore.QTimer.singleShot(100, self.downloadProgressUpdater)
 
     naggedFirmwareUpgrade = False
     checkFlashVersion = None

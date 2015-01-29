@@ -84,6 +84,16 @@ def addDep(filename):
                 svg = svg[svg.find("'")+1:]
                 svg = svg[:svg.find("'")]
                 files.append(svg)
+        elif line.find('QPixmap(') != -1:
+            img = line[line.find('QPixmap('):]
+            if img.find('"') != -1:
+                img = img[img.find('"')+1:]
+                img = img[:img.find('"')]
+                files.append(img)
+            elif img.find("'") != -1:
+                img = img[img.find("'")+1:]
+                img = img[:img.find("'")]
+                files.append(img)
 
         if dep and os.path.exists(dep + ".py"):
             addDep(dep + ".py")
@@ -223,6 +233,12 @@ def makeLinuxRelease():
 
     shutil.rmtree(tmp)
 
+def makeInlineUpdate():
+    print("Making the inline update.")
+    outputFile = build_out + "/inline-" + BASEVERSION + ".zip"
+    all_deps = ' '.join(files)
+    os.system("zip -q {} {}".format(outputFile, all_deps))
+
 if __name__ == '__main__':
     print("Version {}.".format(BASEVERSION))
     makeBuildOut()
@@ -231,3 +247,4 @@ if __name__ == '__main__':
     makeMacRelease()
     makeWin32Release()
     makeLinuxRelease()
+    makeInlineUpdate()
