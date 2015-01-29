@@ -79,12 +79,18 @@ class GetPrinterNumberDialog(QtGui.QDialog):
 
         self.setWindowTitle("Unknown Printer")
         mainLayout = QtGui.QVBoxLayout()
-        label = QtGui.QLabel("You have connected to a new printer!\n\nPlease enter the number located on the back of your printer.")
+        label = QtGui.QLabel("You have connected to a new printer!\n\nPlease enter the number located on the back of your printer.\n\nIt should look something like this:")
         mainLayout.addWidget(label)
+        example = QtGui.QLabel("")
+        example.setStyleSheet('QLabel { background-color: black }')
+        example.setPixmap(QtGui.QPixmap("BackPlate.svg"))
+        mainLayout.addWidget(example)
         self.printerNum = QtGui.QLineEdit(self)
+        self.printerNum.setText("#")
         mainLayout.addWidget(self.printerNum)
 
         layout = QtGui.QHBoxLayout()
+        layout.addStretch()
         cancelButton = QtGui.QPushButton("Later")
         cancelButton.clicked.connect(self.reject)
         layout.addWidget(cancelButton)
@@ -99,8 +105,10 @@ class GetPrinterNumberDialog(QtGui.QDialog):
 
     def register(self):
         self.printerNumText = str(self.printerNum.text())
-        if self.printerNumText == "":
+        if len(self.printerNumText) <= 1:
             return
+        if self.printerNumText[0] != '#':
+            self.printerNumText = '#' + self.printerNumText
 
         self.parent.setPrinterNumber(self.printerNumText)
         self.accept()
