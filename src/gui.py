@@ -409,7 +409,8 @@ class Argentum(QtGui.QMainWindow):
                 "printernum": self.getPrinterNumber(),
                 "ts_processing_images": self.getTimeSpentProcessingImages(),
                 "ts_sending_files": self.getTimeSpentSendingFiles(),
-                "ts_printing": self.getTimeSpentPrinting()
+                "ts_printing": self.getTimeSpentPrinting(),
+                "version": BASEVERSION
                }
             r = requests.post("http://www.cartesianco.com/feedback/run.php", data=data)
             result = r.text
@@ -590,7 +591,10 @@ class Argentum(QtGui.QMainWindow):
         if self.latestVersion == None:
             return None
         self.naggedUpdate = True
-        if not self.versionIsNewer(self.latestVersion):
+        if self.latestVersion.find('+') == -1:
+            if not self.versionIsNewer(self.latestVersion):
+                return False
+        if BASEVERSION == self.latestVersion:
             return False
         if self.inlineUpdateUrl == None:
             return False
