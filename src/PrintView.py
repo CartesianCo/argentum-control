@@ -14,6 +14,7 @@ import time
 from PyQt4 import QtGui, QtCore, QtSvg
 from gerber import Gerber
 import requests
+from setup import VERSION, BASEVERSION
 
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
 imageScale            = [ 23.70,  23.70] # * print = pixels
@@ -120,7 +121,8 @@ class RateYourPrintDialog(QtGui.QDialog):
                 "printernum": self.printerNumText,
                 "ts_processing_images": self.argentum.getTimeSpentProcessingImages(),
                 "ts_sending_files": self.argentum.getTimeSpentSendingFiles(),
-                "ts_printing": self.argentum.getTimeSpentPrinting()
+                "ts_printing": self.argentum.getTimeSpentPrinting(),
+                "version": BASEVERSION
                }
         r = requests.post("http://www.cartesianco.com/feedback/print.php", data=data)
         print(r.text)
