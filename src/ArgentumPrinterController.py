@@ -62,7 +62,6 @@ class ArgentumPrinterController(PrinterController):
                     else:
                         if line.find('+', line.find('+') + 1) != -1:
                             line = line[line.find('+') + 1:]
-                        print("Found a version: {}".format(line))
                         goodVersion = line
                 if goodVersion:
                     response = [goodVersion]

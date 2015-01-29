@@ -18,7 +18,7 @@ from serial.tools.list_ports import comports
 from ArgentumPrinterController import ArgentumPrinterController
 from PrintView import PrintView
 from avrdude import avrdude
-import urllib2
+import requests
 
 import pickle
 
@@ -99,6 +99,7 @@ class Argentum(QtGui.QMainWindow):
         self.initUI()
 
         self.appendOutput('Argentum Control, Version {}'.format(VERSION))
+        print("Software version " + VERSION)
 
         updateThread = threading.Thread(target=self.updateLoop)
         updateThread.start()
@@ -351,8 +352,14 @@ class Argentum(QtGui.QMainWindow):
 
     def updateLoop(self):
         try:
-            result = urllib2.urlopen('http://www.cartesianco.com/software/version/')
-            result = result.read()
+            data = {
+                "printernum": self.getPrinterNumber(),
+                "ts_processing_images": self.getTimeSpentProcessingImages(),
+                "ts_sending_files": self.getTimeSpentSendingFiles(),
+                "ts_printing": self.getTimeSpentPrinting()
+               }
+            r = requests.post("http://www.cartesianco.com/feedback/run.php", data=data)
+            result = r.text
             tagVS = '#VersionStart#'
             tagVE = '#VersionEnd#'
             if result.find(tagVS) != -1:
@@ -361,6 +368,7 @@ class Argentum(QtGui.QMainWindow):
                     result = result[:result.find(tagVE)]
                     result = result.strip()
                     self.latestVersion = result
+                    print("Latest version is " + self.latestVersion)
             return True
         except:
             return False
