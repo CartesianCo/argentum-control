@@ -45,6 +45,8 @@ class ArgentumPrinterController(PrinterController):
 
         try:
             self.serialDevice = Serial(self.port, 115200, timeout=0)
+            self.disconnect()
+            self.serialDevice = Serial(self.port, 115200, timeout=0)
             self.connected = True
             self.lightsOn = False
             self.leftFanOn = False
