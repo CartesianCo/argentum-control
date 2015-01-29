@@ -591,10 +591,8 @@ class Argentum(QtGui.QMainWindow):
         if self.latestVersion == None:
             return None
         self.naggedUpdate = True
-        if self.latestVersion.find('+') == -1:
-            if not self.versionIsNewer(self.latestVersion):
-                return False
-        if BASEVERSION == self.latestVersion:
+
+        if not self.versionIsNewer(self.latestVersion):
             return False
         if self.inlineUpdateUrl == None:
             return False
