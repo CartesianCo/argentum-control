@@ -71,6 +71,40 @@ def save_options(options):
 
     pickle.dump(options, options_file)
 
+class GetPrinterNumberDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.parent = parent
+
+        self.setWindowTitle("Unknown Printer")
+        mainLayout = QtGui.QVBoxLayout()
+        label = QtGui.QLabel("You have connected to a new printer!\n\nPlease enter the number located on the back of your printer.")
+        mainLayout.addWidget(label)
+        self.printerNum = QtGui.QLineEdit(self)
+        mainLayout.addWidget(self.printerNum)
+
+        layout = QtGui.QHBoxLayout()
+        cancelButton = QtGui.QPushButton("Later")
+        cancelButton.clicked.connect(self.reject)
+        layout.addWidget(cancelButton)
+        self.registerButton = QtGui.QPushButton("Register Printer")
+        self.registerButton.clicked.connect(self.register)
+        layout.addWidget(self.registerButton)
+        mainLayout.addLayout(layout)
+
+        self.registerButton.setDefault(True)
+
+        self.setLayout(mainLayout)
+
+    def register(self):
+        self.printerNumText = str(self.printerNum.text())
+        if self.printerNumText == "":
+            return
+
+        self.parent.setPrinterNumber(self.printerNumText)
+        self.accept()
+
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
@@ -101,8 +135,7 @@ class Argentum(QtGui.QMainWindow):
         self.appendOutput('Argentum Control, Version {}'.format(VERSION))
         print("Software version " + VERSION)
 
-        updateThread = threading.Thread(target=self.updateLoop)
-        updateThread.start()
+        self.startUpdateLoop()
 
         # Make a directory where we can place processed images
         docsDir = str(QtGui.QDesktopServices.storageLocation(QtGui.QDesktopServices.DocumentsLocation))
@@ -287,6 +320,9 @@ class Argentum(QtGui.QMainWindow):
         self.updateAction = QtGui.QAction('&Update', self)
         self.updateAction.triggered.connect(self.updateActionTriggered)
 
+        self.changePrinterNumAction = QtGui.QAction("&Change Printer Number", self)
+        self.changePrinterNumAction.triggered.connect(self.askForPrinterNumber)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('File')
         self.openLayoutAction = QtGui.QAction('&Open Layout', self)
@@ -322,6 +358,7 @@ class Argentum(QtGui.QMainWindow):
         utilitiesMenu.addAction(self.updateAction)
         #utilitiesMenu.addAction(self.servoCalibrationAction)
         utilitiesMenu.addAction(self.uploadFileAction)
+        utilitiesMenu.addAction(self.changePrinterNumAction)
 
         self.statusBar().showMessage('Looking for printer...')
 
@@ -349,6 +386,10 @@ class Argentum(QtGui.QMainWindow):
         self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum Control')
         self.show()
+
+    def startUpdateLoop(self):
+        updateThread = threading.Thread(target=self.updateLoop)
+        updateThread.start()
 
     def updateLoop(self):
         try:
@@ -686,6 +727,9 @@ class Argentum(QtGui.QMainWindow):
                             self.appendOutput(line)
                         self.appendOutput("Printer is running: " + self.printer.version)
 
+                    if self.printer.printerNumber == None:
+                        self.askForPrinterNumber()
+
                     options = self.printer.getOptions()
                     if options != None:
                         for key, value in options.items():
@@ -742,6 +786,10 @@ class Argentum(QtGui.QMainWindow):
 
     def processImageButtonPushed(self):
         self.processImage()
+
+    def askForPrinterNumber(self):
+        getPrinterNumberDialog = GetPrinterNumberDialog(self)
+        getPrinterNumberDialog.exec_()
 
     def updatePosDisplay(self, pos=None):
         if pos == None:
@@ -974,14 +1022,25 @@ class Argentum(QtGui.QMainWindow):
             self.printer.updateOptions(self.options)
 
     def getPrinterNumber(self):
+        if self.printer.connected:
+            if self.printer.printerNumber != None:
+                return self.printer.printerNumber
+
+            pnum = self.printer.getPrinterNumber()
+            if pnum != None:
+                return pnum
+
         try:
             return self.options["printer_number"]
         except:
             return None
 
     def setPrinterNumber(self, val):
+        if self.printer.connected:
+            self.printer.setPrinterNumber(val)
         self.options["printer_number"] = val
         save_options(self.options)
+        self.startUpdateLoop()
 
     def getTimeSpent(self, name):
         cur = 0

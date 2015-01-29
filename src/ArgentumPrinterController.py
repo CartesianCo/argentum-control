@@ -15,6 +15,7 @@ class ArgentumPrinterController(PrinterController):
     delimiter = '\n'
     lastError = None
     version = None
+    printerNumber = None
     lightsOn = False
     leftFanOn = False
     rightFanOn = False
@@ -23,6 +24,9 @@ class ArgentumPrinterController(PrinterController):
     def __init__(self, port=None):
         self.port = port
         self.lastCommandTime = None
+
+    def clearPrinterNumber(self):
+        self.printerNumber = None
 
     def clearVersion(self):
         self.version = None
@@ -46,17 +50,32 @@ class ArgentumPrinterController(PrinterController):
             self.leftFanOn = False
             self.rightFanOn = False
 
+            self.clearPrinterNumber()
             self.clearVersion()
             junkBeforeVersion = []
+            allResponse = ''
             while True:
                 response = self.waitForResponse(timeout=5, expect='\n')
                 if response == None:
                     print("No response from printer")
                     break
                 goodVersion = None
+                allResponse = allResponse + ''.join(response)
+                print("allResponse: " + allResponse)
+                pm = '+Printer Number ['
+                if allResponse.find(pm) != -1:
+                    printerNumber = allResponse[allResponse.find(pm) + len(pm):]
+                    printerNumber = printerNumber[:printerNumber.find(']')]
+                    self.printerNumber = printerNumber
+                    print("Printer has number: " + self.printerNumber)
+                vm = '+Version ['
+                if allResponse.find(vm) != -1:
+                    tmpVersion = allResponse[allResponse.find(vm) + len(vm):]
+                    if tmpVersion.find(']') != -1:
+                        goodVersion = tmpVersion[:tmpVersion.find(']')]
                 for line in response:
-                    if line.find('+') <= 0:
-                        if line != '':
+                    if line.find('+') <= 0 or goodVersion != None:
+                        if line != '' and not line.startswith(vm) and not line.startswith(pm):
                             print("Adding junk before version '{}'".format(line))
                             junkBeforeVersion.append(line)
                     else:
@@ -593,3 +612,20 @@ class ArgentumPrinterController(PrinterController):
     def turnRightFanOff(self):
         self.command("pwm 9 0")
         self.rightFanOn = False
+
+    def getPrinterNumber(self):
+        response = self.command("pnum", expect=']', timeout=1)
+        if response == None:
+            return None
+        allResponse = ''.join(response)
+        pm = '+Printer Number ['
+        if allResponse.find(pm) == -1:
+            return None
+        pnum = allResponse[allResponse.find(pm) + len(pm):]
+        pnum = pnum[:pnum.find(']')]
+        return pnum
+
+    def setPrinterNumber(self, pnum):
+        self.printerNumber = pnum
+        self.command("pnum {}".format(pnum))
+
