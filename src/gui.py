@@ -967,7 +967,7 @@ class Argentum(QtGui.QMainWindow):
                 self.appendOutput(line)
             self.appendOutput("Printer is running: " + self.printer.version)
 
-        if self.printer.printerNumber == None:
+        if self.printer.printerNumber == "NOT_SET":
             self.askForPrinterNumber()
 
         options = self.printer.getOptions()
@@ -1031,6 +1031,7 @@ class Argentum(QtGui.QMainWindow):
 
     def autoConnectLoop(self):
         port = self.autoConnectThread.port
+        print("autoConnectLoop running with port={}".format(port))
         if port != NO_PRINTER:
             if self.printer.connect(port=port):
                 self.autoConnected = True
@@ -1325,8 +1326,8 @@ class Argentum(QtGui.QMainWindow):
     def addTimeSpentPrinting(self, val):
         self.addTimeSpent("ts_printing", val)
 
-    #def closeEvent(self, evt):
-    #    sys.exit(0)
+    def closeEvent(self, evt):
+        sys.exit(0)
 
 def main():
     app = QtGui.QApplication(sys.argv)
