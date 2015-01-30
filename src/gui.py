@@ -329,6 +329,10 @@ class Argentum(QtGui.QMainWindow):
         self.uploadFileAction.triggered.connect(self.uploadFileActionTriggered)
         self.uploadFileAction.setEnabled(False)
 
+        self.printFileAction = QtGui.QAction('&Print File', self)
+        self.printFileAction.triggered.connect(self.printFileActionTriggered)
+        self.printFileAction.setEnabled(False)
+
         self.updateAction = QtGui.QAction('&Update', self)
         self.updateAction.triggered.connect(self.updateActionTriggered)
 
@@ -370,6 +374,7 @@ class Argentum(QtGui.QMainWindow):
         utilitiesMenu.addAction(self.updateAction)
         #utilitiesMenu.addAction(self.servoCalibrationAction)
         utilitiesMenu.addAction(self.uploadFileAction)
+        utilitiesMenu.addAction(self.printFileAction)
         utilitiesMenu.addAction(self.changePrinterNumAction)
 
         self.statusBar().showMessage('Looking for printer...')
@@ -505,10 +510,13 @@ class Argentum(QtGui.QMainWindow):
         self.uploadProgressPercent = pos * 100.0 / size
         return True
 
+    printOnline = False
     def uploadLoop(self):
         uploadStart = time.time()
         self.printer.send(self.uploadThread.filename,
-                          progressFunc=self.uploadProgressFunc)
+                          progressFunc=self.uploadProgressFunc,
+                          printOnline=self.printOnline)
+        self.printOnline = False
         uploadEnd = time.time()
         self.addTimeSpentSendingFiles(uploadEnd - uploadStart)
 
@@ -522,7 +530,10 @@ class Argentum(QtGui.QMainWindow):
         QtCore.QTimer.singleShot(100, self.uploadProgressUpdater)
 
     def uploadFileActionTriggered(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Hex file to upload', self.filesDir)
+        title = 'Hex file to upload'
+        if self.printOnline:
+            title = title + " and print"
+        filename = QtGui.QFileDialog.getOpenFileName(self, title, self.filesDir, "Hex files (*.hex)")
         filename = str(filename)
         if filename:
             self.uploadProgressPercent = None
@@ -536,6 +547,10 @@ class Argentum(QtGui.QMainWindow):
             self.uploadThread = threading.Thread(target=self.uploadLoop)
             self.uploadThread.filename = filename
             self.uploadThread.start()
+
+    def printFileActionTriggered(self):
+        self.printOnline = True
+        self.uploadFileActionTriggered()
 
     def updateActionTriggered(self):
         if not self.updateLoop():
@@ -859,6 +874,7 @@ class Argentum(QtGui.QMainWindow):
         self.printAction.setEnabled(enabled)
         self.optionsAction.setEnabled(enabled)
         self.uploadFileAction.setEnabled(enabled)
+        self.printFileAction.setEnabled(enabled)
 
         self.portListCombo.setEnabled(not enabled)
 

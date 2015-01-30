@@ -356,7 +356,7 @@ class ArgentumPrinterController(PrinterController):
                 return True
         return False
 
-    def send(self, path, progressFunc=None):
+    def send(self, path, progressFunc=None, printOnline=False):
         file = open(path, 'r')
         contents = file.read()
         file.close()
@@ -367,12 +367,18 @@ class ArgentumPrinterController(PrinterController):
 
         size = len(contents)
         compressed = self.compress(contents)
-        cmd = "recv {} {}"
+        if printOnline:
+            cmd = "recv {} o {}"
+        else:
+            cmd = "recv {} {}"
         if compressed and len(compressed) * 3 < size:
             print("compression rate {} to 1".format(float(size) / len(compressed)))
             size = len(compressed)
             contents = compressed
-            cmd = "recv {} b {}"
+            if printOnline:
+                cmd = "recv {} bo {}"
+            else:
+                cmd = "recv {} b {}"
         response = self.command(cmd.format(size, filename), timeout=10, expect='\n')
         if response == None:
             print("no response to recv")
@@ -406,29 +412,46 @@ class ArgentumPrinterController(PrinterController):
             encblock = encblock + chr((hash >> 24) & 0xff)
             self.serialDevice.write(encblock)
 
-            self.serialDevice.timeout = 10
-            cmd = self.serialDevice.read(1)
+            done = False
+            canceled = False
+            cmd = None
+            while not done and not canceled:
+                if cmd == None:
+                    self.serialDevice.timeout = 10
+                    cmd = self.serialDevice.read(1)
 
-            if cmd == "B":
-                hash = oldhash
-                fails = fails + 1
-                if fails > 12:
-                    print("Too many failures.")
-                    self.serialDevice.timeout = 0
-                    return
-            elif cmd == "G":
-                pos = pos + blocksize
-                if progressFunc:
-                    if not progressFunc(pos, size):
-                        self.serialWrite("C")
-                        print("canceled!")
-                        break
+                if cmd == "B":
+                    hash = oldhash
+                    fails = fails + 1
+                    if fails > 12:
+                        print("Too many failures.")
+                        self.serialDevice.timeout = 0
+                        return
+                    print("block is bad at {}/{}".format(pos, size))
+                    done = True
+                    cmd = None
+                elif cmd == "G":
+                    pos = pos + blocksize
+                    if progressFunc:
+                        if not progressFunc(pos, size):
+                            self.serialWrite("C")
+                            print("canceled!")
+                            canceled = True
+                    else:
+                        print("block is good at {}/{}".format(pos, size))
+                    done = True
+                    cmd = None
                 else:
-                    print("block is good at {}/{}".format(pos, size))
-            else:
-                print("didn't get a command! got '{}'".format(cmd))
-                rest = self.serialDevice.read(30)
-                print(rest)
+                    self.serialDevice.timeout = 1
+                    rest = self.serialDevice.read(79)
+                    newCmd = None
+                    if len(rest) > 2 and rest[len(rest)-2:] == '\nG':
+                        rest = rest[:len(rest)-2]
+                        newCmd = 'G'
+                    print(cmd + rest)
+                    cmd = newCmd
+
+            if canceled:
                 break
 
         self.serialDevice.timeout = 0
