@@ -664,61 +664,12 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
                 return
 
-            sendingStart = time.time()
-
-            self.setProgress(labelText="Looking on the printer...")
-            hexfiles = []
-            for image in self.images:
-                if image != self.printHeadImage:
-                    hexfiles.append(image.hexFilename)
-            missing = self.argentum.printer.missingFiles(hexfiles)
-            print("{} missing files.".format(len(missing)))
-
-            # Try harder
-            if len(missing) != 0:
-                self.setProgress(labelText="Looking on the printer for {} missing files...".format(len(missing)))
-                self.argentum.printer.disconnect()
-                self.argentum.printer.connect()
-                missing = self.argentum.printer.missingFiles(hexfiles)
-                print("{} still missing files.".format(len(missing)))
-
-            # Also check the files we did find to see if they're different
-            for filename in hexfiles:
-                if filename in missing:
-                    continue
-                path = os.path.join(self.argentum.filesDir, filename)
-                if not self.argentum.printer.checkDJB2(path):
-                    missing.append(filename)
-                    print("{} is different.".format(filename))
-
-            # Try sending missing files
-            if len(missing) != 0:
-                self.setProgress(percent=20)
-                self.perImage = 20.0 / len(missing)
-            sent = []
-            for filename in missing:
-                self.setProgress(labelText="Sending {}...".format(filename))
-                path = os.path.join(self.argentum.filesDir, filename)
-                self.argentum.printer.send(path, progressFunc=self.sendProgress)
-                if self.argentum.printer.checkDJB2(path):
-                    sent.append(filename)
-            for filename in sent:
-                missing.remove(filename)
-
-            sendingEnd = time.time()
-            self.argentum.addTimeSpentSendingFiles(sendingEnd - sendingStart)
-
-            # Nope, and this is fatal
-            if len(missing) != 0:
-                self.setProgress(missing=missing, statusText="Print aborted.")
-                return
-
             # Now we can actually print!
             printingStart = time.time()
-            self.setProgress(percent=40, labelText="Printing...")
+            self.setProgress(percent=20, labelText="Printing...")
             self.argentum.printer.disconnect()
             self.argentum.printer.connect()
-            self.perImage = 59.0 / (len(self.images) - 1)
+            self.perImage = 79.0 / (len(self.images) - 1)
             nImage = 0
             for image in self.images:
                 if image == self.printHeadImage:
@@ -726,13 +677,11 @@ class PrintView(QtGui.QWidget):
                 pos = self.printAreaToMove(image.left + image.width, image.bottom)
                 self.argentum.printer.home(wait=True)
                 self.argentum.printer.move(pos[0], pos[1])
-                path = os.path.join(self.argentum.filesDir, image.hexFilename)
                 self.setProgress(labelText=image.hexFilename)
-                self.argentum.printer.Print(image.hexFilename,
-                                            path=path,
-                                            progressFunc=self.printProgress)
+                path = os.path.join(self.argentum.filesDir, image.hexFilename)
+                self.argentum.printer.send(path, progressFunc=self.sendProgress, printOnline=True)
                 nImage = nImage + 1
-                self.setProgress(percent=(40 + self.perImage * nImage))
+                self.setProgress(percent=(20 + self.perImage * nImage))
 
             self.setProgress(statusText='Print complete.', percent=100)
             printingEnd = time.time()
