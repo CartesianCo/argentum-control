@@ -948,36 +948,39 @@ class Argentum(QtGui.QMainWindow):
 
             if port != NO_PRINTER:
                 if self.printer.connect(port=port):
-                    self.connectButton.setText('Disconnect')
-
-                    self.enableAllButtons()
-                    self.enableConnectionSpecificControls(True)
-                    self.statusBar().showMessage('Connected.')
-                    self.sentVolt = False
-
-                    if self.printer.version != None:
-                        for line in self.printer.junkBeforeVersion:
-                            self.appendOutput(line)
-                        self.appendOutput("Printer is running: " + self.printer.version)
-
-                    if self.printer.printerNumber == None:
-                        self.askForPrinterNumber()
-
-                    options = self.printer.getOptions()
-                    if options != None:
-                        for key, value in options.items():
-                            self.options[key] = value
-                        save_options(self.options)
-
-                    self.homePrinter()
-
-                    if (self.printer.version != None and
-                            is_older_firmware(self.printer.version)):
-                        self.nagFirmwareUpgrade()
+                    self.printerConnected()
                 else:
                     QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
                     self.statusBar().showMessage('Connection error.')
         self.updatePortList()
+
+    def printerConnected(self):
+        self.connectButton.setText('Disconnect')
+
+        self.enableAllButtons()
+        self.enableConnectionSpecificControls(True)
+        self.statusBar().showMessage('Connected.')
+        self.sentVolt = False
+
+        if self.printer.version != None:
+            for line in self.printer.junkBeforeVersion:
+                self.appendOutput(line)
+            self.appendOutput("Printer is running: " + self.printer.version)
+
+        if self.printer.printerNumber == None:
+            self.askForPrinterNumber()
+
+        options = self.printer.getOptions()
+        if options != None:
+            for key, value in options.items():
+                self.options[key] = value
+            save_options(self.options)
+
+        self.homePrinter()
+
+        if (self.printer.version != None and
+                is_older_firmware(self.printer.version)):
+            self.nagFirmwareUpgrade()
 
     def updatePortList(self):
         curPort = str(self.portListCombo.currentText())
@@ -1013,9 +1016,26 @@ class Argentum(QtGui.QMainWindow):
                 self.portListCombo.setCurrentIndex(idx)
                 if self.autoConnect and not self.printer.connected:
                     self.autoConnect = False
-                    self.connectButtonPushed()
-                    if self.printer.connected:
-                        self.tabWidget.setCurrentWidget(self.printWidget)
+                    self.autoConnected = False
+                    QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
+                    self.autoConnectThread = threading.Thread(target=self.autoConnectLoop)
+                    self.autoConnectThread.port = str(curPort)
+                    self.autoConnectThread.start()
+
+    def autoConnectUpdater(self):
+        if self.autoConnected:
+            if self.printer.connected:
+                self.printerConnected()
+            return
+        QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
+
+    def autoConnectLoop(self):
+        port = self.autoConnectThread.port
+        if port != NO_PRINTER:
+            if self.printer.connect(port=port):
+                self.autoConnected = True
+            else:
+                print("Failed to connect to printer: " + self.printer.lastError)
 
     def processImageButtonPushed(self):
         self.processImage()
@@ -1305,8 +1325,8 @@ class Argentum(QtGui.QMainWindow):
     def addTimeSpentPrinting(self, val):
         self.addTimeSpent("ts_printing", val)
 
-    def closeEvent(self, evt):
-        sys.exit(0)
+    #def closeEvent(self, evt):
+    #    sys.exit(0)
 
 def main():
     app = QtGui.QApplication(sys.argv)
