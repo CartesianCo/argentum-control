@@ -204,12 +204,12 @@ class PrintView(QtGui.QWidget):
 
         self.showPrintHeadAction = QtGui.QAction('&Show Print Head', self)
         self.showPrintHeadAction.triggered.connect(self.showPrintHeadActionTriggered)
-        self.argentum.utilitiesMenu.addAction(self.showPrintHeadAction)
+        self.argentum.optionsMenu.addAction(self.showPrintHeadAction)
         self.showingPrintHead = False
 
         self.ratePrintAction = QtGui.QAction('&Rate Last Print', self)
         self.ratePrintAction.triggered.connect(self.ratePrintActionTriggered)
-        self.argentum.utilitiesMenu.addAction(self.ratePrintAction)
+        self.argentum.optionsMenu.addAction(self.ratePrintAction)
 
     def updatePrintHeadPos(self, pos):
         if self.dragging == self.printHeadImage:

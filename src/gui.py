@@ -333,7 +333,10 @@ class Argentum(QtGui.QMainWindow):
         self.printFileAction.triggered.connect(self.printFileActionTriggered)
         self.printFileAction.setEnabled(False)
 
-        self.updateAction = QtGui.QAction('&Update', self)
+        self.processImageAction = QtGui.QAction('&Process Image', self)
+        self.processImageAction.triggered.connect(self.processImageActionTriggered)
+
+        self.updateAction = QtGui.QAction('&Update Software', self)
         self.updateAction.triggered.connect(self.updateActionTriggered)
 
         self.changePrinterNumAction = QtGui.QAction("&Change Printer Number", self)
@@ -367,15 +370,19 @@ class Argentum(QtGui.QMainWindow):
         self.exitAction.triggered.connect(self.fileExitActionTriggered)
         fileMenu.addAction(self.exitAction)
 
-        utilitiesMenu = menubar.addMenu('Utilities')
-        self.utilitiesMenu = utilitiesMenu
-        utilitiesMenu.addAction(self.flashAction)
-        utilitiesMenu.addAction(self.optionsAction)
-        utilitiesMenu.addAction(self.updateAction)
-        #utilitiesMenu.addAction(self.servoCalibrationAction)
-        utilitiesMenu.addAction(self.uploadFileAction)
-        utilitiesMenu.addAction(self.printFileAction)
-        utilitiesMenu.addAction(self.changePrinterNumAction)
+        optionsMenu = menubar.addMenu('Options')
+        self.optionsMenu = optionsMenu
+        optionsMenu.addAction(self.optionsAction)
+        optionsMenu.addAction(self.changePrinterNumAction)
+        optionsMenu.addAction(self.updateAction)
+
+        printerMenu = menubar.addMenu('Printer')
+        self.printerMenu = printerMenu
+        printerMenu.addAction(self.flashAction)
+        #printerMenu.addAction(self.servoCalibrationAction)
+        printerMenu.addAction(self.uploadFileAction)
+        printerMenu.addAction(self.printFileAction)
+        printerMenu.addAction(self.processImageAction)
 
         self.statusBar().showMessage('Looking for printer...')
 
@@ -456,11 +463,12 @@ class Argentum(QtGui.QMainWindow):
         )
         return ip
 
+    def showImageSelectionDialog(self):
+        return str(QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.lastImportDir, "Image Files (*.png *.xpm *.jpg *.svg *.bmp);;All Files (*.*)"))
+
     def processImage(self):
         ip = self.getImageProcessor()
-        inputFileName = QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.lastImportDir)
-
-        inputFileName = str(inputFileName)
+        inputFileName = self.showImageSelectionDialog()
 
         if inputFileName:
             self.lastImportDir = os.path.dirname(inputFileName)
@@ -857,7 +865,7 @@ class Argentum(QtGui.QMainWindow):
         self.printView.closeLayout()
 
     def fileImportImageTriggered(self):
-        inputFileName = str(QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.lastImportDir, "Image Files (*.png *.xpm *.jpg *.svg *.bmp);;All Files (*.*)"))
+        inputFilename = self.showImageSelectionDialog()
         if inputFileName:
             self.lastImportDir = os.path.dirname(inputFileName)
             self.printView.addImageFile(inputFileName)
@@ -962,6 +970,9 @@ class Argentum(QtGui.QMainWindow):
                         self.tabWidget.setCurrentWidget(self.printWidget)
 
     def processImageButtonPushed(self):
+        self.processImage()
+
+    def processImageActionTriggered(self):
         self.processImage()
 
     def askForPrinterNumber(self):
