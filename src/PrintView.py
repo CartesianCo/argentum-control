@@ -618,7 +618,10 @@ class PrintView(QtGui.QWidget):
 
     def startPrint(self):
         if len(self.images) == 1:
-            self.argentum.statusBar().showMessage('Add some images to print.')
+            QtGui.QMessageBox.information(self,
+                        "Nothing to print",
+                        "You can add images to the print view by selecting File -> Import Image or by simply dragging and dropping images onto the print area.")
+
             return
 
         if self.printThread != None:
