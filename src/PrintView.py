@@ -211,6 +211,18 @@ class PrintView(QtGui.QWidget):
         self.ratePrintAction.triggered.connect(self.ratePrintActionTriggered)
         self.argentum.optionsMenu.addAction(self.ratePrintAction)
 
+        self.printButton = QtGui.QPushButton("Print")
+        self.printButton.clicked.connect(self.startPrint)
+        mainLayout = QtGui.QVBoxLayout()
+        layout = QtGui.QHBoxLayout()
+        layout.addStretch()
+        layout.addWidget(self.printButton)
+        layout.addStretch()
+        mainLayout.addStretch()
+        mainLayout.addLayout(layout)
+        self.setLayout(mainLayout)
+
+
     def updatePrintHeadPos(self, pos):
         if self.dragging == self.printHeadImage:
             return
@@ -279,14 +291,14 @@ class PrintView(QtGui.QWidget):
             self.printPlateDesignRect.width() * 19 / 21),
            (self.printPlateDesignRect.top() +
             self.printPlateDesignRect.height() * 5 / 7),
-           self.printPlateDesignRect.width() / 7,
+           self.printPlateDesignRect.width() / 8,
            self.printPlateDesignRect.height() / 5)
 
         ppdr = self.printPlateDesignRect
         my = 30
         mx = 30
         self.leftLightsRect = QtCore.QRectF(ppdr.left() - mx - 10, ppdr.top() - my, mx, ppdr.height() + my*2)
-        self.rightLightsRect = QtCore.QRectF(ppdr.right(), ppdr.top() - my, mx, ppdr.height() + my*2)
+        self.rightLightsRect = QtCore.QRectF(ppdr.right() + mx / 2, ppdr.top() - my, mx, ppdr.height() + my*2)
         self.bottomLightRects = []
         mmx = mx/3
         self.bottomLightRects.append(QtCore.QRectF(ppdr.left() + ppdr.width()*0.05, self.leftLightsRect.bottom() + my, mmx, mmx))
@@ -620,7 +632,7 @@ class PrintView(QtGui.QWidget):
         if len(self.images) == 1:
             QtGui.QMessageBox.information(self,
                         "Nothing to print",
-                        "You can add images to the print view by selecting File -> Import Image or by simply dragging and dropping images onto the print area.")
+                        "You can add images to the print view by selecting\nFile -> Import Image or by simply dragging and dropping images onto the print area.")
 
             return
 
