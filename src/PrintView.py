@@ -14,7 +14,7 @@ import time
 from PyQt4 import QtGui, QtCore, QtSvg
 from gerber import Gerber
 import requests
-from setup import VERSION, BASEVERSION
+from setup import VERSION, BASEVERSION, CA_CERTS
 
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
 imageScale            = [ 23.70,  23.70] # * print = pixels
@@ -128,7 +128,7 @@ class RateYourPrintDialog(QtGui.QDialog):
                 "version": BASEVERSION,
                 "firmware": firmware
                }
-        r = requests.post("http://www.cartesianco.com/feedback/print.php", data=data)
+        r = requests.post("https://www.cartesianco.com/feedback/print.php", data=data, verify=CA_CERTS)
         print(r.text)
 
     def sendReport(self):

@@ -16,6 +16,8 @@ BUILDTIME = time.strftime('%Y%m%d')
 
 VERSION = BASEVERSION + '+' + BUILDTIME
 
+CA_CERTS = "./cacerts.pem"
+
 DATA_FILES = []
 
 OPTIONS = {

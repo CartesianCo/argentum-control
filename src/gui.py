@@ -29,7 +29,7 @@ from imageproc import ImageProcessor
 
 from Alchemist import OptionsDialog, CommandLineEdit, ServoCalibrationDialog
 
-from setup import VERSION, BASEVERSION
+from setup import VERSION, BASEVERSION, CA_CERTS
 from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware, is_older_firmware
 
 import subprocess
@@ -417,6 +417,7 @@ class Argentum(QtGui.QMainWindow):
 
     def updateLoop(self):
         try:
+            time.sleep(3)
             data = {
                 "printernum": self.getPrinterNumber(),
                 "ts_processing_images": self.getTimeSpentProcessingImages(),
@@ -424,7 +425,7 @@ class Argentum(QtGui.QMainWindow):
                 "ts_printing": self.getTimeSpentPrinting(),
                 "version": BASEVERSION
                }
-            r = requests.post("http://www.cartesianco.com/feedback/run.php", data=data)
+            r = requests.post("https://www.cartesianco.com/feedback/run.php", data=data, verify=CA_CERTS)
             result = r.text
             tagVS = '#VersionStart#'
             tagVE = '#VersionEnd#'
@@ -698,7 +699,7 @@ class Argentum(QtGui.QMainWindow):
         print("Writing update to " + update_filename)
         f = open(update_filename, "wb")
 
-        r = requests.get(self.inlineUpdateUrl, stream=True)
+        r = requests.get(self.inlineUpdateUrl, stream=True, verify=CA_CERTS)
         total_length = r.headers.get('content-length')
         if total_length == None:
             self.downloadError = True
@@ -730,6 +731,7 @@ class Argentum(QtGui.QMainWindow):
         cur_dir_name = os.path.basename(os.getcwd())
         if cur_dir_name == "src":
             print("This looks like a source build, use git to update.")
+            self.downloadProgressPercent = 100.0
             return
         elif cur_dir_name.lower() == "resources":
             print("This looks like a Mac build.")
@@ -788,7 +790,7 @@ class Argentum(QtGui.QMainWindow):
 
         print("Removing temporary files.")
         self.downloadProgressPercent = 90.0
-        #shutil.rmtree(tmpdir)
+        shutil.rmtree(tmpdir)
 
         print("Restarting.")
         self.downloadProgressPercent = 100.0
