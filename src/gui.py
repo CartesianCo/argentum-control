@@ -466,24 +466,61 @@ class Argentum(QtGui.QMainWindow):
     def showImageSelectionDialog(self):
         return str(QtGui.QFileDialog.getOpenFileName(self, 'Select an image to process', self.lastImportDir, "Image Files (*.png *.xpm *.jpg *.svg *.bmp);;All Files (*.*)"))
 
-    def processImage(self):
-        ip = self.getImageProcessor()
-        inputFileName = self.showImageSelectionDialog()
+    def processImage(self, inputFileName=None):
+        if inputFileName == None:
+            inputFileName = self.showImageSelectionDialog()
 
         if inputFileName:
             self.lastImportDir = os.path.dirname(inputFileName)
-            self.appendOutput('Processing Image ' + inputFileName)
+
+            self.processImageProgressPercent = None
+            self.processImageProgressCancel = False
+            self.processImageProgress = QtGui.QProgressDialog(self)
+            self.processImageProgress.setWindowTitle("Processing")
+            self.processImageProgress.setLabelText(os.path.basename(inputFileName))
+            self.processImageProgress.show()
+            QtCore.QTimer.singleShot(100, self.processImageProgressUpdater)
+
+            self.processImageThread = threading.Thread(target=self.processImageLoop)
+            self.processImageThread.filename = inputFileName
+            self.processImageThread.outFilename = None
+            self.processImageThread.start()
+
+    def processImageLoop(self):
+            inputFileName = self.processImageThread.filename
+            print('Processing Image ' + inputFileName)
             baseName = os.path.basename(inputFileName)
             if baseName.find('.') != -1:
                 baseName = baseName[:baseName.find('.')]
             baseName = baseName + '.hex'
             outputFileName = os.path.join(self.filesDir, baseName)
-            self.appendOutput('Writing to ' + outputFileName)
-            ip.sliceImage(inputFileName, outputFileName, progressFunc=self.progressFunc)
+            self.processImageThread.outFilename = outputFileName
+            print('Writing to ' + outputFileName)
+            ip = self.getImageProcessor()
+            ip.sliceImage(inputFileName, outputFileName, progressFunc=self.processImageProgressFunc)
 
-    def progressFunc(self, y, max_y):
-        self.appendOutput('{} out of {}.'.format(y, max_y))
+    def processImageProgressFunc(self, pos, size):
+        if self.processImageProgressCancel:
+            return False
+        self.processImageProgressPercent = pos * 100.0 / size
         return True
+
+    printFileAfterProcessing = False
+    def processImageProgressUpdater(self):
+        if self.processImageProgress.wasCanceled():
+            self.processImageProgressCancel = True
+            self.printFileAfterProcessing = False
+            return
+        if self.processImageProgressPercent:
+            self.processImageProgress.setValue(self.processImageProgressPercent)
+            if self.processImageProgressPercent == 100:
+                if self.printFileAfterProcessing:
+                    self.printFileAfterProcessing = False
+                    self.printFile(self.processImageThread.outFilename)
+                self.processImageProgressPercent = None
+                return
+            self.processImageProgressPercent = None
+        QtCore.QTimer.singleShot(100, self.processImageProgressUpdater)
 
     def appendOutput(self, output):
         self.outputView.append(output)
@@ -537,13 +574,18 @@ class Argentum(QtGui.QMainWindow):
             self.uploadProgressPercent = None
         QtCore.QTimer.singleShot(100, self.uploadProgressUpdater)
 
-    def uploadFileActionTriggered(self):
+    def uploadFile(self, filename=None):
         title = 'Hex file to upload'
         if self.printOnline:
-            title = title + " and print"
-        filename = QtGui.QFileDialog.getOpenFileName(self, title, self.filesDir, "Hex files (*.hex)")
-        filename = str(filename)
+            title = "File to print"
+        if filename == None:
+            filename = QtGui.QFileDialog.getOpenFileName(self, title, self.filesDir, "Hex files (*.hex);; All files (*)")
+            filename = str(filename)
         if filename:
+            if self.printOnline and not filename.endswith(".hex"):
+                self.printFileAfterProcessing = True
+                self.processImage(filename)
+                return
             self.uploadProgressPercent = None
             self.uploadProgressCancel = False
             self.uploadProgress = QtGui.QProgressDialog(self)
@@ -556,9 +598,15 @@ class Argentum(QtGui.QMainWindow):
             self.uploadThread.filename = filename
             self.uploadThread.start()
 
-    def printFileActionTriggered(self):
+    def uploadFileActionTriggered(self):
+        self.uploadFile()
+
+    def printFile(self, filename=None):
         self.printOnline = True
-        self.uploadFileActionTriggered()
+        self.uploadFile(filename)
+
+    def printFileActionTriggered(self):
+        self.printFile()
 
     def updateActionTriggered(self):
         if not self.updateLoop():
