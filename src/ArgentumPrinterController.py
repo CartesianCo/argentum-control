@@ -20,6 +20,7 @@ class ArgentumPrinterController(PrinterController):
     leftFanOn = False
     rightFanOn = False
     printing = False
+    sendingFile = False
 
     def __init__(self, port=None):
         self.port = port
@@ -202,6 +203,7 @@ class ArgentumPrinterController(PrinterController):
                     lines = lines + 1
             if lines == 0:
                 print("couldn't get number of lines in {}".format(path))
+                self.printing = False
                 return
             print("{} has {} lines.".format(filename, lines))
 
@@ -357,6 +359,7 @@ class ArgentumPrinterController(PrinterController):
         return False
 
     def send(self, path, progressFunc=None, printOnline=False):
+        self.sendingFile = True
         file = open(path, 'r')
         contents = file.read()
         file.close()
@@ -382,86 +385,95 @@ class ArgentumPrinterController(PrinterController):
         response = self.command(cmd.format(size, filename), timeout=10, expect='\n')
         if response == None:
             print("no response to recv")
+            self.sendingFile = False
             return
         if response[0] != "Ready":
             print("Didn't get Ready, got: ")
             print(response)
+            self.sendingFile = False
             return
 
         print("sending {} bytes.".format(size))
 
-        hash = 5381
-        fails = 0
-        pos = 0
-        while (pos < size):
-            nleft = size - pos
-            blocksize = nleft if nleft < 1024 else 1024
-            block = contents[pos:pos+blocksize]
-            encblock = ""
-            oldhash = hash
-            for c in block:
-                encblock = encblock + chr(ord(c) ^ 0x26)
-                cval = ord(c)
-                if cval >= 128:
-                    cval = -(256 - cval)
-                hash = hash * 33 + cval
-                hash = hash & 0xffffffff
-            encblock = encblock + chr( hash        & 0xff)
-            encblock = encblock + chr((hash >>  8) & 0xff)
-            encblock = encblock + chr((hash >> 16) & 0xff)
-            encblock = encblock + chr((hash >> 24) & 0xff)
-            self.serialDevice.write(encblock)
+        try:
+            hash = 5381
+            fails = 0
+            pos = 0
+            while (pos < size):
+                nleft = size - pos
+                blocksize = nleft if nleft < 1024 else 1024
+                block = contents[pos:pos+blocksize]
+                encblock = ""
+                oldhash = hash
+                for c in block:
+                    encblock = encblock + chr(ord(c) ^ 0x26)
+                    cval = ord(c)
+                    if cval >= 128:
+                        cval = -(256 - cval)
+                    hash = hash * 33 + cval
+                    hash = hash & 0xffffffff
+                encblock = encblock + chr( hash        & 0xff)
+                encblock = encblock + chr((hash >>  8) & 0xff)
+                encblock = encblock + chr((hash >> 16) & 0xff)
+                encblock = encblock + chr((hash >> 24) & 0xff)
+                self.serialDevice.write(encblock)
 
-            done = False
-            canceled = False
-            cmd = None
-            while not done and not canceled:
-                if cmd == None:
-                    self.serialDevice.timeout = 10
-                    cmd = self.serialDevice.read(1)
+                done = False
+                canceled = False
+                cmd = None
+                while not done and not canceled:
+                    if cmd == None:
+                        self.serialDevice.timeout = 10
+                        cmd = self.serialDevice.read(1)
 
-                if cmd == "B":
-                    hash = oldhash
-                    fails = fails + 1
-                    if fails > 12:
-                        print("Too many failures.")
-                        self.serialDevice.timeout = 0
-                        return
-                    print("block is bad at {}/{}".format(pos, size))
-                    done = True
-                    cmd = None
-                elif cmd == "G":
-                    pos = pos + blocksize
-                    if progressFunc:
-                        if not progressFunc(pos, size):
-                            self.serialWrite("C")
-                            print("canceled!")
-                            canceled = True
+                    if cmd == "B":
+                        hash = oldhash
+                        fails = fails + 1
+                        if fails > 12:
+                            print("Too many failures.")
+                            self.serialDevice.timeout = 0
+                            self.sendingFile = False
+                            return
+                        print("block is bad at {}/{}".format(pos, size))
+                        done = True
+                        cmd = None
+                    elif cmd == "G":
+                        pos = pos + blocksize
+                        if progressFunc:
+                            if not progressFunc(pos, size):
+                                self.serialWrite("C")
+                                print("canceled!")
+                                canceled = True
+                        else:
+                            print("block is good at {}/{}".format(pos, size))
+                        done = True
+                        cmd = None
                     else:
-                        print("block is good at {}/{}".format(pos, size))
-                    done = True
-                    cmd = None
-                else:
-                    self.serialDevice.timeout = 1
-                    rest = self.serialDevice.read(79)
-                    newCmd = None
-                    if len(rest) > 2 and rest[len(rest)-2:] == '\nG':
-                        rest = rest[:len(rest)-2]
-                        newCmd = 'G'
-                    print(cmd + rest)
-                    cmd = newCmd
+                        self.serialDevice.timeout = 1
+                        rest = cmd + self.serialDevice.read(79)
+                        rest = rest.strip()
+                        if len(rest) > 0:
+                            print("'" + rest + "'")
+                        cmd = None
+                        if len(rest) > 2 and rest[len(rest)-2:] == '\nG':
+                            cmd = 'G'
+                        if rest.find('Errorecv') != -1:
+                            done = True
+                            canceled = True
 
-            if canceled:
-                break
+                if canceled:
+                    break
 
-        self.serialDevice.timeout = 0
-        if progressFunc:
-            print("sent.")
-        else:
-            progressFunc(size, size)
+            self.serialDevice.timeout = 0
+            if progressFunc:
+                print("sent.")
+            else:
+                progressFunc(size, size)
 
-        end = time.time()
-        print("Sent in {} seconds.".format(end - start))
+            end = time.time()
+            print("Sent in {} seconds.".format(end - start))
+        finally:
+            self.sendingFile = False
 
     def compress(self, contents):
         compressed = []
@@ -581,6 +593,8 @@ class ArgentumPrinterController(PrinterController):
             return None
         if self.serialDevice.timeout != 0:
             return None
+        if self.printing or self.sendingFile:
+            return None
         response = self.command("pos", timeout=0.5)
         if response == None:
             return None
@@ -615,26 +629,38 @@ class ArgentumPrinterController(PrinterController):
         return (xmm, ymm, xsteps, ysteps)
 
     def turnLightsOn(self):
+        if self.printing or self.sendingFile:
+            return
         self.command("pwm 8 255")
         self.lightsOn = True
 
     def turnLightsOff(self):
+        if self.printing or self.sendingFile:
+            return
         self.command("pwm 8 0")
         self.lightsOn = False
 
     def turnLeftFanOn(self):
+        if self.printing or self.sendingFile:
+            return
         self.command("pwm 7 255")
         self.leftFanOn = True
 
     def turnLeftFanOff(self):
+        if self.printing or self.sendingFile:
+            return
         self.command("pwm 7 0")
         self.leftFanOn = False
 
     def turnRightFanOn(self):
+        if self.printing or self.sendingFile:
+            return
         self.command("pwm 9 255")
         self.rightFanOn = True
 
     def turnRightFanOff(self):
+        if self.printing or self.sendingFile:
+            return
         self.command("pwm 9 0")
         self.rightFanOn = False
 
