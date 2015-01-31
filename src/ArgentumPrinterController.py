@@ -740,3 +740,6 @@ class ArgentumPrinterController(PrinterController):
         self.printerNumber = pnum
         self.command("pnum {}".format(pnum))
 
+    def moveTo(self, x, y):
+        self.command("M {} {}".format(int(x), int(y)))
+

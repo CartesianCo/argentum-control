@@ -714,7 +714,7 @@ class PrintView(QtGui.QWidget):
     def movePrintHead(self):
         xmm = self.printHeadImage.left - self.printHeadImage.minLeft
         ymm = self.printHeadImage.bottom - self.printHeadImage.minBottom
-        self.argentum.moveTo(xmm * 80, ymm * 80)
+        self.argentum.printer.moveTo(xmm * 80, ymm * 80)
 
     def inTrashCan(self, x, y):
         return x > self.trashCanRect.left() and y > self.trashCanRect.top()

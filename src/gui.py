@@ -1129,11 +1129,7 @@ class Argentum(QtGui.QMainWindow):
         x = int(s[:s.find(', ')])
         y = int(s[s.find(', ') + 2:s.find(' steps')])
         self.hidePosOptions()
-        self.moveTo(x, y)
-
-    def moveTo(self, x, y):
-        self.printer.home(wait=True)
-        self.printer.move(x, y)
+        self.printer.moveTo(x, y)
 
     ### Command Functions ###
 
