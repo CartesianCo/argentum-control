@@ -5,7 +5,7 @@ import sys
 import tempfile
 import shutil
 import time
-from setup import BASEVERSION
+from setup import BASEVERSION, CA_CERTS
 
 nightly = False
 for opt in sys.argv[1:]:
@@ -49,9 +49,10 @@ def makeFirmware():
         if contents.find("+2015") == -1:
             print("Doesn't seem to have any version.")
         else:
-            i = contents.find("+2015") - 1
+            i = contents.find("+2015")
             e = i + 5 + 4
-            while contents[i] >= '0' and contents[i] <= '0' or contents[i] == '.':
+            i = i - 1
+            while contents[i] >= '0' and contents[i] <= '9' or contents[i] == '.':
                 i = i - 1
             print("Seems to be {}.".format(contents[i:e]))
         sys.exit(1)
@@ -101,6 +102,7 @@ def addDep(filename):
 def guessFilesToShip():
     addDep("gui.py")
     files.append(firmware_file)
+    files.append(CA_CERTS)
     print("Packaging {} files.".format(len(files)))
 
 def makeMacRelease():
