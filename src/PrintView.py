@@ -476,8 +476,10 @@ class PrintView(QtGui.QWidget):
             return False
         if os.path.getsize(hexFilename) == 0:
             return False
-        imgModified = os.path.getmtime(image.filename)
         hexModified = os.path.getmtime(hexFilename)
+        if time.time() - hexModified < 7*24*60*60:
+            return False
+        imgModified = os.path.getmtime(image.filename)
         if imgModified < hexModified:
             if image.lastResized:
                 return image.lastResized < hexModified
