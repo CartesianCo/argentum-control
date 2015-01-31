@@ -379,7 +379,7 @@ class Argentum(QtGui.QMainWindow):
         printerMenu = menubar.addMenu('Printer')
         self.printerMenu = printerMenu
         printerMenu.addAction(self.flashAction)
-        #printerMenu.addAction(self.servoCalibrationAction)
+        printerMenu.addAction(self.servoCalibrationAction)
         printerMenu.addAction(self.uploadFileAction)
         printerMenu.addAction(self.printFileAction)
         printerMenu.addAction(self.processImageAction)
@@ -933,6 +933,7 @@ class Argentum(QtGui.QMainWindow):
         self.optionsAction.setEnabled(enabled)
         self.uploadFileAction.setEnabled(enabled)
         self.printFileAction.setEnabled(enabled)
+        self.servoCalibrationAction.setEnabled(enabled)
 
         self.portListCombo.setEnabled(not enabled)
 

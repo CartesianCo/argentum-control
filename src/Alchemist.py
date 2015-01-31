@@ -187,29 +187,49 @@ class ServoCalibrationDialog(QtGui.QDialog):
 
         # Controls Here
         row = QtGui.QHBoxLayout()
+        self.addButton(row, "Disable Rollers", self.disableRollers)
+        self.addButton(row, "Enable Rollers", self.enableRollers)
+        mainLayout.addLayout(row)
+
+        row = QtGui.QHBoxLayout()
         self.addButton(row, "Up ^", self.servoUp)
-        self.addButton(row, "Set Deployed Position", self.setDeployedPosition)
+        self.addButton(row, "Retract", self.servoRetract)
         mainLayout.addLayout(row)
 
         row = QtGui.QHBoxLayout()
         self.addButton(row, "Down v", self.servoDown)
-        self.addButton(row, "Set Retracted Position", self.setRetractedPosition)
+        self.addButton(row, "Deploy", self.servoDeploy)
+        mainLayout.addLayout(row)
+
+        row = QtGui.QHBoxLayout()
+        self.addButton(row, "Set Retract Position", self.setRetractPosition)
+        self.addButton(row, "Set Deploy Position", self.setDeployPosition)
         mainLayout.addLayout(row)
 
         #--The Button------------------------------#
         layout = QtGui.QHBoxLayout()
-        button = QtGui.QPushButton("Done") #string or icon
+        button = QtGui.QPushButton("Close")
         self.connect(button, QtCore.SIGNAL("clicked()"), self.close)
-
         layout.addWidget(button)
-
+        saveButton = self.addButton(layout, "Save", self.save)
         mainLayout.addLayout(layout)
+
         self.setLayout(mainLayout)
 
         self.resize(200, 60)
         self.setWindowTitle('Servo Calibration')
 
-        button.setFocus()
+        saveButton.setDefault(True)
+        saveButton.setFocus()
+        self.enableRollers()
+
+    def disableRollers(self):
+        if self.controller:
+            self.controller.servocommand('e')
+
+    def enableRollers(self):
+        if self.controller:
+            self.controller.servocommand('E')
 
     def servoUp(self):
         if self.controller:
@@ -219,19 +239,32 @@ class ServoCalibrationDialog(QtGui.QDialog):
         if self.controller:
             self.controller.servocommand('-')
 
-    def setRetractedPosition(self):
+    def servoRetract(self):
+        if self.controller:
+            self.controller.servocommand('r')
+
+    def servoDeploy(self):
+        if self.controller:
+            self.controller.servocommand('d')
+
+    def setRetractPosition(self):
         if self.controller:
             self.controller.servocommand('R')
 
-    def setDeployedPosition(self):
+    def setDeployPosition(self):
         if self.controller:
             self.controller.servocommand('D')
+
+    def save(self):
+        if self.controller:
+            self.controller.printer.command("!write")
+        self.close()
 
     def addButton(self, parent, label, function):
         button = QtGui.QPushButton(label) #string or icon
         self.connect(button, QtCore.SIGNAL("clicked()"), function)
-
         parent.addWidget(button)
+        return button
 
     def createOptionWidget(self, parentLayout, optionName, defaultValue):
         # Create a Sub-Layout for this option
