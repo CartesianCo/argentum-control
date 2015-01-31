@@ -639,7 +639,10 @@ class ArgentumPrinterController(PrinterController):
         value2 = response[response.find('vertical_offset:') + 17:]
         value2 = value2[:value2.find('print_overlap:')]
         value3 = response[response.find('print_overlap:') + 15:]
-        value3 = value3[:value3.find('CRC:')]
+        ePos = 0
+        while value3[ePos] >= '0' and value3[ePos] <= '9':
+            ePos = ePos + 1
+        value3 = value3[:ePos]
         return {'horizontal_offset': int(value1),
                 'vertical_offset': int(value2),
                 'print_overlap': int(value3)}
