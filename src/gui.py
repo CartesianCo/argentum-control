@@ -120,6 +120,8 @@ class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
 
+        print("Argentum init")
+
         #v = Process(target=updater, args=('http://files.cartesianco.com',))
         #v.start()
 
@@ -1330,6 +1332,7 @@ class Argentum(QtGui.QMainWindow):
         sys.exit(0)
 
 def main():
+    print("starting...")
     app = QtGui.QApplication(sys.argv)
     app.setOrganizationName("CartesianCo")
     app.setOrganizationDomain("cartesianco.com")
