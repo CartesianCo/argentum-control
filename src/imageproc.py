@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from PIL import Image
 from PyQt4.QtGui import QImage, QTransform
+from PyQt4 import QtCore
 import os
 import sys
 ### Image Processing Functions
@@ -96,7 +97,7 @@ class ImageProcessor:
         inputImage = inputImage.transformed(rot270)
         if size:
             width, height = size
-            inputImage = inputImage.scaled(width, height, QtCore.Qt.SmoothTransformation)
+            inputImage = inputImage.scaled(width, height, transformMode=QtCore.Qt.SmoothTransformation)
 
         inputs = self.splitImageTwos(inputImage)
 
