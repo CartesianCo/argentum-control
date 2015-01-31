@@ -10,6 +10,7 @@ author: Trent Waddington
 
 import sys
 import os
+import stat
 import time
 #import webbrowser
 import zipfile
@@ -797,7 +798,10 @@ class Argentum(QtGui.QMainWindow):
         print("Restarting.")
         self.downloadProgressPercent = 100.0
         if self.printer.connected:
+            self.autoConnect = False
             self.printer.disconnect()
+        if program_path.endswith(".py"):
+            os.chmod(program_path, stat.S_IRWXU)
         time.sleep(1.5)
         os.execv(program_path, [program_path])
 
