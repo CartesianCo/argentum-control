@@ -356,6 +356,8 @@ class ArgentumPrinterController(PrinterController):
                 if expect:
                     if response.find(expect) != -1:
                         break
+        except:
+            pass
         finally:
             self.serialDevice.timeout = 0
 
@@ -655,7 +657,7 @@ class ArgentumPrinterController(PrinterController):
             return None
         if self.printing or self.sendingFile:
             return None
-        response = self.command("pos", timeout=0.5)
+        response = self.command("pos", timeout=0.1)
         if response == None:
             return None
         response = ''.join(response)
