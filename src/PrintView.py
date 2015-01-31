@@ -158,7 +158,7 @@ class PrintView(QtGui.QWidget):
 
         self.printPlateArea = PrintRect(0, 0, 285, 255)
         self.printArea = PrintRect(24, 73, 247, 127)
-        self.printLims = PrintRect(10, 14, 165, 110)
+        self.printLims = PrintRect(10, 14, 157, 98)
         self.printPlateDesign = QtSvg.QSvgRenderer("printPlateDesign.svg")
         self.trashCan         = QtSvg.QSvgRenderer("trashCan.svg")
         self.trashCanOpen     = QtSvg.QSvgRenderer("trashCanOpen.svg")
@@ -681,7 +681,7 @@ class PrintView(QtGui.QWidget):
                     continue
                 pos = self.printAreaToMove(image.left + image.width, image.bottom)
                 self.argentum.printer.moveTo(pos[0], pos[1], withOk=True)
-                response = self.argentum.printer.waitForResponse(timeout=10, expect='\n')
+                response = self.argentum.printer.waitForResponse(timeout=10, expect='Ok')
                 if response:
                     response = ''.join(response)
                     if response.find('/') != -1:
