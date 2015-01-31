@@ -1,5 +1,5 @@
 from PrinterController import PrinterController
-from serial import Serial, SerialException
+import serial
 import hashlib
 import os
 import time
@@ -7,6 +7,7 @@ from imageproc import calcDJB2
 
 order = ['8', '4', 'C', '2', 'A', '6', 'E', '1', '9', '5', 'D', '3', 'B'];
 MAX_FIRING_LINE_LEN = 13*4+12
+NO_RESPONSE = "Printer didn't respond. Please ensure no other programs have the port open and try again."
 
 class ArgentumPrinterController(PrinterController):
     serialDevice = None
@@ -40,115 +41,174 @@ class ArgentumPrinterController(PrinterController):
     def serialWrite(self, strval):
         self.serialDevice.write(strval.encode('utf-8'))
 
+    def parseVersion(self, version):
+        if version.find('.') == -1:
+            return
+        major = version[:version.find('.')]
+        version = version[version.find('.')+1:]
+        if version.find('.') == -1:
+            return
+        minor = version[:version.find('.')]
+        version = version[version.find('.')+1:]
+        if version.find('+') == -1:
+            return
+        patch = version[:version.find('+')]
+        build = version[version.find('+')+1:].rstrip()
+        if len(build) != 8:
+            return
+
+        tag = None
+        if patch.find('-') != -1:
+            tag = patch[patch.find('-')+1:]
+            patch = patch[:patch.find('-')]
+
+        try:
+            major = int(major)
+            minor = int(minor)
+            patch = int(patch)
+        except ValueError:
+            return
+
+        self.version = "{}.{}.{}".format(major, minor, patch)
+        if tag:
+            self.version = self.version + "-" + tag
+        self.version = self.version + "+" + build
+
+        self.majorVersion = major
+        self.minorVersion = minor
+        self.patchVersion = patch
+        self.buildVersion = build
+        self.tagVersion   = tag
+
+        print("Printer is running version: " + self.version)
+
+    def resetPort(self, serialDevice):
+        try:
+            import termios
+            print("Attempting low level port reset.")
+            attrs = termios.tcgetattr(serialDevice.fd)
+            termios.tcsetattr(serialDevice.fd, termios.TCSANOW, attrs)
+            return True
+        except:
+            pass
+        return False
+
     def connect(self, port=None):
         if port:
             self.port = port
 
         try:
-            self.serialDevice = Serial(self.port, 115200, timeout=0)
-            self.disconnect()
-            self.serialDevice = Serial(self.port, 115200, timeout=0)
-            self.connected = True
+            self.serialDevice = None
+            serialDevice = serial.Serial(self.port, 115200, timeout=0)
+            self.connected = False
             self.lightsOn = False
             self.leftFanOn = False
             self.rightFanOn = False
 
             self.clearPrinterNumber()
             self.clearVersion()
-            junkBeforeVersion = []
+            self.junkBeforeVersion = []
+
             allResponse = ''
-            while True:
-                response = self.waitForResponse(timeout=5, expect='\n')
-                if response == None:
-                    print("No response from printer")
-                    break
-                goodVersion = None
-                allResponse = allResponse + ''.join(response)
-                print("allResponse: " + allResponse)
-                pm = '+Printer Number ['
-                if allResponse.find(pm) != -1:
-                    printerNumber = allResponse[allResponse.find(pm) + len(pm):]
-                    printerNumber = printerNumber[:printerNumber.find(']')]
-                    self.printerNumber = printerNumber
-                    print("Printer has number: " + self.printerNumber)
-                vm = '+Version ['
-                if allResponse.find(vm) != -1:
-                    tmpVersion = allResponse[allResponse.find(vm) + len(vm):]
-                    if tmpVersion.find(']') != -1:
-                        goodVersion = tmpVersion[:tmpVersion.find(']')]
-                for line in response:
-                    if line.find('+') <= 0 or goodVersion != None:
-                        if line != '' and not line.startswith(vm) and not line.startswith(pm):
-                            print("Adding junk before version '{}'".format(line))
-                            junkBeforeVersion.append(line)
-                    else:
-                        if line.find('+', line.find('+') + 1) != -1:
-                            line = line[line.find('+') + 1:]
-                        goodVersion = line
-                if goodVersion:
-                    response = [goodVersion]
-                    break
-            self.junkBeforeVersion = junkBeforeVersion
+            serialDevice.timeout = 1
+            firstChar = serialDevice.read(1)
+            if firstChar == None or len(firstChar) == 0:
+                self.lastError = NO_RESPONSE
+                return False
+            firstCharOrd = ord(firstChar)
+            if firstCharOrd < 9 or firstCharOrd > 126:
+                if not self.resetPort(serialDevice):
+                    self.lastError = "Port needs reset."
+                    serialDevice.close()
+                    return False
+                serialDevice.close()
+                serialDevice = serial.Serial(self.port, 115200, timeout=1)
+                firstChar = serialDevice.read(1)
+                firstCharOrd = ord(firstChar)
+                if firstCharOrd < 9 or firstCharOrd > 126:
+                    self.lastError = "Port needs reset."
+                    serialDevice.close()
+                    return False
+
+            allResponse = ''
+            try:
+                while len(allResponse) < 80:
+                    allResponse = allResponse + firstChar
+                    n = serialDevice.inWaiting()
+                    if n != 0:
+                        allResponse = allResponse + serialDevice.read(n)
+                    firstChar = serialDevice.read(1)
+                    if firstChar == None or len(firstChar) == 0:
+                        break
+            except:
+                pass
+
+            if len(allResponse) < 8:
+                self.lastError = NO_RESPONSE
+                return False
+
+            printerNumber = None
+            version = None
+            pm = '+Printer Number ['
+            if allResponse.find(pm) != -1:
+                if allResponse.find(pm) != 0:
+                    self.junkBeforeVersion = allResponse[:allResponse.find(pm)].split('\n')
+                tmp = allResponse[allResponse.find(pm) + len(pm):]
+                if tmp.find(']') != -1:
+                    printerNumber = tmp[:tmp.find(']')]
+            vm = '+Version ['
+            if allResponse.find(vm) != -1:
+                tmp = allResponse[allResponse.find(vm) + len(vm):]
+                if tmp.find(']') != -1:
+                    version = tmp[:tmp.find(']')]
+
+            if printerNumber:
+                self.printerNumber = printerNumber
+                print("Printer number: " + printerNumber)
+            if version:
+                self.parseVersion(version)
+            else:
+                self.legacyFirmware(allResponse)
+
+            self.connected = True
+            self.serialDevice = serialDevice
+            serialDevice.timeout = 0
             self.serialWrite("notacmd\n")
-            if response == None:
-                self.lastError = "Printer didn't respond."
-                return True
-
-            # Parse out the version
-            for line in response:
-                if line.find('.') == -1:
-                    continue
-                major = line[:line.find('.')]
-                line = line[line.find('.')+1:]
-                if line.find('.') == -1:
-                    continue
-                minor = line[:line.find('.')]
-                line = line[line.find('.')+1:]
-                if line.find('+') == -1:
-                    continue
-                patch = line[:line.find('+')]
-                build = line[line.find('+')+1:].rstrip()
-                if len(build) != 8:
-                    continue
-
-                tag = None
-                if patch.find('-') != -1:
-                    tag = patch[patch.find('-')+1:]
-                    patch = patch[:patch.find('-')]
-
-                try:
-                    major = int(major)
-                    minor = int(minor)
-                    patch = int(patch)
-                except ValueError:
-                    continue
-
-                self.version = "{}.{}.{}".format(major, minor, patch)
-                if tag:
-                    self.version = self.version + "-" + tag
-                self.version = self.version + "+" + build
-
-                self.majorVersion = major
-                self.minorVersion = minor
-                self.patchVersion = patch
-                self.buildVersion = build
-                self.tagVersion   = tag
-
-                print("Printer is running version: " + self.version)
-                break
-
             return True
-        except SerialException as e:
+
+        except serial.SerialException as e:
             self.lastError = str(e)
-        except:
-            self.lastError = "Unknown Error"
+        except Exception as e:
+            self.lastError = "Unknown Error: {}".format(e)
             return False
 
+    def legacyFirmware(self, response):
+        print("legacy firmware response: " + response)
+        oYear = response.find("+2014")
+        if oYear == -1:
+            oYear = response.find("+2015")
+        if oYear != -1:
+            sVer = oYear
+            while sVer > 0:
+                sVer = sVer - 1
+                if not (response[sVer] == '.' or
+                        response[sVer] >= '0' and response[sVer] <= '9'):
+                    sVer = sVer + 1
+                    break
+            eVer = oYear
+            while eVer < len(response) - 1:
+                eVer = eVer + 1
+                if not (response[eVer] == '.' or
+                        response[eVer] >= '0' and response[eVer] <= '9'):
+                    break
+            self.parseVersion(response[sVer:eVer])
+
     def disconnect(self):
-      self.serialDevice.close()
-      self.serialDevice = None
-      self.connected = False
-      self.version = None
+        if self.serialDevice:
+            self.serialDevice.close()
+        self.serialDevice = None
+        self.connected = False
+        self.version = None
 
     def getTimeSinceLastCommand(self):
         if self.lastCommandTime == None:

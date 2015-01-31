@@ -1016,7 +1016,7 @@ class Argentum(QtGui.QMainWindow):
                     self.connectButtonPushed()
             else:
                 self.portListCombo.setCurrentIndex(idx)
-                if self.autoConnect and not self.printer.connected:
+                if self.autoConnect and not self.printer.connected and curPort != NO_PRINTER:
                     self.autoConnect = False
                     self.autoConnected = False
                     QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
@@ -1028,6 +1028,7 @@ class Argentum(QtGui.QMainWindow):
         if self.autoConnected:
             if self.printer.connected:
                 self.printerConnected()
+                self.autoConnect = True
             return
         QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
 
