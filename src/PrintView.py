@@ -532,8 +532,8 @@ class PrintView(QtGui.QWidget):
             ip.sliceImage(image.pixmap.toImage(), hexFilename,
                             progressFunc=self.imageProgress,
                             size=size)
-        except:
-            print("error processing {}.".format(image.filename))
+        except Exception as e:
+            print("error processing {}: {}.".format(image.filename, e))
             self.setProgress(labelText="Error processing {}.".format(image.filename))
             print("removing {}.".format(hexFilename))
             os.remove(hexFilename)
@@ -651,6 +651,9 @@ class PrintView(QtGui.QWidget):
         self.printThread.start()
 
     def printLoop(self):
+        lightWasOn = None
+        leftFanWasOn = None
+        rightFanWasOn = None
         try:
             self.setProgress(statusText="Printing.")
 
@@ -679,11 +682,20 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
                 return
 
+            lightWasOn = self.argentum.printer.lightsOn
+            leftFanWasOn = self.argentum.printer.leftFanOn
+            rightFanWasOn = self.argentum.printer.rightFanOn
+
+            if not lightWasOn:
+                self.argentum.printer.turnLightsOn()
+            if not leftFanWasOn:
+                self.argentum.printer.turnLeftFanOn()
+            if not rightFanWasOn:
+                self.argentum.printer.turnRightFanOn()
+
             # Now we can actually print!
             printingStart = time.time()
             self.setProgress(percent=20, labelText="Printing...")
-            self.argentum.printer.disconnect()
-            self.argentum.printer.connect()
             self.perImage = 79.0 / (len(self.images) - 1)
             nImage = 0
             for image in self.images:
@@ -710,6 +722,12 @@ class PrintView(QtGui.QWidget):
         finally:
             self.printThread = None
             self.argentum.printingCompleted = True
+            if lightWasOn == False:
+                self.argentum.printer.turnLightsOff()
+            if leftFanWasOn == False:
+                self.argentum.printer.turnLeftFanOff()
+            if rightFanWasOn == False:
+                self.argentum.printer.turnRightFanOff()
 
     def movePrintHead(self):
         xmm = self.printHeadImage.left - self.printHeadImage.minLeft
