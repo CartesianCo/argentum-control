@@ -211,8 +211,8 @@ class ImageProcessor:
 
 
         # Reset X and Y positions
-        self.writeMovementCommand('X', 0)
-        self.writeMovementCommand('Y', 0)
+        #self.writeMovementCommand('X', 0)
+        #self.writeMovementCommand('Y', 0)
 
         self.outputFile.close()
 

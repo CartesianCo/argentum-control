@@ -696,20 +696,21 @@ class PrintView(QtGui.QWidget):
             # Now we can actually print!
             printingStart = time.time()
             self.setProgress(percent=20, labelText="Printing...")
+            self.argentum.printer.home(wait=True)
             self.perImage = 79.0 / (len(self.images) - 1)
             nImage = 0
             for image in self.images:
                 if image == self.printHeadImage:
                     continue
                 pos = self.printAreaToMove(image.left + image.width, image.bottom)
-                self.argentum.printer.home(wait=True)
-                self.argentum.printer.move(pos[0], pos[1])
+                self.argentum.printer.moveTo(pos[0], pos[1])
                 self.setProgress(labelText=image.hexFilename)
                 path = os.path.join(self.argentum.filesDir, image.hexFilename)
                 self.argentum.printer.send(path, progressFunc=self.sendProgress, printOnline=True)
                 nImage = nImage + 1
                 self.setProgress(percent=(20 + self.perImage * nImage))
 
+            self.argentum.printer.home()
             self.setProgress(statusText='Print complete.', percent=100)
             printingEnd = time.time()
             self.argentum.addTimeSpentPrinting(printingEnd - printingStart)
