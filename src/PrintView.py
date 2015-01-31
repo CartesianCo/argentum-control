@@ -19,9 +19,6 @@ from setup import VERSION, BASEVERSION, CA_CERTS
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
 imageScale            = [ 23.70,  23.70] # * print = pixels
 
-# moves / mm
-moveScale             = [3000 / 37, 3000 / 39]
-
 # A kind of annoying Rect
 # Note: (0,0) is the bottom left corner of the printer
 # All measurements are in millimeters
@@ -161,7 +158,7 @@ class PrintView(QtGui.QWidget):
 
         self.printPlateArea = PrintRect(0, 0, 285, 255)
         self.printArea = PrintRect(24, 73, 247, 127)
-        self.printLims = PrintRect(10, 0, 230, 120)
+        self.printLims = PrintRect(10, 14, 165, 110)
         self.printPlateDesign = QtSvg.QSvgRenderer("printPlateDesign.svg")
         self.trashCan         = QtSvg.QSvgRenderer("trashCan.svg")
         self.trashCanOpen     = QtSvg.QSvgRenderer("trashCanOpen.svg")
@@ -343,24 +340,16 @@ class PrintView(QtGui.QWidget):
         return self.printToScreen(p)
 
     def printAreaToMove(self, offsetX, offsetY):
-        fudgeX = 3
-        fudgeY = 6
-        x = offsetX * moveScale[0] - fudgeX * moveScale[0]
-        y = offsetY * moveScale[1] - fudgeY * moveScale[1]
+        fudgeX = -80
+        fudgeY = -560
+        x = offsetX * 80 + fudgeX
+        y = offsetY * 80 + fudgeY
         x = int(x)
         y = int(y)
         return (x, y)
 
     def screenToPrintArea(self, x, y):
         r = self.printToScreen(self.printArea)
-        if x < r.left():
-            x = r.left()
-        if x > r.left() + r.width():
-            x = r.left() + r.width()
-        if y < r.top():
-            y = r.top()
-        if y > r.top() + r.height():
-            y = r.top() + r.height()
 
         dx = x - r.left()
         dy = y - r.top()
@@ -651,9 +640,6 @@ class PrintView(QtGui.QWidget):
         self.printThread.start()
 
     def printLoop(self):
-        lightWasOn = None
-        leftFanWasOn = None
-        rightFanWasOn = None
         try:
             self.setProgress(statusText="Printing.")
 
@@ -682,16 +668,7 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
                 return
 
-            lightWasOn = self.argentum.printer.lightsOn
-            leftFanWasOn = self.argentum.printer.leftFanOn
-            rightFanWasOn = self.argentum.printer.rightFanOn
-
-            if not lightWasOn:
-                self.argentum.printer.turnLightsOn()
-            if not leftFanWasOn:
-                self.argentum.printer.turnLeftFanOn()
-            if not rightFanWasOn:
-                self.argentum.printer.turnRightFanOn()
+            self.argentum.printer.turnLightsOn()
 
             # Now we can actually print!
             printingStart = time.time()
@@ -703,7 +680,13 @@ class PrintView(QtGui.QWidget):
                 if image == self.printHeadImage:
                     continue
                 pos = self.printAreaToMove(image.left + image.width, image.bottom)
-                self.argentum.printer.moveTo(pos[0], pos[1])
+                self.argentum.printer.moveTo(pos[0], pos[1], withOk=True)
+                response = self.argentum.printer.waitForResponse(timeout=10, expect='\n')
+                if response:
+                    response = ''.join(response)
+                    if response.find('/') != -1:
+                        self.setProgress(statusText="Print error - ensure images are within print limits.", canceled=True)
+                        return
                 self.setProgress(labelText=image.hexFilename)
                 path = os.path.join(self.argentum.filesDir, image.hexFilename)
                 self.argentum.printer.send(path, progressFunc=self.sendProgress, printOnline=True)
@@ -723,12 +706,6 @@ class PrintView(QtGui.QWidget):
         finally:
             self.printThread = None
             self.argentum.printingCompleted = True
-            if lightWasOn == False:
-                self.argentum.printer.turnLightsOff()
-            if leftFanWasOn == False:
-                self.argentum.printer.turnLeftFanOff()
-            if rightFanWasOn == False:
-                self.argentum.printer.turnRightFanOff()
 
     def movePrintHead(self):
         xmm = self.printHeadImage.left - self.printHeadImage.minLeft
@@ -746,43 +723,48 @@ class PrintView(QtGui.QWidget):
                 if self.inTrashCan(event.pos().x(), event.pos().y()):
                     self.images.remove(self.dragging)
                     self.layoutChanged = True
-
-        lights = False
-        if self.leftLightsRect.contains(event.pos()):
-            lights = True
-        if self.rightLightsRect.contains(event.pos()):
-            lights = True
-        for light in self.bottomLightRects:
-            if light.contains(event.pos()):
+                else:
+                    self.ensureImageInPrintLims(self.dragging)
+                    print("Released image at {} {}".format(self.dragging.left, self.dragging.bottom))
+                    self.dragging.screenRect = None
+                    self.layoutChanged = True
+        else:
+            lights = False
+            if self.leftLightsRect.contains(event.pos()):
                 lights = True
-        if lights:
-            if self.argentum.printer.lightsOn:
-                self.argentum.printer.turnLightsOff()
-            else:
-                self.argentum.printer.turnLightsOn()
+            if self.rightLightsRect.contains(event.pos()):
+                lights = True
+            for light in self.bottomLightRects:
+                if light.contains(event.pos()):
+                    lights = True
+            if lights:
+                if self.argentum.printer.lightsOn:
+                    self.argentum.printer.turnLightsOff()
+                else:
+                    self.argentum.printer.turnLightsOn()
 
-        if self.leftFanRect.contains(event.pos()):
-            if self.argentum.printer.leftFanOn:
-                self.argentum.printer.turnLeftFanOff()
-            else:
-                self.argentum.printer.turnLeftFanOn()
+            if self.leftFanRect.contains(event.pos()):
+                if self.argentum.printer.leftFanOn:
+                    self.argentum.printer.turnLeftFanOff()
+                else:
+                    self.argentum.printer.turnLeftFanOn()
 
-        if self.rightFanRect.contains(event.pos()):
-            if self.argentum.printer.rightFanOn:
-                self.argentum.printer.turnRightFanOff()
-            else:
-                self.argentum.printer.turnRightFanOn()
+            if self.rightFanRect.contains(event.pos()):
+                if self.argentum.printer.rightFanOn:
+                    self.argentum.printer.turnRightFanOff()
+                else:
+                    self.argentum.printer.turnRightFanOn()
 
-        kerf = False
-        if self.leftKerfRect.contains(event.pos()):
-            kerf = True
-        if self.rightKerfRect.contains(event.pos()):
-            kerf = True
-        if kerf:
-            if self.colorPicker.isVisible():
-                self.colorPicker.hide()
-            else:
-                self.colorPicker.show()
+            kerf = False
+            if self.leftKerfRect.contains(event.pos()):
+                kerf = True
+            if self.rightKerfRect.contains(event.pos()):
+                kerf = True
+            if kerf:
+                if self.colorPicker.isVisible():
+                    self.colorPicker.hide()
+                else:
+                    self.colorPicker.show()
 
         self.dragging = None
         self.resizing = None
@@ -808,10 +790,10 @@ class PrintView(QtGui.QWidget):
             image.left = self.printLims.left
         if image.bottom < self.printLims.bottom:
             image.bottom = self.printLims.bottom
-        if image.left + image.width > self.printLims.width:
+        if image.left + image.width > self.printLims.left + self.printLims.width:
             image.left = (self.printLims.left +
                             self.printLims.width - image.width)
-        if image.bottom + image.height > self.printLims.height:
+        if image.bottom + image.height > self.printLims.bottom + self.printLims.height:
             image.bottom = (self.printLims.bottom +
                                 self.printLims.height - image.height)
 
@@ -834,7 +816,6 @@ class PrintView(QtGui.QWidget):
             image = self.dragging
             image.left = px - self.dragStart[0] + self.dragImageStart[0]
             image.bottom = py - self.dragStart[1] + self.dragImageStart[1]
-            self.ensureImageInPrintLims(image)
             image.screenRect = None
             self.layoutChanged = True
             self.update()
@@ -860,7 +841,6 @@ class PrintView(QtGui.QWidget):
                     image.bottom = dy + startBottom
                     image.height = startHeight + startBottom - image.bottom
 
-            self.ensureImageInPrintLims(image)
             image.lastResized = time.time()
             image.screenRect = None
             self.layoutChanged = True

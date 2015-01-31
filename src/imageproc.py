@@ -92,9 +92,12 @@ class ImageProcessor:
         else:
             inputImage = inputFileName
         inputImage = inputImage.mirrored(horizontal=True, vertical=False)
-        rot270 = QTransform()
-        rot270.rotate(270)
-        inputImage = inputImage.transformed(rot270)
+        #rot270 = QTransform()
+        #rot270.rotate(270)
+        #inputImage = inputImage.transformed(rot270)
+        rot90 = QTransform()
+        rot90.rotate(90)
+        inputImage = inputImage.transformed(rot90)
         if size:
             width, height = size
             inputImage = inputImage.scaled(width, height, transformMode=QtCore.Qt.SmoothTransformation)
