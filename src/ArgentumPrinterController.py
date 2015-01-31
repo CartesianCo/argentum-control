@@ -100,6 +100,10 @@ class ArgentumPrinterController(PrinterController):
         try:
             self.serialDevice = None
             serialDevice = serial.Serial(self.port, 115200, timeout=0)
+            serialDevice.flushInput()
+            serialDevice.flush()
+            serialDevice.close()
+            serialDevice = serial.Serial(self.port, 115200, timeout=0)
             self.connected = False
             self.lightsOn = False
             self.leftFanOn = False

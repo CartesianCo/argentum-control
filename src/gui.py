@@ -979,7 +979,7 @@ class Argentum(QtGui.QMainWindow):
                 self.options[key] = value
             save_options(self.options)
 
-        self.homePrinter()
+        self.printer.home()
 
         if (self.printer.version != None and
                 is_older_firmware(self.printer.version)):
