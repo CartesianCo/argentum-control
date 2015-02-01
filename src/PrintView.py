@@ -15,6 +15,7 @@ from PyQt4 import QtGui, QtCore, QtSvg
 from gerber import Gerber
 import requests
 from setup import VERSION, BASEVERSION, CA_CERTS
+import tempfile
 
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
 imageScale            = [ 23.70,  23.70] # * print = pixels
@@ -145,6 +146,7 @@ class PrintView(QtGui.QWidget):
     printThread = None
     dragging = None
     resizing = None
+    selection = None
 
     def __init__(self, argentum):
         super(PrintView, self).__init__()
@@ -198,24 +200,8 @@ class PrintView(QtGui.QWidget):
         self.colorPicker = QtGui.QColorDialog()
         self.pickColorFor = None
         self.colorPicker.colorSelected.connect(self.colorPicked)
-
-        self.showPrintHeadAction = QtGui.QAction('&Show Print Head', self)
-        self.showPrintHeadAction.triggered.connect(self.showPrintHeadActionTriggered)
-        self.argentum.optionsMenu.addAction(self.showPrintHeadAction)
         self.showingPrintHead = False
-
-        self.showPrintLimsAction = QtGui.QAction('&Show Print Limits', self)
-        self.showPrintLimsAction.triggered.connect(self.showPrintLimsActionTriggered)
-        self.argentum.optionsMenu.addAction(self.showPrintLimsAction)
         self.showingPrintLims = True
-
-        self.ratePrintAction = QtGui.QAction('&Rate Last Print', self)
-        self.ratePrintAction.triggered.connect(self.ratePrintActionTriggered)
-        self.argentum.optionsMenu.addAction(self.ratePrintAction)
-
-        self.dryAction = QtGui.QAction('&Dry', self)
-        self.dryAction.triggered.connect(self.dryActionTriggered)
-        self.argentum.printerMenu.addAction(self.dryAction)
 
         self.printButton = QtGui.QPushButton("Print")
         self.printButton.clicked.connect(self.startPrint)
@@ -241,20 +227,16 @@ class PrintView(QtGui.QWidget):
     def showPrintHeadActionTriggered(self):
         if self.showingPrintHead:
             self.showingPrintHead = False
-            self.showPrintHeadAction.setText("&Show Print Head")
         else:
             self.showingPrintHead = True
-            self.showPrintHeadAction.setText("&Hide Print Head")
             self.argentum.updatePosDisplay()
         self.update()
 
     def showPrintLimsActionTriggered(self):
         if self.showingPrintLims:
             self.showingPrintLims = False
-            self.showPrintLimsAction.setText("&Show Limits Head")
         else:
             self.showingPrintLims = True
-            self.showPrintLimsAction.setText("&Hide Print Limits")
         self.update()
 
     def ratePrintActionTriggered(self):
@@ -700,7 +682,7 @@ class PrintView(QtGui.QWidget):
         if len(self.images) == 1:
             QtGui.QMessageBox.information(self,
                         "Nothing to print",
-                        "You can add images to the print view by selecting\nFile -> Import Image or by simply dragging and dropping images onto the print area.")
+                        "You can add images to the print view by selecting\nFile -> Import Image or by simply dragging and dropping images onto the layout. All standard image file formats are supported, as well as industry standard Gerber files. You can also cut and paste from any graphics editing program.")
 
             return
 
@@ -850,6 +832,11 @@ class PrintView(QtGui.QWidget):
                     self.colorPicker.hide()
                 else:
                     self.colorPicker.show()
+
+        if self.dragging and self.dragging != self.printHeadImage:
+            self.selection = self.dragging
+        elif self.resizing:
+            self.selection = self.resizing
 
         self.dragging = None
         self.resizing = None
@@ -1013,20 +1000,70 @@ class PrintView(QtGui.QWidget):
     def dropEvent(self, e):
         if e.mimeData().hasUrls():
             url = str(e.mimeData().urls()[0].path())
-            if url[0] == '/' and url[2] == ':':
-                # Windows
-                url = url[1:]
-            if url[-7:] == ".layout":
-                self.openLayout(url)
-                return
-            pi = self.addImageFile(url)
-            if pi == None:
-                return
-            p = self.screenToPrintArea(e.pos().x(), e.pos().y())
+            pi = self.addDroppedFile(url, e.pos())
+            if pi:
+                self.selection = pi
+
+    def addDroppedFile(self, path, pos=None):
+        if path[0] == '/' and path[2] == ':':
+            # Windows
+            path = path[1:]
+        if path[-7:] == ".layout":
+            self.openLayout(path)
+            return None
+        pi = self.addImageFile(path)
+        if pi == None:
+            return None
+        if pos:
+            p = self.screenToPrintArea(pos.x(), pos.y())
             if p != None:
                 pi.left = p[0] - pi.width / 2
                 pi.bottom = p[1] - pi.height / 2
                 self.ensureImageInPrintLims(pi)
+        return pi
+
+    def copy(self):
+        if self.selection == None:
+            print("nothing to copy")
+            return
+        clipboard = QtGui.QApplication.clipboard()
+        clipboard.setPixmap(self.selection.pixmap)
+
+    def cut(self):
+        if self.selection == None:
+            print("nothing to cut")
+            return
+        self.copy()
+        self.images.remove(self.selection)
+        self.layoutChanged = True
+        self.update()
+
+    def delete(self):
+        if self.selection == None:
+            print("nothing to delete")
+            return
+        self.images.remove(self.selection)
+        self.layoutChanged = True
+        self.update()
+
+    def paste(self):
+        clipboard = QtGui.QApplication.clipboard()
+        if clipboard.mimeData().hasUrls():
+            url = str(clipboard.mimeData().urls()[0].path())
+            pi = self.addDroppedFile(url)
+            if pi != None:
+                self.selection = pi
+            return
+
+        if clipboard.mimeData().hasImage():
+            image = clipboard.mimeData().imageData().toPyObject()
+            fname = tempfile.mktemp() + ".png"
+            print("using temp file " + fname)
+            image.save(fname);
+            pi = self.addDroppedFile(fname)
+            if pi != None:
+                self.selection = pi
+            return
 
     def openLayout(self, filename=None):
         if self.closeLayout() == False:

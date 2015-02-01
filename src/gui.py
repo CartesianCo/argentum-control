@@ -165,6 +165,7 @@ class Argentum(QtGui.QMainWindow):
     def initUI(self):
         # Create the console
         self.console = QtGui.QWidget(self)
+        self.printView = PrintView(self)
 
         # First Row
         connectionRow = QtGui.QHBoxLayout()
@@ -316,7 +317,7 @@ class Argentum(QtGui.QMainWindow):
 
         # Menu Bar Stuff
 
-        self.flashAction = QtGui.QAction('&Flash Arduino', self)
+        self.flashAction = QtGui.QAction('&Change Firmware', self)
         self.flashAction.triggered.connect(self.flashActionTriggered)
         self.flashAction.setEnabled(False)
 
@@ -345,8 +346,24 @@ class Argentum(QtGui.QMainWindow):
         self.changePrinterNumAction = QtGui.QAction("&Change Printer Number", self)
         self.changePrinterNumAction.triggered.connect(self.askForPrinterNumber)
 
+
+        self.showPrintHeadAction = QtGui.QAction('Print &Head', self)
+        self.showPrintHeadAction.setCheckable(True)
+        self.showPrintHeadAction.triggered.connect(self.printView.showPrintHeadActionTriggered)
+
+        self.showPrintLimsAction = QtGui.QAction('Print &Limits', self)
+        self.showPrintLimsAction.setCheckable(True)
+        self.showPrintLimsAction.setChecked(True)
+        self.showPrintLimsAction.triggered.connect(self.printView.showPrintLimsActionTriggered)
+
+        self.ratePrintAction = QtGui.QAction('&Rate Last Print', self)
+        self.ratePrintAction.triggered.connect(self.printView.ratePrintActionTriggered)
+
+        self.dryAction = QtGui.QAction('&Dry', self)
+        self.dryAction.triggered.connect(self.printView.dryActionTriggered)
+
         menubar = self.menuBar()
-        fileMenu = menubar.addMenu('File')
+        fileMenu = menubar.addMenu('&File')
         self.openLayoutAction = QtGui.QAction('&Open Layout', self)
         self.openLayoutAction.triggered.connect(self.fileOpenLayoutTriggered)
         fileMenu.addAction(self.openLayoutAction)
@@ -373,19 +390,58 @@ class Argentum(QtGui.QMainWindow):
         self.exitAction.triggered.connect(self.fileExitActionTriggered)
         fileMenu.addAction(self.exitAction)
 
-        optionsMenu = menubar.addMenu('Options')
-        self.optionsMenu = optionsMenu
-        optionsMenu.addAction(self.optionsAction)
-        optionsMenu.addAction(self.changePrinterNumAction)
-        optionsMenu.addAction(self.updateAction)
+        editMenu = menubar.addMenu('&Edit')
+        cutAction = QtGui.QAction('Cu&t', self)
+        cutAction.setShortcut(QtGui.QKeySequence("Ctrl+X"))
+        cutAction.triggered.connect(self.printView.cut)
+        copyAction = QtGui.QAction('&Copy', self)
+        copyAction.setShortcut(QtGui.QKeySequence("Ctrl+C"))
+        copyAction.triggered.connect(self.printView.copy)
+        pasteAction = QtGui.QAction('&Paste', self)
+        pasteAction.setShortcut(QtGui.QKeySequence("Ctrl+V"))
+        pasteAction.triggered.connect(self.printView.paste)
+        deleteAction = QtGui.QAction('&Delete', self)
+        deleteAction.setShortcut(QtGui.QKeySequence("Delete"))
+        deleteAction.triggered.connect(self.printView.delete)
+        editMenu.addAction(cutAction)
+        editMenu.addAction(copyAction)
+        editMenu.addAction(pasteAction)
+        editMenu.addAction(deleteAction)
+        editMenu.addSeparator()
+        preferencesAction = QtGui.QAction('Preferences', self)
+        preferencesAction.triggered.connect(self.preferencesActionTriggered)
+        editMenu.addAction(preferencesAction)
+
+        viewMenu = menubar.addMenu('&View')
+        viewMenu.addAction(self.showPrintHeadAction)
+        viewMenu.addAction(self.showPrintLimsAction)
+        viewMenu.addSeparator()
+        self.viewSwitchAction = QtGui.QAction("Console", self)
+        self.viewSwitchAction.triggered.connect(self.viewSwitchActionTriggered)
+        viewMenu.addAction(self.viewSwitchAction)
 
         printerMenu = menubar.addMenu('Printer')
         self.printerMenu = printerMenu
-        printerMenu.addAction(self.flashAction)
+        printerMenu.addAction(self.optionsAction)
         printerMenu.addAction(self.rollerCalibrationAction)
-        printerMenu.addAction(self.uploadFileAction)
-        printerMenu.addAction(self.printFileAction)
-        printerMenu.addAction(self.processImageAction)
+        printerMenu.addAction(self.changePrinterNumAction)
+        printerMenu.addSeparator()
+
+        utilityMenu = printerMenu.addMenu('Utilities')
+        self.utilityMenu = utilityMenu
+        utilityMenu.addAction(self.flashAction)
+        utilityMenu.addAction(self.uploadFileAction)
+        utilityMenu.addAction(self.printFileAction)
+        utilityMenu.addAction(self.processImageAction)
+        utilityMenu.addAction(self.ratePrintAction)
+        utilityMenu.addAction(self.dryAction)
+
+        helpMenu = menubar.addMenu('Help')
+        helpMenu.addAction(self.updateAction)
+        helpMenu.addSeparator()
+        aboutAction = QtGui.QAction('&About', self)
+        aboutAction.triggered.connect(self.aboutActionTriggered)
+        helpMenu.addAction(aboutAction)
 
         self.statusBar().showMessage('Looking for printer...')
 
@@ -394,14 +450,13 @@ class Argentum(QtGui.QMainWindow):
         # Create the Print tab
         self.printWidget = QtGui.QWidget(self)
         horizontalLayout = QtGui.QHBoxLayout()
-        self.printView = PrintView(self)
         horizontalLayout.addWidget(self.printView)
         self.printWidget.setLayout(horizontalLayout)
 
         # Main Window Setup
         self.tabWidget = QtGui.QTabWidget(self)
         self.tabWidget.setTabPosition(QtGui.QTabWidget.South)
-        self.tabWidget.addTab(self.printWidget, "Printer")
+        self.tabWidget.addTab(self.printWidget, "Layout")
         self.tabWidget.addTab(self.console, "Console") # always last
         self.setCentralWidget(self.tabWidget)
 
@@ -553,6 +608,14 @@ class Argentum(QtGui.QMainWindow):
     def rollerCalibrationActionTriggered(self):
         rollerDialog = RollerCalibrationDialog(self, None)
         rollerDialog.exec_()
+
+    def preferencesActionTriggered(self):
+        pass
+
+    def aboutActionTriggered(self):
+        QtGui.QMessageBox.information(self,
+                        "CartesianCo Argentum Control",
+                        "This software is used to control the Argentum circuit board printer.\n\nYou are running version {}.".format(BASEVERSION))
 
     def uploadProgressFunc(self, pos, size):
         if self.uploadProgressCancel:
@@ -1048,6 +1111,14 @@ class Argentum(QtGui.QMainWindow):
                 self.autoConnected = True
             else:
                 print("Failed to connect to printer: " + self.printer.lastError)
+
+    def viewSwitchActionTriggered(self):
+        if self.viewSwitchAction.text() == "Console":
+            self.tabWidget.setCurrentWidget(self.console)
+            self.viewSwitchAction.setText("Layout")
+        else:
+            self.tabWidget.setCurrentWidget(self.printWidget)
+            self.viewSwitchAction.setText("Console")
 
     def processImageButtonPushed(self):
         self.processImage()
