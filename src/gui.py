@@ -1138,6 +1138,8 @@ class Argentum(QtGui.QMainWindow):
                 return
             if self.printing or self.printer.printing:
                 return
+            if self.tabWidget.currentWidget() == self.printWidget and self.printView.showingPrintHead == False:
+                return
             pos = self.printer.getPosition()
             if pos == None:
                 return
