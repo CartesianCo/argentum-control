@@ -260,6 +260,11 @@ class PrintView(QtGui.QWidget):
         self.printThread.dryingOnly = True
 
     def dryingLoop(self):
+        try:
+            if self.argentum.options["use_rollers"] == False:
+                return
+        except:
+            pass
         print("Drying mode on.")
 
         try:

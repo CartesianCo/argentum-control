@@ -74,7 +74,7 @@ class OptionsDialog(QtGui.QDialog):
         for name, widget in self.created.items():
             options[name] = str(widget.text())
 
-        self.parent.updateOptions(options)
+        self.parent.updatePrinterOptions(options)
 
         self.close()
 

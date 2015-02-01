@@ -22,6 +22,7 @@ from serial.tools.list_ports import comports
 from ArgentumPrinterController import ArgentumPrinterController
 from PrintView import PrintView
 from avrdude import avrdude
+from Preferences import PreferencesDialog
 import requests
 
 import pickle
@@ -131,7 +132,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.printing = False
         self.paused = False
-        self.autoConnect = True
+        self.autoConnect = self.getOption("autoconnect", True)
         self.sentVolt = False
 
         self.XStepSize = 150
@@ -236,11 +237,8 @@ class Argentum(QtGui.QMainWindow):
         self.posRemoveButton.setAttribute(QtCore.Qt.WA_TranslucentBackground)
         self.posRemoveButton.clicked.connect(self.posRemoveButtonPushed)
 
-        try:
-            for pos in self.options["saved_positions"]:
-                self.posListWidget.addItem(pos)
-        except:
-            pass
+        for pos in self.getOption("saved_positions", []):
+            self.posListWidget.addItem(pos)
 
         # Jog Frame
 
@@ -459,6 +457,8 @@ class Argentum(QtGui.QMainWindow):
         self.tabWidget.addTab(self.printWidget, "Layout")
         self.tabWidget.addTab(self.console, "Console") # always last
         self.setCentralWidget(self.tabWidget)
+        if self.getOption("console_start", False):
+            self.tabWidget.setCurrentWidget(self.console)
 
         self.printingCompleted = False
 
@@ -610,7 +610,8 @@ class Argentum(QtGui.QMainWindow):
         rollerDialog.exec_()
 
     def preferencesActionTriggered(self):
-        pass
+        prefsDialog = PreferencesDialog(self)
+        prefsDialog.exec_()
 
     def aboutActionTriggered(self):
         QtGui.QMessageBox.information(self,
@@ -1049,7 +1050,8 @@ class Argentum(QtGui.QMainWindow):
                 self.options[key] = value
             save_options(self.options)
 
-        self.printer.home()
+        if self.getOption("home_on_connect", True):
+            self.printer.home()
 
         if (self.printer.version != None and
                 is_older_firmware(self.printer.version)):
@@ -1099,7 +1101,7 @@ class Argentum(QtGui.QMainWindow):
         if self.autoConnected:
             if self.printer.connected:
                 self.printerConnected()
-                self.autoConnect = True
+                self.autoConnect = self.getOption("autoconnect", True)
             return
         QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
 
@@ -1352,9 +1354,18 @@ class Argentum(QtGui.QMainWindow):
         #else:
             #print 'click'
 
+    def getOption(self, name, default):
+        try:
+            return self.options[name]
+        except:
+            return default
+
     def updateOptions(self, val):
         self.options = val
         save_options(self.options)
+
+    def updatePrinterOptions(self, val):
+        self.updateOptions(val)
         if self.printer.connected:
             self.printer.updateOptions(self.options)
 
@@ -1367,10 +1378,7 @@ class Argentum(QtGui.QMainWindow):
             if pnum != None:
                 return pnum
 
-        try:
-            return self.options["printer_number"]
-        except:
-            return None
+        return self.getOption("printer_number", None)
 
     def setPrinterNumber(self, val):
         if self.printer.connected:
@@ -1380,12 +1388,7 @@ class Argentum(QtGui.QMainWindow):
         self.startUpdateLoop()
 
     def getTimeSpent(self, name):
-        cur = 0
-        try:
-            cur = self.options[name]
-        except:
-            pass
-        return cur
+        return self.getOption(name, 0)
 
     def addTimeSpent(self, name, val):
         self.options[name] = self.getTimeSpent(name) + val
