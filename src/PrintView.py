@@ -204,6 +204,11 @@ class PrintView(QtGui.QWidget):
         self.argentum.optionsMenu.addAction(self.showPrintHeadAction)
         self.showingPrintHead = False
 
+        self.showPrintLimsAction = QtGui.QAction('&Show Print Limits', self)
+        self.showPrintLimsAction.triggered.connect(self.showPrintLimsActionTriggered)
+        self.argentum.optionsMenu.addAction(self.showPrintLimsAction)
+        self.showingPrintLims = True
+
         self.ratePrintAction = QtGui.QAction('&Rate Last Print', self)
         self.ratePrintAction.triggered.connect(self.ratePrintActionTriggered)
         self.argentum.optionsMenu.addAction(self.ratePrintAction)
@@ -374,6 +379,10 @@ class PrintView(QtGui.QWidget):
         qp.begin(self)
         qp.fillRect(self.rect(), QtGui.QColor(0,0,0))
         self.printPlateDesign.render(qp, self.printPlateDesignRect)
+
+        if self.showingPrintLims:
+            printLimsScreenRect = self.printAreaToScreen(self.printLims)
+            qp.drawRect(printLimsScreenRect)
 
         if self.dragging and self.dragging != self.printHeadImage:
             if self.showTrashCanOpen:
@@ -727,9 +736,12 @@ class PrintView(QtGui.QWidget):
                     self.layoutChanged = True
                 else:
                     self.ensureImageInPrintLims(self.dragging)
-                    print("Released image at {} {}".format(self.dragging.left, self.dragging.bottom))
                     self.dragging.screenRect = None
                     self.layoutChanged = True
+        elif self.resizing:
+            self.ensureImageInPrintLims(self.resizing)
+            self.resizing.screenRect = None
+            self.layoutChanged = True
         else:
             lights = False
             if self.leftLightsRect.contains(event.pos()):
@@ -798,6 +810,13 @@ class PrintView(QtGui.QWidget):
         if image.bottom + image.height > self.printLims.bottom + self.printLims.height:
             image.bottom = (self.printLims.bottom +
                                 self.printLims.height - image.height)
+
+        if image.left < self.printLims.left:
+            image.left = self.printLims.left
+            image.width = self.printLims.width
+        if image.bottom < self.printLims.bottom:
+            image.bottom = self.printLims.bottom
+            image.height = self.printLims.height
 
     def mouseMoveEvent(self, event):
         pressed = event.buttons() & QtCore.Qt.LeftButton
