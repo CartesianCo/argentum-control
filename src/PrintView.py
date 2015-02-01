@@ -213,6 +213,10 @@ class PrintView(QtGui.QWidget):
         self.ratePrintAction.triggered.connect(self.ratePrintActionTriggered)
         self.argentum.optionsMenu.addAction(self.ratePrintAction)
 
+        self.dryAction = QtGui.QAction('&Dry', self)
+        self.dryAction.triggered.connect(self.dryActionTriggered)
+        self.argentum.printerMenu.addAction(self.dryAction)
+
         self.printButton = QtGui.QPushButton("Print")
         self.printButton.clicked.connect(self.startPrint)
         mainLayout = QtGui.QVBoxLayout()
@@ -244,9 +248,73 @@ class PrintView(QtGui.QWidget):
             self.argentum.updatePosDisplay()
         self.update()
 
+    def showPrintLimsActionTriggered(self):
+        if self.showingPrintLims:
+            self.showingPrintLims = False
+            self.showPrintLimsAction.setText("&Show Limits Head")
+        else:
+            self.showingPrintLims = True
+            self.showPrintLimsAction.setText("&Hide Print Limits")
+        self.update()
+
     def ratePrintActionTriggered(self):
         rateDialog = RateYourPrintDialog(self)
         rateDialog.exec_()
+
+    def dryActionTriggered(self):
+        if self.printThread != None:
+            print("Already printing!")
+            return
+
+        self.printCanceled = False
+        self.progress = QtGui.QProgressDialog(self)
+        self.progress.setWindowTitle("Drying")
+        self.progress.setLabelText("Starting up...")
+        self.progress.setValue(0)
+        self.progress.show()
+
+        self.printThread = threading.Thread(target=self.dryingLoop)
+        self.printThread.start()
+        self.printThread.dryingOnly = True
+
+    def dryingLoop(self):
+        print("Drying mode on.")
+
+        try:
+            printer = self.argentum.printer
+            printer.command("l E", expect='rollers')
+
+            for image in self.images:
+                if image == self.printHeadImage:
+                    continue
+                print("Jacketing drying.")
+                self.setProgress(labelText="Drying " + image.hexFilename)
+                pos = self.printAreaToMove(image.left + image.width - 60, image.bottom + 30)
+                x = pos[0]
+                y = pos[1]
+                sy = y
+                while y - sy < image.height * 80:
+                    printer.moveTo(x, y, withOk=True)
+                    printer.waitForResponse(timeout=10, expect='Ok')
+                    printer.command("l d", expect='rollers')
+                    time.sleep(1.5)
+                    left = x - image.width * 80
+                    if left < 0:
+                        left = 0
+                    printer.moveTo(left, y, withOk=True)
+                    printer.waitForResponse(timeout=10, expect='Ok')
+                    printer.command("l r", expect='rollers')
+                    time.sleep(1.5)
+                    y = y + 30 * 80
+
+            printer.command("l e", expect='rollers')
+        finally:
+            if self.printThread.dryingOnly:
+                self.printThread = None
+                self.setProgress(percent=100)
+                self.argentum.printer.home()
+
+        print("Your jacket is now dry.")
 
     def calcScreenRects(self):
         if self.lastRect == self.rect():
@@ -649,6 +717,7 @@ class PrintView(QtGui.QWidget):
 
         self.printThread = threading.Thread(target=self.printLoop)
         self.printThread.start()
+        self.printThread.dryingOnly = False
 
     def printLoop(self):
         try:
@@ -703,6 +772,8 @@ class PrintView(QtGui.QWidget):
                 self.argentum.printer.send(path, progressFunc=self.sendProgress, printOnline=True)
                 nImage = nImage + 1
                 self.setProgress(percent=(20 + self.perImage * nImage))
+
+            self.dryingLoop()
 
             self.argentum.printer.home()
             self.setProgress(statusText='Print complete.', percent=100)
