@@ -776,15 +776,19 @@ class PrintView(QtGui.QWidget):
         ymm = self.printHeadImage.bottom - self.printHeadImage.minBottom
         self.argentum.printer.moveTo(xmm * 80, ymm * 80)
 
-    def inTrashCan(self, x, y):
-        return x > self.trashCanRect.left() and y > self.trashCanRect.top()
+    def inTrashCan(self, image):
+        if image == None:
+            return False
+        if image.screenRect == None:
+            image.screenRect = self.printAreaToScreen(image)
+        return self.trashCanRect.intersect(image.screenRect)
 
     def mouseReleaseEvent(self, event):
         if self.dragging:
             if self.dragging == self.printHeadImage:
                 self.movePrintHead()
             else:
-                if self.inTrashCan(event.pos().x(), event.pos().y()):
+                if self.inTrashCan(self.dragging):
                     self.images.remove(self.dragging)
                     self.layoutChanged = True
                 else:
@@ -884,8 +888,7 @@ class PrintView(QtGui.QWidget):
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
 
-        self.showTrashCanOpen = (self.dragging and
-            self.inTrashCan(event.pos().x(), event.pos().y()))
+        self.showTrashCanOpen = self.inTrashCan(self.dragging)
 
         px = p[0]
         py = p[1]
