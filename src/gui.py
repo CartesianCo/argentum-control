@@ -28,7 +28,7 @@ import pickle
 
 from imageproc import ImageProcessor
 
-from Alchemist import OptionsDialog, CommandLineEdit, ServoCalibrationDialog
+from Alchemist import OptionsDialog, CommandLineEdit, RollerCalibrationDialog
 
 from setup import VERSION, BASEVERSION, CA_CERTS
 from firmware_updater import update_firmware_list, get_available_firmware, update_local_firmware, is_older_firmware
@@ -324,9 +324,9 @@ class Argentum(QtGui.QMainWindow):
         self.optionsAction.triggered.connect(self.optionsActionTriggered)
         self.optionsAction.setEnabled(False)
 
-        self.servoCalibrationAction = QtGui.QAction('Servo Calibration', self)
-        self.servoCalibrationAction.triggered.connect(self.servoCalibrationActionTriggered)
-        self.servoCalibrationAction.setEnabled(False)
+        self.rollerCalibrationAction = QtGui.QAction('Roller Calibration', self)
+        self.rollerCalibrationAction.triggered.connect(self.rollerCalibrationActionTriggered)
+        self.rollerCalibrationAction.setEnabled(False)
 
         self.uploadFileAction = QtGui.QAction('Upload File', self)
         self.uploadFileAction.triggered.connect(self.uploadFileActionTriggered)
@@ -382,7 +382,7 @@ class Argentum(QtGui.QMainWindow):
         printerMenu = menubar.addMenu('Printer')
         self.printerMenu = printerMenu
         printerMenu.addAction(self.flashAction)
-        printerMenu.addAction(self.servoCalibrationAction)
+        printerMenu.addAction(self.rollerCalibrationAction)
         printerMenu.addAction(self.uploadFileAction)
         printerMenu.addAction(self.printFileAction)
         printerMenu.addAction(self.processImageAction)
@@ -426,7 +426,8 @@ class Argentum(QtGui.QMainWindow):
                 "ts_processing_images": self.getTimeSpentProcessingImages(),
                 "ts_sending_files": self.getTimeSpentSendingFiles(),
                 "ts_printing": self.getTimeSpentPrinting(),
-                "version": BASEVERSION
+                "version": BASEVERSION,
+                "platform": sys.platform
                }
             r = requests.post("https://www.cartesianco.com/feedback/run.php", data=data, verify=CA_CERTS)
             result = r.text
@@ -549,9 +550,9 @@ class Argentum(QtGui.QMainWindow):
 
     ### Button Functions ###
 
-    def servoCalibrationActionTriggered(self):
-        optionsDialog = ServoCalibrationDialog(self, None)
-        optionsDialog.exec_()
+    def rollerCalibrationActionTriggered(self):
+        rollerDialog = RollerCalibrationDialog(self, None)
+        rollerDialog.exec_()
 
     def uploadProgressFunc(self, pos, size):
         if self.uploadProgressCancel:
@@ -939,7 +940,7 @@ class Argentum(QtGui.QMainWindow):
         self.optionsAction.setEnabled(enabled)
         self.uploadFileAction.setEnabled(enabled)
         self.printFileAction.setEnabled(enabled)
-        self.servoCalibrationAction.setEnabled(enabled)
+        self.rollerCalibrationAction.setEnabled(enabled)
 
         self.portListCombo.setEnabled(not enabled)
 
@@ -1140,7 +1141,7 @@ class Argentum(QtGui.QMainWindow):
 
     ### Command Functions ###
 
-    def servocommand(self, cmd):
+    def rollerCommand(self, cmd):
         self.printer.command('l ' + cmd)
 
     def calibrateButtonPushed(self):

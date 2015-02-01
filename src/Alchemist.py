@@ -170,9 +170,9 @@ class CommandLineEdit(QtGui.QLineEdit):
 
         self.setText("")
 
-class ServoCalibrationDialog(QtGui.QDialog):
+class RollerCalibrationDialog(QtGui.QDialog):
     '''
-    Servo Calibration Dialog
+    Roller Calibration Dialog
     '''
 
     def __init__(self, controller, parent=None):
@@ -192,13 +192,13 @@ class ServoCalibrationDialog(QtGui.QDialog):
         mainLayout.addLayout(row)
 
         row = QtGui.QHBoxLayout()
-        self.addButton(row, "Up ^", self.servoUp)
-        self.addButton(row, "Retract", self.servoRetract)
+        self.addButton(row, "Up ^", self.rollerUp)
+        self.addButton(row, "Retract", self.rollerRetract)
         mainLayout.addLayout(row)
 
         row = QtGui.QHBoxLayout()
-        self.addButton(row, "Down v", self.servoDown)
-        self.addButton(row, "Deploy", self.servoDeploy)
+        self.addButton(row, "Down v", self.rollerDown)
+        self.addButton(row, "Deploy", self.rollerDeploy)
         mainLayout.addLayout(row)
 
         row = QtGui.QHBoxLayout()
@@ -217,7 +217,7 @@ class ServoCalibrationDialog(QtGui.QDialog):
         self.setLayout(mainLayout)
 
         self.resize(200, 60)
-        self.setWindowTitle('Servo Calibration')
+        self.setWindowTitle('Roller Calibration')
 
         saveButton.setDefault(True)
         saveButton.setFocus()
@@ -225,35 +225,35 @@ class ServoCalibrationDialog(QtGui.QDialog):
 
     def disableRollers(self):
         if self.controller:
-            self.controller.servocommand('e')
+            self.controller.rollerCommand('e')
 
     def enableRollers(self):
         if self.controller:
-            self.controller.servocommand('E')
+            self.controller.rollerCommand('E')
 
-    def servoUp(self):
+    def rollerUp(self):
         if self.controller:
-            self.controller.servocommand('+')
+            self.controller.rollerCommand('+')
 
-    def servoDown(self):
+    def rollerDown(self):
         if self.controller:
-            self.controller.servocommand('-')
+            self.controller.rollerCommand('-')
 
-    def servoRetract(self):
+    def rollerRetract(self):
         if self.controller:
-            self.controller.servocommand('r')
+            self.controller.rollerCommand('r')
 
-    def servoDeploy(self):
+    def rollerDeploy(self):
         if self.controller:
-            self.controller.servocommand('d')
+            self.controller.rollerCommand('d')
 
     def setRetractPosition(self):
         if self.controller:
-            self.controller.servocommand('R')
+            self.controller.rollerCommand('R')
 
     def setDeployPosition(self):
         if self.controller:
-            self.controller.servocommand('D')
+            self.controller.rollerCommand('D')
 
     def save(self):
         if self.controller:
