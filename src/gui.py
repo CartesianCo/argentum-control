@@ -919,6 +919,7 @@ class Argentum(QtGui.QMainWindow):
 
     def startFlash(self, firmwareFileName):
         self.disableAllButtons()
+        self.autoConnect = False
         self.printer.disconnect()
 
         self.appendOutput('Flashing {} with {}...'.format(self.printer.port, firmwareFileName))
@@ -934,6 +935,7 @@ class Argentum(QtGui.QMainWindow):
         else:
             self.appendOutput("Can't flash for some reason.")
             self.appendOutput("")
+            self.autoConnect = self.getOption("autoconnect", True)
             self.printer.connect()
             self.enableAllButtons()
 
@@ -948,6 +950,7 @@ class Argentum(QtGui.QMainWindow):
             self.pollFlashingTimer = None
             self.programmer = None
 
+            self.autoConnect = self.getOption("autoconnect", True)
             self.printer.connect()
             if self.checkFlashVersion:
                 if self.printer.version == None:
