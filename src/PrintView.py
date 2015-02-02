@@ -119,6 +119,7 @@ class RateYourPrintDialog(QtGui.QDialog):
             firmware = self.argentum.printer.version
         data = {"rate": self.rate,
                 "comments": self.commentText,
+                "installnum": self.argentum.getInstallNumber(),
                 "printernum": self.printerNumText,
                 "ts_processing_images": self.argentum.getTimeSpentProcessingImages(),
                 "ts_sending_files": self.argentum.getTimeSpentSendingFiles(),

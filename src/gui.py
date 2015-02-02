@@ -15,6 +15,7 @@ import time
 #import webbrowser
 import zipfile
 import tempfile
+import random
 import shutil
 from PyQt4 import QtGui, QtCore
 
@@ -477,6 +478,7 @@ class Argentum(QtGui.QMainWindow):
         try:
             time.sleep(3)
             data = {
+                "installnum": self.getInstallNumber(),
                 "printernum": self.getPrinterNumber(),
                 "ts_processing_images": self.getTimeSpentProcessingImages(),
                 "ts_sending_files": self.getTimeSpentSendingFiles(),
@@ -616,7 +618,7 @@ class Argentum(QtGui.QMainWindow):
     def aboutActionTriggered(self):
         QtGui.QMessageBox.information(self,
                         "CartesianCo Argentum Control",
-                        "This software is used to control the Argentum circuit board printer.\n\nYou are running version {}.".format(BASEVERSION))
+                        "This software is used to control the Argentum circuit board printer.\n\nYou are running version {}.\n\nYour install number is {}.".format(BASEVERSION, self.getInstallNumber()))
 
     def uploadProgressFunc(self, pos, size):
         if self.uploadProgressCancel:
@@ -1368,6 +1370,14 @@ class Argentum(QtGui.QMainWindow):
         self.updateOptions(val)
         if self.printer.connected:
             self.printer.updateOptions(self.options)
+
+    def getInstallNumber(self):
+        install_num = self.getOption("install_number", None)
+        if install_num == None:
+            install_num = random.randint(1, 1000000)
+            self.options["install_number"] = install_num
+            save_options(self.options)
+        return install_num
 
     def getPrinterNumber(self):
         if self.printer.connected:
