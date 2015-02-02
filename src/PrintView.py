@@ -1247,8 +1247,8 @@ class PrintView(QtGui.QWidget):
 
         nBottom = image.height() - nHeight
         image = image.copy(nLeft, nTop, nWidth - nLeft, nHeight - nTop)
-        root, ext = os.path.splitext(os.path.basename(self.selection.filename))
-        fname = self.argentum.filesDir + "/{}_cropped{}".format(root, ext)
+        fname = tempfile.mktemp() + ".png"
+        print("using temp file " + fname)
         image.save(fname);
 
         self.images.remove(self.selection)
