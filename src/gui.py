@@ -732,6 +732,8 @@ class Argentum(QtGui.QMainWindow):
     def nagUpdate(self):
         if self.latestVersion == None:
             return None
+        if self.flashing or self.naggingFirmwareUpgrade:
+            return None
         self.naggedUpdate = True
 
         if not self.versionIsNewer(self.latestVersion):
@@ -888,11 +890,14 @@ class Argentum(QtGui.QMainWindow):
         QtCore.QTimer.singleShot(100, self.downloadProgressUpdater)
 
     naggedFirmwareUpgrade = False
+    naggingFirmwareUpgrade = False
+    flashing = False
     checkFlashVersion = None
     def nagFirmwareUpgrade(self):
         if self.naggedFirmwareUpgrade:
             return
         self.naggedFirmwareUpgrade = True
+        self.naggingFirmwareUpgrade = True
         reply = QtGui.QMessageBox.question(self, 'Firmware upgrade',
             'This printer is running older firmware. To function correctly with this version of the software, it must be upgraded. Do it now?',
             QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
@@ -905,6 +910,7 @@ class Argentum(QtGui.QMainWindow):
             self.startFlash(filename)
         else:
             self.appendOutput('Continuing with older firmware.')
+        self.naggingFirmwareUpgrade = False
 
     def flashActionTriggered(self):
         if self.programmer != None:
@@ -924,6 +930,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.appendOutput('Flashing {} with {}...'.format(self.printer.port, firmwareFileName))
 
+        flashing = True
         self.programmer = avrdude(port=self.printer.port)
         if self.programmer.flashFile(firmwareFileName):
             self.flashingProgress = QtGui.QProgressDialog(self)
@@ -938,6 +945,7 @@ class Argentum(QtGui.QMainWindow):
             self.autoConnect = self.getOption("autoconnect", True)
             self.printer.connect()
             self.enableAllButtons()
+            flashing = False
 
     def pollFlashing(self):
         self.flashingProgress.setValue(self.flashingProgress.value() + 100 / 30)
@@ -965,6 +973,7 @@ class Argentum(QtGui.QMainWindow):
                         "Upgrading the firmware has failed. It is recommended that you exit the program and ensure you have installed the necessary drivers for avrdude.")
                 self.checkFlashVersion = None
             self.enableAllButtons()
+            flashing = False
 
     def optionsActionTriggered(self):
         """options = {
