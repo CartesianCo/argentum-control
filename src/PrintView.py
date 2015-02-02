@@ -246,8 +246,9 @@ class PrintView(QtGui.QWidget):
         super(PrintView, self).__init__()
         self.argentum = argentum
         self.lastRect = QtCore.QRect()
-        self.progress = QtGui.QProgressDialog(self)
+        self.progress = PrintProgressDialog(self)
         self.progress.setWindowTitle("Printing")
+        self.progress.hide()
         QtCore.QTimer.singleShot(100, self.progressUpdater)
         self.fanSpeed = 4
         QtCore.QTimer.singleShot(1000 / self.fanSpeed, self.fanAnimator)
@@ -655,15 +656,11 @@ class PrintView(QtGui.QWidget):
         return True
 
     def sendProgress(self, pos, size):
+        if self.printPaused:
+            return "Pause"
         if self.printCanceled:
             return False
         self.setProgress(percent=(20 + self.perImage * pos / size))
-        return True
-
-    def printProgress(self, pos, size):
-        if self.printCanceled:
-            return False
-        self.setProgress(percent=(40 + self.perImage * pos / size))
         return True
 
     def processImage(self, image):
@@ -698,6 +695,7 @@ class PrintView(QtGui.QWidget):
     statusText = None
     missing = None
     printCanceled = False
+    printPaused = False
     def setProgress(self, percent=None,
                           incPercent=None,
                           labelText=None,
@@ -749,6 +747,7 @@ class PrintView(QtGui.QWidget):
                 self.argentum.statusBar().showMessage("Print canceled.")
             self.printCanceled = True
             self.progress.hide()
+        self.printPaused = self.progress.paused
         if self.missing:
             missing = self.missing
             self.missing = None
@@ -865,7 +864,9 @@ class PrintView(QtGui.QWidget):
                     path = os.path.join(self.argentum.filesDir, image.hexFilename)
                     while self.progress.paused:
                         time.sleep(0.5)
-                    self.argentum.printer.send(path, progressFunc=self.sendProgress, printOnline=True)
+                    if not self.argentum.printer.send(path, progressFunc=self.sendProgress, printOnline=True):
+                        self.setProgress(labelText="Printer error.", canceled=True)
+                        return
                     nImage = nImage + 1
                     self.setProgress(percent=(20 + self.perImage * nImage))
 

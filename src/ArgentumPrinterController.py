@@ -461,11 +461,35 @@ class ArgentumPrinterController(PrinterController):
 
         print("sending {} bytes.".format(size))
 
+        canceled = False
+        paused = False
+
         try:
             hash = 5381
             fails = 0
             pos = 0
             while (pos < size):
+                if paused:
+                    pres = progressFunc(pos, size)
+                    if pres == False:
+                        self.serialWrite("C")
+                        print("canceled!")
+                        canceled = True
+                        break
+                    if pres == "Pause":
+                        self.serialDevice.write('P')
+                        self.serialDevice.timeout = 10
+                        cmd = self.serialDevice.read(1)
+                        if cmd != 'p':
+                            print("printer didn't ping pause.")
+                            self.serialDevice.timeout = 1
+                            rest = cmd + self.serialDevice.read(79)
+                            rest = rest.strip()
+                            if len(rest) > 0:
+                                print("'" + rest + "'")
+                            canceled = True
+                            break
+                        continue
                 nleft = size - pos
                 blocksize = nleft if nleft < 1024 else 1024
                 block = contents[pos:pos+blocksize]
@@ -485,7 +509,6 @@ class ArgentumPrinterController(PrinterController):
                 self.serialDevice.write(encblock)
 
                 done = False
-                canceled = False
                 cmd = None
                 while not done and not canceled:
                     if cmd == None:
@@ -506,10 +529,14 @@ class ArgentumPrinterController(PrinterController):
                     elif cmd == "G":
                         pos = pos + blocksize
                         if progressFunc:
-                            if not progressFunc(pos, size):
+                            pres = progressFunc(pos, size)
+                            if pres == False:
                                 self.serialWrite("C")
                                 print("canceled!")
                                 canceled = True
+                            elif pres == "Pause":
+                                print("paused!")
+                                paused = True
                         else:
                             print("block is good at {}/{}".format(pos, size))
                         done = True
@@ -530,16 +557,22 @@ class ArgentumPrinterController(PrinterController):
                 if canceled:
                     break
 
+            if canceled:
+                return False
+
             self.serialDevice.timeout = 0
             if progressFunc:
-                print("sent.")
-            else:
                 progressFunc(size, size)
+            else:
+                print("sent.")
 
             end = time.time()
+
             print("Sent in {} seconds.".format(end - start))
         finally:
             self.sendingFile = False
+
+        return True
 
     def compress(self, contents):
         compressed = []
