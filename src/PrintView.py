@@ -351,8 +351,8 @@ class PrintView(QtGui.QWidget):
         self.progress.show()
 
         self.printThread = threading.Thread(target=self.dryingLoop)
-        self.printThread.start()
         self.printThread.dryingOnly = True
+        self.printThread.start()
 
     def dryingLoop(self):
         try:
@@ -733,6 +733,8 @@ class PrintView(QtGui.QWidget):
         QtCore.QTimer.singleShot(100, self.progressUpdater)
         if self.percent:
             self.progress.setValue(self.percent)
+            if self.percent == 20:
+                self.update()
             self.percent = None
         if self.labelText:
             self.progress.setLabelText(self.labelText)
@@ -804,10 +806,10 @@ class PrintView(QtGui.QWidget):
         self.progress.show()
 
         self.printThread = threading.Thread(target=self.printLoop)
-        self.printThread.start()
         self.printThread.passes = options.getPasses()
         self.printThread.useRollers = options.getUseRollers()
         self.printThread.dryingOnly = False
+        self.printThread.start()
 
     def printLoop(self):
         try:
