@@ -1186,6 +1186,79 @@ class PrintView(QtGui.QWidget):
                 self.selection = pi
             return
 
+    def crop(self):
+        if self.selection == None:
+            print("nothing to crop")
+            return
+
+        image = self.selection.pixmap.toImage()
+
+        nTop = 0
+        for j in range(0, image.height()):
+            rowIsEmpty = True
+            for i in range(0, image.width()):
+                blue = QtGui.qBlue(image.pixel(i, j))
+                if blue <= 200:
+                    rowIsEmpty = False
+                    break
+            if rowIsEmpty:
+                nTop = nTop + 1
+            else:
+                break
+
+        nWidth = image.width()
+        for i in range(0, image.width()):
+            colIsEmpty = True
+            for j in range(0, image.height()):
+                blue = QtGui.qBlue(image.pixel(image.width() - i - 1, j))
+                if blue <= 200:
+                    colIsEmpty = False
+                    break
+            if colIsEmpty:
+                nWidth = nWidth - 1
+            else:
+                break
+
+        nLeft = 0
+        for i in range(0, image.width()):
+            colIsEmpty = True
+            for j in range(0, image.height()):
+                blue = QtGui.qBlue(image.pixel(i, j))
+                if blue <= 200:
+                    colIsEmpty = False
+                    break
+            if colIsEmpty:
+                nLeft = nLeft + 1
+            else:
+                break
+
+        nHeight = image.height()
+        for j in range(0, image.height()):
+            rowIsEmpty = True
+            for i in range(0, image.width()):
+                blue = QtGui.qBlue(image.pixel(i, image.height() - j - 1))
+                if blue <= 200:
+                    rowIsEmpty = False
+                    break
+            if rowIsEmpty:
+                nHeight = nHeight - 1
+            else:
+                break
+
+        nBottom = image.height() - nHeight
+        image = image.copy(nLeft, nTop, nWidth - nLeft, nHeight - nTop)
+        root, ext = os.path.splitext(os.path.basename(self.selection.filename))
+        fname = self.argentum.filesDir + "/{}_cropped{}".format(root, ext)
+        image.save(fname);
+
+        self.images.remove(self.selection)
+        newImage = self.addImageFile(fname)
+        newImage.left = self.selection.left + nLeft / imageScale[0]
+        newImage.bottom = self.selection.bottom + nBottom / imageScale[1]
+        newImage.screenRect = None
+        self.layoutChanged = True
+        self.update()
+
     def openLayout(self, filename=None):
         if self.closeLayout() == False:
             return
