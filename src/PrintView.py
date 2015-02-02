@@ -52,6 +52,99 @@ class PrintImage(PrintRect):
 class PrintCanceledException(Exception):
     pass
 
+class PrintOptionsDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowTitle("Print Options")
+        mainLayout = QtGui.QVBoxLayout()
+        self.printView = parent
+        self.argentum = parent.argentum
+
+        layout = QtGui.QHBoxLayout()
+        layout.addWidget(QtGui.QLabel("Print each image"))
+        self.passes = QtGui.QSpinBox(self)
+        self.passes.setMinimum(1)
+        layout.addWidget(self.passes)
+        layout.addWidget(QtGui.QLabel("times"))
+        mainLayout.addLayout(layout)
+
+        self.useRollers = QtGui.QCheckBox("Dry the print after each pass")
+        self.useRollers.setChecked(self.argentum.getOption("use_rollers", True))
+        mainLayout.addWidget(self.useRollers)
+
+        layout = QtGui.QHBoxLayout()
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(self.reject)
+        layout.addWidget(cancelButton)
+        printButton = QtGui.QPushButton("Print")
+        printButton.clicked.connect(self.accept)
+        layout.addWidget(printButton)
+        mainLayout.addLayout(layout)
+
+        printButton.setDefault(True)
+
+        self.setLayout(mainLayout)
+
+    def getPasses(self):
+        return self.passes.value()
+
+    def getUseRollers(self):
+        return self.useRollers.isChecked()
+
+class PrintProgressDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.printView = parent
+        mainLayout = QtGui.QVBoxLayout()
+        self.label = QtGui.QLabel("")
+        self.label.setAlignment(QtCore.Qt.AlignHCenter)
+        mainLayout.addWidget(self.label)
+
+        self.progressBar = QtGui.QProgressBar(self)
+        self.progressBar.setOrientation(QtCore.Qt.Horizontal)
+        mainLayout.addWidget(self.progressBar)
+
+        layout = QtGui.QHBoxLayout()
+        self.pauseButton = QtGui.QPushButton("Pause")
+        self.pauseButton.clicked.connect(self.pause)
+        layout.addWidget(self.pauseButton)
+        self.cancelButton = QtGui.QPushButton("Cancel")
+        self.cancelButton.clicked.connect(self.cancel)
+        layout.addWidget(self.cancelButton)
+        mainLayout.addLayout(layout)
+
+        self.cancelButton.setDefault(True)
+
+        self.setLayout(mainLayout)
+
+        self.paused = False
+        self.canceled = False
+
+    def wasCanceled(self):
+        return self.canceled
+
+    def setLabelText(self, text):
+        self.label.setText(text)
+
+    def setValue(self, value):
+        self.progressBar.setValue(value)
+        if value == 100:
+            self.hide()
+
+    def cancel(self):
+        self.canceled = True
+
+    def pause(self):
+        if self.paused:
+            self.paused = False
+            self.pauseButton.setText("Pause")
+        else:
+            self.paused = True
+            self.pauseButton.setText("Resume")
+
+    def closeEvent(self, e):
+        self.cancel()
+
 class RateYourPrintDialog(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
@@ -282,6 +375,8 @@ class PrintView(QtGui.QWidget):
                 y = pos[1]
                 sy = y
                 while y - sy < image.height * 80:
+                    while self.progress.paused:
+                        time.sleep(0.5)
                     printer.moveTo(x, y, withOk=True)
                     printer.waitForResponse(timeout=10, expect='Ok')
                     printer.command("l d", expect='rollers')
@@ -289,6 +384,8 @@ class PrintView(QtGui.QWidget):
                     left = x - image.width * 80
                     if left < 0:
                         left = 0
+                    while self.progress.paused:
+                        time.sleep(0.5)
                     printer.moveTo(left, y, withOk=True)
                     printer.waitForResponse(timeout=10, expect='Ok')
                     printer.command("l r", expect='rollers')
@@ -542,7 +639,7 @@ class PrintView(QtGui.QWidget):
         if os.path.getsize(hexFilename) == 0:
             return False
         hexModified = os.path.getmtime(hexFilename)
-        if time.time() - hexModified < 7*24*60*60:
+        if time.time() - hexModified > 7*24*60*60:
             return False
         imgModified = os.path.getmtime(image.filename)
         if imgModified < hexModified:
@@ -696,8 +793,12 @@ class PrintView(QtGui.QWidget):
             print("Already printing!")
             return
 
+        options = PrintOptionsDialog(self)
+        if options.exec_() == options.Rejected:
+            return
+
         self.printCanceled = False
-        self.progress = QtGui.QProgressDialog(self)
+        self.progress = PrintProgressDialog(self)
         self.progress.setWindowTitle("Printing")
         self.progress.setLabelText("Starting up...")
         self.progress.setValue(0)
@@ -705,6 +806,8 @@ class PrintView(QtGui.QWidget):
 
         self.printThread = threading.Thread(target=self.printLoop)
         self.printThread.start()
+        self.printThread.passes = options.getPasses()
+        self.printThread.useRollers = options.getUseRollers()
         self.printThread.dryingOnly = False
 
     def printLoop(self):
@@ -740,28 +843,34 @@ class PrintView(QtGui.QWidget):
 
             # Now we can actually print!
             printingStart = time.time()
-            self.setProgress(percent=20, labelText="Printing...")
-            self.argentum.printer.home(wait=True)
-            self.perImage = 79.0 / (len(self.images) - 1)
-            nImage = 0
-            for image in self.images:
-                if image == self.printHeadImage:
-                    continue
-                pos = self.printAreaToMove(image.left + image.width, image.bottom)
-                self.argentum.printer.moveTo(pos[0], pos[1], withOk=True)
-                response = self.argentum.printer.waitForResponse(timeout=10, expect='Ok')
-                if response:
-                    response = ''.join(response)
-                    if response.find('/') != -1:
-                        self.setProgress(statusText="Print error - ensure images are within print limits.", canceled=True)
-                        return
-                self.setProgress(labelText=image.hexFilename)
-                path = os.path.join(self.argentum.filesDir, image.hexFilename)
-                self.argentum.printer.send(path, progressFunc=self.sendProgress, printOnline=True)
-                nImage = nImage + 1
-                self.setProgress(percent=(20 + self.perImage * nImage))
+            for i in range(0, self.printThread.passes):
+                self.setProgress(percent=20, labelText="Starting pass {}".format(i+1))
+                self.argentum.printer.home(wait=True)
+                self.perImage = 79.0 / (len(self.images) - 1)
+                nImage = 0
+                for image in self.images:
+                    if image == self.printHeadImage:
+                        continue
+                    while self.progress.paused:
+                        time.sleep(0.5)
+                    pos = self.printAreaToMove(image.left + image.width, image.bottom)
+                    self.argentum.printer.moveTo(pos[0], pos[1], withOk=True)
+                    response = self.argentum.printer.waitForResponse(timeout=10, expect='Ok')
+                    if response:
+                        response = ''.join(response)
+                        if response.find('/') != -1:
+                            self.setProgress(statusText="Print error - ensure images are within print limits.", canceled=True)
+                            return
+                    self.setProgress(labelText="Pass {}: {}".format(i + 1, image.hexFilename))
+                    path = os.path.join(self.argentum.filesDir, image.hexFilename)
+                    while self.progress.paused:
+                        time.sleep(0.5)
+                    self.argentum.printer.send(path, progressFunc=self.sendProgress, printOnline=True)
+                    nImage = nImage + 1
+                    self.setProgress(percent=(20 + self.perImage * nImage))
 
-            self.dryingLoop()
+                if self.printThread.useRollers:
+                    self.dryingLoop()
 
             self.argentum.printer.home()
             self.setProgress(statusText='Print complete.', percent=100)
