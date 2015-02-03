@@ -1029,6 +1029,7 @@ class Argentum(QtGui.QMainWindow):
     def connectButtonPushed(self):
         if self.printer.connected:
             self.printer.disconnect()
+            self.autoConnect = False
 
             self.connectButton.setText('Connect')
 
