@@ -977,6 +977,7 @@ class Argentum(QtGui.QMainWindow):
                         "Upgrading the firmware has failed. It is recommended that you exit the program and ensure you have installed the necessary drivers for avrdude.")
                 self.checkFlashVersion = None
             self.enableAllButtons()
+            self.printer.calibrate()
             flashing = False
 
     def optionsActionTriggered(self):
