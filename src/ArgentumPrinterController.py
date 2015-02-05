@@ -114,7 +114,7 @@ class ArgentumPrinterController(PrinterController):
             self.junkBeforeVersion = []
 
             allResponse = ''
-            serialDevice.timeout = 1
+            serialDevice.timeout = 10
             firstChar = serialDevice.read(1)
             if firstChar == None or len(firstChar) == 0:
                 self.lastError = NO_RESPONSE

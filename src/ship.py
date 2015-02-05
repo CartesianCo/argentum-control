@@ -240,13 +240,15 @@ def makeInlineUpdate():
     outputFile = build_out + "/inline-" + BASEVERSION + ".zip"
     all_deps = ' '.join(files)
     os.system("zip -q {} {}".format(outputFile, all_deps))
+    os.system("./send_inline.sh {}".format(outputFile))
 
 if __name__ == '__main__':
     print("Version {}.".format(BASEVERSION))
     makeBuildOut()
     makeFirmware()
     guessFilesToShip()
-    makeMacRelease()
-    makeWin32Release()
-    makeLinuxRelease()
+    if len(sys.argv) <= 1 or sys.argv[1] != "--inline-only":
+        makeMacRelease()
+        makeWin32Release()
+        makeLinuxRelease()
     makeInlineUpdate()
