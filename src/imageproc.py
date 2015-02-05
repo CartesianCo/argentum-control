@@ -91,6 +91,9 @@ class ImageProcessor:
             inputImage = QImage(inputFileName)
         else:
             inputImage = inputFileName
+        if size:
+            width, height = size
+            inputImage = inputImage.scaled(width, height, aspectRatioMode=QtCore.Qt.IgnoreAspectRatio, transformMode=QtCore.Qt.SmoothTransformation)
         inputImage = inputImage.mirrored(horizontal=True, vertical=False)
         #rot270 = QTransform()
         #rot270.rotate(270)
@@ -98,9 +101,6 @@ class ImageProcessor:
         rot90 = QTransform()
         rot90.rotate(90)
         inputImage = inputImage.transformed(rot90)
-        if size:
-            width, height = size
-            inputImage = inputImage.scaled(width, height, transformMode=QtCore.Qt.SmoothTransformation)
 
         inputs = self.splitImageTwos(inputImage)
 

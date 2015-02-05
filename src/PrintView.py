@@ -673,6 +673,7 @@ class PrintView(QtGui.QWidget):
                 height = image.height * imageScale[1]
                 size = (int(width), int(height))
                 print("resizing {} to {},{}.".format(hexFilename, size[0], size[1]))
+                print("original size {},{}.".format(image.pixmap.width(), image.pixmap.height()))
                 image.hexFilename = "{}-{}x{}.hex".format(
                                     image.hexFilename[:-4], size[0], size[1])
                 hexFilename = os.path.join(self.argentum.filesDir,
