@@ -900,6 +900,10 @@ class Argentum(QtGui.QMainWindow):
     def nagFirmwareUpgrade(self):
         if self.naggedFirmwareUpgrade:
             return
+        _version = BASEVERSION.replace('.', '_')
+        filename = "argentum_" + _version + ".hex"
+        if not os.path.exists(filename):
+            return
         self.naggedFirmwareUpgrade = True
         self.naggingFirmwareUpgrade = True
         reply = QtGui.QMessageBox.question(self, 'Firmware upgrade',
@@ -909,8 +913,6 @@ class Argentum(QtGui.QMainWindow):
 
         if reply == QtGui.QMessageBox.Yes:
             self.checkFlashVersion = BASEVERSION
-            _version = BASEVERSION.replace('.', '_')
-            filename = "argentum_" + _version + ".hex"
             self.startFlash(filename)
         else:
             self.appendOutput('Continuing with older firmware.')
