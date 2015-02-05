@@ -440,7 +440,7 @@ class ArgentumPrinterController(PrinterController):
             cmd = "recv {} o {}"
         else:
             cmd = "recv {} {}"
-        if compressed and len(compressed) * 3 < size:
+        if compressed and (printOnline or len(compressed) * 3 < size):
             print("compression rate {} to 1".format(float(size) / len(compressed)))
             size = len(compressed)
             contents = compressed
