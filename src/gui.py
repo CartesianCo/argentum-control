@@ -1005,7 +1005,7 @@ class Argentum(QtGui.QMainWindow):
         self.printView.closeLayout()
 
     def fileImportImageTriggered(self):
-        inputFilename = self.showImageSelectionDialog()
+        inputFileName = self.showImageSelectionDialog()
         if inputFileName:
             self.lastImportDir = os.path.dirname(inputFileName)
             self.printView.addImageFile(inputFileName)
