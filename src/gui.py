@@ -744,6 +744,10 @@ class Argentum(QtGui.QMainWindow):
             return False
         if self.inlineUpdateUrl == None:
             return False
+        cur_dir_name = os.path.basename(os.getcwd())
+        if cur_dir_name == "src":
+            print("Not nagging for update, source release. Use git to update.")
+            return False
 
         reply = QtGui.QMessageBox.question(self, 'Software update',
             'There is a newer version of the software available. It is advisable that you update to get the newest features and bug fixes. Would you like to do this now?',
