@@ -1141,10 +1141,13 @@ class PrintView(QtGui.QWidget):
             return None
         if pos:
             p = self.screenToPrintArea(pos.x(), pos.y())
-            if p != None:
-                pi.left = p[0] - pi.width / 2
-                pi.bottom = p[1] - pi.height / 2
-                self.ensureImageInPrintLims(pi)
+        else:
+            p = (self.printLims.left + self.printLims.width / 2,
+                 self.printLims.bottom + self.printLims.height / 2)
+        if p != None:
+            pi.left = p[0] - pi.width / 2
+            pi.bottom = p[1] - pi.height / 2
+            self.ensureImageInPrintLims(pi)
         return pi
 
     def copy(self):
