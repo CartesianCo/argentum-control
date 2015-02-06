@@ -4,3 +4,4 @@
 *.pickle
 *.pyc
 *.hex
+send_inline.sh
