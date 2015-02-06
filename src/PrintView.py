@@ -545,8 +545,11 @@ class PrintView(QtGui.QWidget):
                 self.trashCan.render(qp, self.trashCanRect)
 
         for image in self.images:
-            if image == self.printHeadImage and not self.showingPrintHead:
+            if image == self.printHeadImage:
                 continue
+            qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
+        if self.showingPrintHead:
+            image = self.printHeadImage
             qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
 
         if self.argentum.printer.connected and self.argentum.printer.lightsOn:
