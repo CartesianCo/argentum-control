@@ -531,6 +531,7 @@ class PrintView(QtGui.QWidget):
 
         qp = QtGui.QPainter()
         qp.begin(self)
+        qp.setPen(QtGui.QColor(255, 255, 255))
         qp.fillRect(self.rect(), QtGui.QColor(0,0,0))
         self.printPlateDesign.render(qp, self.printPlateDesignRect)
 
