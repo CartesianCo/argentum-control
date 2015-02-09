@@ -638,6 +638,7 @@ class PrintView(QtGui.QWidget):
         return pi
 
     def isImageProcessed(self, image):
+        return False # Disabled
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
         if not os.path.exists(hexFilename):
             return False
