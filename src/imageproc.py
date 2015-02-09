@@ -144,9 +144,17 @@ class ImageProcessor:
             )
         )
 
+        inputs2 = inputs
+        for i in range(10):
+            inputs2 = [ self.dilate(inputs2[0]), self.dilate(inputs2[1]) ]
+            if progressFunc:
+                if not progressFunc(i + 1, int(height/self.mOffset)*2 + 11):
+                    return
 
-        for i in range(4):
-            outputImages[i].paste(inputs[i % 2], pasteLocations[i])
+        outputImages[0].paste(inputs[0], pasteLocations[0])
+        outputImages[1].paste(inputs[1], pasteLocations[1])
+        outputImages[2].paste(inputs2[0], pasteLocations[2])
+        outputImages[3].paste(inputs2[1], pasteLocations[3])
 
         pixelMatrices = [
             outputImages[i].load()
@@ -156,6 +164,44 @@ class ImageProcessor:
         # We have our input images and their matrices. Now we need to generate
         # the correct output data.
         self.writeCommands(progressFunc)
+
+    def dilate(self, img):
+        width, height = img.size
+        outImg = img.copy()
+        inp = img.load()
+        outp =  outImg.load()
+        on = (0, 0, 0)
+        for x in range(width):
+            for y in range(height):
+                if inp[x, y][2] <= 200:
+                    continue
+                if x > 0 and inp[x - 1, y][2] <= 200:
+                    outp[x, y] = on
+                    continue
+                if x < width - 1 and inp[x + 1, y][2] <= 200:
+                    outp[x, y] = on
+                    continue
+                if y > 0:
+                    if x > 0 and inp[x - 1, y - 1][2] <= 200:
+                        outp[x, y] = on
+                        continue
+                    if inp[x, y - 1][2] <= 200:
+                        outp[x, y] = on
+                        continue
+                    if x < width - 1 and inp[x + 1, y - 1][2] <= 200:
+                        outp[x, y] = on
+                        continue
+                if y < height - 1:
+                    if x > 0 and inp[x - 1, y + 1][2] <= 200:
+                        outp[x, y] = on
+                        continue
+                    if inp[x, y + 1][2] <= 200:
+                        outp[x, y] = on
+                        continue
+                    if x < width - 1 and inp[x + 1, y + 1][2] <= 200:
+                        outp[x, y] = on
+                        continue
+        return outImg
 
     def writeCommands(self, progressFunc=None):
         width, height = outputImages[0].size
@@ -168,7 +214,7 @@ class ImageProcessor:
         for y in xrange(int(height/self.mOffset)*2 + 1):
             # Print out progress
             if progressFunc:
-                if not progressFunc(y + 1, int(height/self.mOffset)*2 + 1):
+                if not progressFunc(y + 1, int(height/self.mOffset)*2 + 11):
                     self.outputFile.close()
                     os.remove(self.outputFileName)
                     return
