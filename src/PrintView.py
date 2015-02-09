@@ -382,7 +382,7 @@ class PrintView(QtGui.QWidget):
                     printer.waitForResponse(timeout=10, expect='Ok')
                     printer.command("l d", expect='rollers')
                     time.sleep(1.5)
-                    left = x - image.width * 80
+                    left = x - int(image.width * 1.5) * 80
                     if left < 0:
                         left = 0
                     while self.progress.paused:
