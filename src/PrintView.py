@@ -124,6 +124,8 @@ class PrintProgressDialog(QtGui.QDialog):
         return self.canceled
 
     def setLabelText(self, text):
+        if text.startswith("Pass "):
+            self.setWindowTitle("Printing ({})".format(text[:text.find(':')]))
         self.label.setText(text)
 
     def setValue(self, value):
