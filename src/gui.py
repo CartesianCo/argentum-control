@@ -522,10 +522,14 @@ class Argentum(QtGui.QMainWindow):
         button.setAutoRepeatInterval(80)
 
     def getImageProcessor(self):
+        dilateCount = self.getOption("dilate_count", None)
+        if dilateCount:
+            dilateCount = int(dilateCount)
         ip = ImageProcessor(
             horizontal_offset=int(self.options['horizontal_offset']),
             vertical_offset=int(self.options['vertical_offset']),
-            overlap=int(self.options['print_overlap'])
+            overlap=int(self.options['print_overlap']),
+            dilateCount=dilateCount
         )
         return ip
 

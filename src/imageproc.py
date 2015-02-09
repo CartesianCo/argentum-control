@@ -49,6 +49,9 @@ class ImageProcessor:
     # print will be faster but put down less ink and have less overlap
     mOffset = 103
 
+    # Number of dilation operations to perform on asorbic
+    dilateCount = 3
+
     # Firings per step variable. Currently cannot set different firings per step for
     # different print heads but this will be implemented very soon - won't take me
     # long to implement.
@@ -59,7 +62,7 @@ class ImageProcessor:
     # This allows for easier inspection of hex files
     USE_TEXTUAL_FIRING = True
 
-    def __init__(self, horizontal_offset=None, vertical_offset=None, overlap=None):
+    def __init__(self, horizontal_offset=None, vertical_offset=None, overlap=None, dilateCount=None):
         if horizontal_offset:
             self.HEADOFFSET = horizontal_offset
 
@@ -68,6 +71,9 @@ class ImageProcessor:
 
         if overlap:
             self.mOffset = overlap
+
+        if dilateCount:
+            self.dilateCount = dilateCount
 
     def sliceImage(self, inputFileName, outputFileName, progressFunc=None, size=None):
         #directory = direct
@@ -145,7 +151,7 @@ class ImageProcessor:
         )
 
         inputs2 = inputs
-        for i in range(10):
+        for i in range(self.dilateCount):
             inputs2 = [ self.dilate(inputs2[0]), self.dilate(inputs2[1]) ]
             if progressFunc:
                 if not progressFunc(i + 1, int(height/self.mOffset)*2 + 11):

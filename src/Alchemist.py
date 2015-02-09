@@ -7,7 +7,8 @@ class OptionsDialog(QtGui.QDialog):
 
     optionsToAdd = {'horizontal_offset': 'Distance between cartridges',
                     'vertical_offset': 'Misalignment of print heads on cartridges',
-                    'print_overlap': 'Distance to move between lines'}
+                    'print_overlap': 'Distance to move between lines',
+                    'dilate_count': 'Extra thickness of asorbic'}
     created = {}
 
     def __init__(self, parent=None, options=None):
@@ -50,10 +51,10 @@ class OptionsDialog(QtGui.QDialog):
 
     def addOptions(self, parentLayout, options):
         for optionName in self.optionsToAdd:
-            if optionName not in self.options:
-                continue
-
-            defaultValue = self.options[optionName]
+            if optionName in self.options:
+                defaultValue = self.options[optionName]
+            else:
+                defaultValue = 0
 
             layout = QtGui.QHBoxLayout()
 
