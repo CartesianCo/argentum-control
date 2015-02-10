@@ -497,16 +497,17 @@ class ArgentumPrinterController(PrinterController):
                 encblock = ""
                 oldhash = hash
                 for c in block:
-                    encblock = encblock + chr(ord(c) ^ 0x26)
+                    encblock = encblock + c
                     cval = ord(c)
                     if cval >= 128:
                         cval = -(256 - cval)
                     hash = hash * 33 + cval
                     hash = hash & 0xffffffff
-                encblock = encblock + chr( hash        & 0xff)
-                encblock = encblock + chr((hash >>  8) & 0xff)
-                encblock = encblock + chr((hash >> 16) & 0xff)
-                encblock = encblock + chr((hash >> 24) & 0xff)
+                encblock = encblock + chr( hash        & 0x7f)
+                encblock = encblock + chr((hash >>  7) & 0x7f)
+                encblock = encblock + chr((hash >> 14) & 0x7f)
+                encblock = encblock + chr((hash >> 21) & 0x7f)
+                encblock = encblock + chr((hash >> 28) & 0x0f)
                 self.serialDevice.write(encblock)
 
                 done = False
