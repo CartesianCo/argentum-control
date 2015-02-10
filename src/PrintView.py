@@ -880,11 +880,20 @@ class PrintView(QtGui.QWidget):
                     nImage = nImage + 1
                     self.setProgress(percent=(20 + self.perImage * nImage))
 
+                    printingEnd = time.time()
+                    self.argentum.addTimeSpentPrinting(printingEnd - printingStart)
+                    printingStart = time.time()
+
                 if self.printThread.useRollers:
                     self.dryingLoop()
 
+                printingEnd = time.time()
+                self.argentum.addTimeSpentPrinting(printingEnd - printingStart)
+                printingStart = time.time()
+
             self.argentum.printer.home()
             self.setProgress(statusText='Print complete.', percent=100)
+
             printingEnd = time.time()
             self.argentum.addTimeSpentPrinting(printingEnd - printingStart)
 
