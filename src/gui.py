@@ -119,6 +119,28 @@ class GetPrinterNumberDialog(QtGui.QDialog):
         self.parent.setPrinterNumber(self.printerNumText)
         self.accept()
 
+class EchoDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.parent = parent
+
+        self.setWindowTitle("Echo test")
+        mainLayout = QtGui.QVBoxLayout()
+        self.text = QtGui.QPlainTextEdit()
+        mainLayout.addWidget(self.text)
+        self.sendButton = QtGui.QPushButton("Send")
+        self.sendButton.clicked.connect(self.send)
+        mainLayout.addWidget(self.sendButton)
+
+        self.setLayout(mainLayout)
+
+    def send(self):
+        txt = str(self.text.toPlainText())
+        self.parent.printer.command("echo {}".format(len(txt)))
+        self.parent.printer.serialWrite(txt)
+        self.accept()
+
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
@@ -361,6 +383,9 @@ class Argentum(QtGui.QMainWindow):
         self.dryAction = QtGui.QAction('&Dry', self)
         self.dryAction.triggered.connect(self.printView.dryActionTriggered)
 
+        self.echoAction = QtGui.QAction('&Echo', self)
+        self.echoAction.triggered.connect(self.echoActionTriggered)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         self.openLayoutAction = QtGui.QAction('&Open Layout', self)
@@ -438,6 +463,7 @@ class Argentum(QtGui.QMainWindow):
         utilityMenu.addAction(self.processImageAction)
         utilityMenu.addAction(self.ratePrintAction)
         utilityMenu.addAction(self.dryAction)
+        utilityMenu.addAction(self.echoAction)
 
         helpMenu = menubar.addMenu('Help')
         helpMenu.addAction(self.updateAction)
@@ -473,6 +499,10 @@ class Argentum(QtGui.QMainWindow):
         self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum Control')
         self.show()
+
+    def echoActionTriggered(self):
+        echoDialog = EchoDialog(self)
+        echoDialog.exec_()
 
     def startUpdateLoop(self):
         updateThread = threading.Thread(target=self.updateLoop)

@@ -222,6 +222,7 @@ class ArgentumPrinterController(PrinterController):
     def command(self, command, timeout=None, expect=None, wait=False):
         self.lastCommandTime = time.time()
         if self.serialDevice and self.connected:
+            self.serialWrite(self.delimiter)
             self.serialWrite(command + self.delimiter)
             if wait != False:
                 if timeout == None:
