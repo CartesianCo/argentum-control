@@ -967,7 +967,35 @@ class Argentum(QtGui.QMainWindow):
             self.lastFirmwareDir = os.path.dirname(firmwareFileName)
             self.startFlash(firmwareFileName)
 
+    def askForPower(self, wantNoPower=False):
+        if not self.printer.connected:
+            return False
+        progress = QtGui.QProgressDialog(self)
+        progress.setWindowTitle("Waiting")
+        if wantNoPower:
+            progress.setLabelText("Please turn off your printer...")
+        else:
+            progress.setLabelText("Please turn on your printer...")
+        progress.show()
+        while True:
+            QtGui.QApplication.processEvents()
+            if progress.wasCanceled():
+                return False
+            if not self.printer.connected:
+                return False
+            volts = self.printer.volt()
+            if volts == 0:
+                continue
+            if wantNoPower and volts < 5:
+                progress.hide()
+                return True
+            elif not wantNoPower and volts > 5:
+                progress.hide()
+                return True
+
     def startFlash(self, firmwareFileName):
+        if not self.askForPower(wantNoPower=True):
+            return
         self.disableAllButtons()
         self.autoConnect = False
         self.printer.disconnect()
@@ -1017,6 +1045,7 @@ class Argentum(QtGui.QMainWindow):
                         "Upgrading the firmware has failed. It is recommended that you exit the program and ensure you have installed the necessary drivers for avrdude.")
                 self.checkFlashVersion = None
             self.enableAllButtons()
+            self.askForPower()
             self.printer.calibrate()
             flashing = False
 
