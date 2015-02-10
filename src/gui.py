@@ -1133,14 +1133,14 @@ class Argentum(QtGui.QMainWindow):
         if self.printer.printerNumber == "NOT_SET":
             self.askForPrinterNumber()
 
+        if self.getOption("home_on_connect", True):
+            self.printer.home()
+
         options = self.printer.getOptions()
         if options != None:
             for key, value in options.items():
                 self.options[key] = value
             save_options(self.options)
-
-        if self.getOption("home_on_connect", True):
-            self.printer.home()
 
         if (self.printer.version != None and
                 is_older_firmware(self.printer.version)):
