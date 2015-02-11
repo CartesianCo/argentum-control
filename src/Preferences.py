@@ -21,6 +21,10 @@ class PreferencesDialog(QtGui.QDialog):
         self.useRollers.setChecked(True)
         mainLayout.addWidget(self.useRollers)
 
+        self.alsoPause = QtGui.QCheckBox("Pause after each print pass")
+        self.alsoPause.setChecked(False)
+        mainLayout.addWidget(self.alsoPause)
+
         self.consoleStart = QtGui.QCheckBox("Show console at startup")
         self.consoleStart.setChecked(False)
         mainLayout.addWidget(self.consoleStart)
@@ -55,12 +59,14 @@ class PreferencesDialog(QtGui.QDialog):
         self.read_setting("autoconnect", self.autoConnect)
         self.read_setting("home_on_connect", self.homeOnConnect)
         self.read_setting("use_rollers", self.useRollers)
+        self.read_setting("also_pause", self.alsoPause)
         self.read_setting("console_start", self.consoleStart)
 
     def save(self):
         self.write_setting("autoconnect", self.autoConnect)
         self.write_setting("home_on_connect", self.homeOnConnect)
         self.write_setting("use_rollers", self.useRollers)
+        self.write_setting("also_pause", self.alsoPause)
         self.write_setting("console_start", self.consoleStart)
         self.argentum.updateOptions(self.options)
         self.accept()

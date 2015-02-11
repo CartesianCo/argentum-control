@@ -73,7 +73,7 @@ class PrintOptionsDialog(QtGui.QDialog):
         mainLayout.addWidget(self.useRollers)
 
         self.alsoPause = QtGui.QCheckBox("Pause after each pass")
-        self.alsoPause.setChecked(False)
+        self.alsoPause.setChecked(self.argentum.getOption("also_pause", False))
         mainLayout.addWidget(self.alsoPause)
 
         layout = QtGui.QHBoxLayout()
