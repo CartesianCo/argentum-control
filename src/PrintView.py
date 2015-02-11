@@ -72,6 +72,10 @@ class PrintOptionsDialog(QtGui.QDialog):
         self.useRollers.setChecked(self.argentum.getOption("use_rollers", True))
         mainLayout.addWidget(self.useRollers)
 
+        self.alsoPause = QtGui.QCheckBox("Pause after each pass")
+        self.alsoPause.setChecked(False)
+        mainLayout.addWidget(self.alsoPause)
+
         layout = QtGui.QHBoxLayout()
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(self.reject)
@@ -90,6 +94,9 @@ class PrintOptionsDialog(QtGui.QDialog):
 
     def getUseRollers(self):
         return self.useRollers.isChecked()
+
+    def getAlsoPause(self):
+        return self.alsoPause.isChecked()
 
 class PrintProgressDialog(QtGui.QDialog):
     def __init__(self, parent=None):
@@ -816,6 +823,7 @@ class PrintView(QtGui.QWidget):
         self.printThread = threading.Thread(target=self.printLoop)
         self.printThread.passes = options.getPasses()
         self.printThread.useRollers = options.getUseRollers()
+        self.printThread.alsoPause = options.getAlsoPause()
         self.printThread.dryingOnly = False
         self.printThread.start()
 
@@ -886,6 +894,10 @@ class PrintView(QtGui.QWidget):
 
                 if self.printThread.useRollers:
                     self.dryingLoop()
+
+                if self.printThread.alsoPause:
+                    if not self.progress.paused:
+                        self.progress.pause()
 
                 printingEnd = time.time()
                 self.argentum.addTimeSpentPrinting(printingEnd - printingStart)
