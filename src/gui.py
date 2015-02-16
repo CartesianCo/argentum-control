@@ -670,6 +670,7 @@ class Argentum(QtGui.QMainWindow):
         self.printer.send(self.uploadThread.filename,
                           progressFunc=self.uploadProgressFunc,
                           printOnline=self.printOnline)
+        self.uploadProgressPercent = 100.0
         self.printOnline = False
         uploadEnd = time.time()
         self.addTimeSpentSendingFiles(uploadEnd - uploadStart)
@@ -715,6 +716,14 @@ class Argentum(QtGui.QMainWindow):
         self.uploadFile(filename)
 
     def printFileActionTriggered(self):
+        reply = QtGui.QMessageBox.question(self, 'Print File',
+            'This is an advanced function to print a pregenerated hex file. You are responsible for ensuring the print head is properly position at the desired starting position. You will now be asked for a hex file. Do you wish to continue?',
+            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+            QtGui.QMessageBox.Yes)
+
+        if reply != QtGui.QMessageBox.Yes:
+            return
+
         self.printFile()
 
     def updateActionTriggered(self):
