@@ -265,6 +265,7 @@ class PrintView(QtGui.QWidget):
         self.printPlateArea = PrintRect(0, 0, 285, 255)
         self.printArea = PrintRect(24, 73, 247, 127)
         self.printLims = PrintRect(10, 14, 157, 98)
+        self.rollLims = PrintRect(80, 14, 87, 98)
         self.printPlateDesign = QtSvg.QSvgRenderer("printPlateDesign.svg")
         self.trashCan         = QtSvg.QSvgRenderer("trashCan.svg")
         self.trashCanOpen     = QtSvg.QSvgRenderer("trashCanOpen.svg")
@@ -305,7 +306,6 @@ class PrintView(QtGui.QWidget):
         self.pickColorFor = None
         self.colorPicker.colorSelected.connect(self.colorPicked)
         self.showingPrintHead = False
-        self.showingPrintLims = True
 
         self.printButton = QtGui.QPushButton("Print")
         self.printButton.clicked.connect(self.startPrint)
@@ -337,10 +337,9 @@ class PrintView(QtGui.QWidget):
         self.update()
 
     def showPrintLimsActionTriggered(self):
-        if self.showingPrintLims:
-            self.showingPrintLims = False
-        else:
-            self.showingPrintLims = True
+        self.update()
+
+    def showRollLimsActionTriggered(self):
         self.update()
 
     def ratePrintActionTriggered(self):
@@ -540,13 +539,19 @@ class PrintView(QtGui.QWidget):
 
         qp = QtGui.QPainter()
         qp.begin(self)
-        qp.setPen(QtGui.QColor(255, 255, 255))
+        qp.setPen(QtGui.QPen(QtGui.QBrush(QtGui.QColor(255, 255, 255)), 1, QtCore.Qt.SolidLine))
         qp.fillRect(self.rect(), QtGui.QColor(0,0,0))
         self.printPlateDesign.render(qp, self.printPlateDesignRect)
 
-        if self.showingPrintLims:
+        if self.argentum.showPrintLimsAction.isChecked():
             printLimsScreenRect = self.printAreaToScreen(self.printLims)
+            qp.setPen(QtGui.QPen(QtGui.QBrush(QtGui.QColor(255, 255, 255)), 1, QtCore.Qt.DashLine))
             qp.drawRect(printLimsScreenRect)
+            qp.setPen(QtGui.QPen(QtGui.QBrush(QtGui.QColor(255, 255, 255)), 1, QtCore.Qt.SolidLine))
+
+        if self.argentum.showRollLimsAction.isChecked():
+            rollLimsScreenRect = self.printAreaToScreen(self.rollLims)
+            qp.drawRect(rollLimsScreenRect)
 
         if self.dragging and self.dragging != self.printHeadImage:
             if self.showTrashCanOpen:

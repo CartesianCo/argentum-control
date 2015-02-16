@@ -377,6 +377,12 @@ class Argentum(QtGui.QMainWindow):
         self.showPrintLimsAction.setChecked(True)
         self.showPrintLimsAction.triggered.connect(self.printView.showPrintLimsActionTriggered)
 
+        self.showRollLimsAction = QtGui.QAction('Roll &Limits', self)
+        self.showRollLimsAction.setCheckable(True)
+        self.showRollLimsAction.setChecked(self.getOption("use_rollers", True))
+        self.showRollLimsAction.triggered.connect(self.printView.showRollLimsActionTriggered)
+
+
         self.ratePrintAction = QtGui.QAction('&Rate Last Print', self)
         self.ratePrintAction.triggered.connect(self.printView.ratePrintActionTriggered)
 
@@ -443,6 +449,7 @@ class Argentum(QtGui.QMainWindow):
         viewMenu = menubar.addMenu('&View')
         viewMenu.addAction(self.showPrintHeadAction)
         viewMenu.addAction(self.showPrintLimsAction)
+        viewMenu.addAction(self.showRollLimsAction)
         viewMenu.addSeparator()
         self.viewSwitchAction = QtGui.QAction("Console", self)
         self.viewSwitchAction.triggered.connect(self.viewSwitchActionTriggered)
