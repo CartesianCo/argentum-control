@@ -521,6 +521,7 @@ class Argentum(QtGui.QMainWindow):
             data = {
                 "installnum": self.getInstallNumber(),
                 "printernum": self.getPrinterNumber(),
+                "email": self.getEmail(),
                 "ts_processing_images": self.getTimeSpentProcessingImages(),
                 "ts_sending_files": self.getTimeSpentSendingFiles(),
                 "ts_printing": self.getTimeSpentPrinting(),
@@ -1493,12 +1494,19 @@ class Argentum(QtGui.QMainWindow):
 
         return self.getOption("printer_number", None)
 
+    def getEmail(self):
+        return self.getOption("email", None)
+
     def setPrinterNumber(self, val):
         if self.printer.connected:
             self.printer.setPrinterNumber(val)
         self.options["printer_number"] = val
         save_options(self.options)
         self.startUpdateLoop()
+
+    def setEmail(self, val):
+        self.options["email"] = val
+        save_options(self.options)
 
     def getTimeSpent(self, name):
         return self.getOption(name, 0)

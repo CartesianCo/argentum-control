@@ -192,6 +192,7 @@ class RateYourPrintDialog(QtGui.QDialog):
         mainLayout.addWidget(info)
         self.comments = QtGui.QTextEdit(self)
         mainLayout.addWidget(self.comments)
+
         layout = QtGui.QHBoxLayout()
         info = QtGui.QLabel("Your printer number:")
         layout.addWidget(info)
@@ -201,6 +202,12 @@ class RateYourPrintDialog(QtGui.QDialog):
         layout.addWidget(self.printerNum)
         self.printerNum.setToolTip("Look on the back of your printer.")
         mainLayout.addLayout(layout)
+
+        self.wantContact = QtGui.QCheckBox("Contact me about this print")
+        self.wantContact.stateChanged.connect(self.contactMe)
+        mainLayout.addWidget(self.wantContact)
+        self.emailLayout = None
+        self.email = None
 
         layout = QtGui.QHBoxLayout()
         cancelButton = QtGui.QPushButton("Cancel")
@@ -215,6 +222,28 @@ class RateYourPrintDialog(QtGui.QDialog):
 
         self.setLayout(mainLayout)
 
+    def contactMe(self, state):
+        mainLayout = self.layout()
+        if state == QtCore.Qt.Unchecked:
+            if self.emailLayout:
+                mainLayout.removeItem(self.emailLayout)
+                self.yourEmailInfo.deleteLater()
+                self.email.deleteLater()
+                self.emailLayout.deleteLater()
+                self.yourEmailInfo = None
+                self.email = None
+                self.emailLayout = None
+        else:
+            self.emailLayout = QtGui.QHBoxLayout()
+            self.yourEmailInfo = QtGui.QLabel("Your email:")
+            self.emailLayout.addWidget(self.yourEmailInfo)
+            self.email = QtGui.QLineEdit(self)
+            if self.argentum.getEmail():
+                self.email.setText(self.argentum.getEmail())
+            self.emailLayout.addWidget(self.email)
+            mainLayout.insertLayout(mainLayout.count() - 1, self.emailLayout)
+        self.update()
+
     def sendLoop(self):
         firmware = ""
         if self.argentum.printer != None:
@@ -223,6 +252,7 @@ class RateYourPrintDialog(QtGui.QDialog):
                 "comments": self.commentText,
                 "installnum": self.argentum.getInstallNumber(),
                 "printernum": self.printerNumText,
+                "email": self.emailText,
                 "ts_processing_images": self.argentum.getTimeSpentProcessingImages(),
                 "ts_sending_files": self.argentum.getTimeSpentSendingFiles(),
                 "ts_printing": self.argentum.getTimeSpentPrinting(),
@@ -235,8 +265,13 @@ class RateYourPrintDialog(QtGui.QDialog):
     def sendReport(self):
         self.sendButton.setText("Sending...")
         self.printerNumText = str(self.printerNum.text())
+        self.emailText = ""
+        if self.email:
+            self.emailText = str(self.email.text())
         if self.printerNumText != "":
             self.argentum.setPrinterNumber(self.printerNumText)
+        if self.emailText != "" and self.emailText != self.argentum.getEmail():
+            self.argentum.setEmail(self.emailText)
         self.rate = self.slider.sliderPosition()
         self.commentText = str(self.comments.toPlainText())
         updateThread = threading.Thread(target=self.sendLoop)
