@@ -1265,6 +1265,13 @@ class PrintView(QtGui.QWidget):
 
         image = self.selection.pixmap.toImage()
 
+        progress = QtGui.QProgressDialog(self)
+        progress.setWindowTitle("Cropping...")
+        progress.show()
+
+        total = image.height() * 2 + image.width() * 2
+        sofar = 0
+
         nTop = 0
         for j in range(0, image.height()):
             rowIsEmpty = True
@@ -1277,6 +1284,10 @@ class PrintView(QtGui.QWidget):
                 nTop = nTop + 1
             else:
                 break
+            progress.setValue((sofar+j+1) * 100.0 / total)
+            QtGui.QApplication.processEvents()
+
+        sofar = image.height()
 
         nWidth = image.width()
         for i in range(0, image.width()):
@@ -1290,6 +1301,10 @@ class PrintView(QtGui.QWidget):
                 nWidth = nWidth - 1
             else:
                 break
+            progress.setValue((sofar+i+1) * 100.0 / total)
+            QtGui.QApplication.processEvents()
+
+        sofar += image.width()
 
         nLeft = 0
         for i in range(0, image.width()):
@@ -1303,6 +1318,10 @@ class PrintView(QtGui.QWidget):
                 nLeft = nLeft + 1
             else:
                 break
+            progress.setValue((sofar+i+1) * 100.0 / total)
+            QtGui.QApplication.processEvents()
+
+        sofar += image.width()
 
         nHeight = image.height()
         for j in range(0, image.height()):
@@ -1316,6 +1335,11 @@ class PrintView(QtGui.QWidget):
                 nHeight = nHeight - 1
             else:
                 break
+            progress.setValue((sofar+j+1) * 100.0 / total)
+            QtGui.QApplication.processEvents()
+
+        progress.setValue(99.0)
+        QtGui.QApplication.processEvents()
 
         nBottom = image.height() - nHeight
         image = image.copy(nLeft, nTop, nWidth - nLeft, nHeight - nTop)
@@ -1323,12 +1347,117 @@ class PrintView(QtGui.QWidget):
         print("using temp file " + fname)
         image.save(fname);
 
+        progress.setValue(100.0)
+        QtGui.QApplication.processEvents()
+
         self.images.remove(self.selection)
         newImage = self.addImageFile(fname)
         newImage.left = self.selection.left + nLeft / imageScale[0]
         newImage.bottom = self.selection.bottom + nBottom / imageScale[1]
         newImage.screenRect = None
         self.layoutChanged = True
+        self.update()
+
+    def erode(self):
+        if self.selection == None:
+            print("nothing to erode")
+            return
+
+        progress = QtGui.QProgressDialog(self)
+        progress.setWindowTitle("Eroding...")
+        progress.show()
+
+        image = self.selection.pixmap.toImage()
+        newImage = image.copy()
+
+        for j in range(image.height()):
+            for i in range(image.width()):
+                newImage.setPixel(i, j, 0xffffff)
+
+        for j in range(image.height()):
+            for i in range(image.width()):
+                if i == 0 or j == 0:
+                    continue
+                if i+1 == image.width() or j+1 == image.height():
+                    continue
+                if QtGui.qBlue(image.pixel(i  , j  )) > 200:
+                    continue
+                if QtGui.qBlue(image.pixel(i-1, j-1)) > 200:
+                    continue
+                if QtGui.qBlue(image.pixel(i-1, j  )) > 200:
+                    continue
+                if QtGui.qBlue(image.pixel(i-1, j+1)) > 200:
+                    continue
+                if QtGui.qBlue(image.pixel(i+1, j-1)) > 200:
+                    continue
+                if QtGui.qBlue(image.pixel(i+1, j  )) > 200:
+                    continue
+                if QtGui.qBlue(image.pixel(i+1, j+1)) > 200:
+                    continue
+                if QtGui.qBlue(image.pixel(i  , j-1)) > 200:
+                    continue
+                if QtGui.qBlue(image.pixel(i  , j+1)) > 200:
+                    continue
+                newImage.setPixel(i, j, 0)
+            progress.setValue((j+1) * 100.0 / image.height())
+            QtGui.QApplication.processEvents()
+
+        self.selection.pixmap = QtGui.QPixmap.fromImage(newImage)
+        self.update()
+
+    def dilate(self):
+        if self.selection == None:
+            print("nothing to dilate")
+            return
+
+        image = self.selection.pixmap.toImage()
+        newImage = image.copy()
+
+        progress = QtGui.QProgressDialog(self)
+        progress.setWindowTitle("Dilating...")
+        progress.show()
+
+        for j in range(image.height()):
+            for i in range(image.width()):
+                if QtGui.qBlue(image.pixel(i, j)) <= 200:
+                    continue
+                if i == 0:
+                    pass
+                elif i == image.width()-1:
+                    pass
+                elif j == 0:
+                    pass
+                elif j == image.height()-1:
+                    pass
+                else:
+                    if QtGui.qBlue(image.pixel(i-1, j-1)) <= 200:
+                        newImage.setPixel(i, j, 0)
+                        continue
+                    if QtGui.qBlue(image.pixel(i-1, j  )) <= 200:
+                        newImage.setPixel(i, j, 0)
+                        continue
+                    if QtGui.qBlue(image.pixel(i-1, j+1)) <= 200:
+                        newImage.setPixel(i, j, 0)
+                        continue
+                    if QtGui.qBlue(image.pixel(i+1, j-1)) <= 200:
+                        newImage.setPixel(i, j, 0)
+                        continue
+                    if QtGui.qBlue(image.pixel(i+1, j  )) <= 200:
+                        newImage.setPixel(i, j, 0)
+                        continue
+                    if QtGui.qBlue(image.pixel(i+1, j+1)) <= 200:
+                        newImage.setPixel(i, j, 0)
+                        continue
+                    if QtGui.qBlue(image.pixel(i  , j-1)) <= 200:
+                        newImage.setPixel(i, j, 0)
+                        continue
+                    if QtGui.qBlue(image.pixel(i  , j+1)) <= 200:
+                        newImage.setPixel(i, j, 0)
+                        continue
+            progress.setValue((j+1) * 100.0 / image.height())
+            QtGui.QApplication.processEvents()
+
+        self.selection.pixmap = QtGui.QPixmap.fromImage(newImage)
         self.update()
 
     def openLayout(self, filename=None):
