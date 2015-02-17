@@ -1239,6 +1239,8 @@ class Argentum(QtGui.QMainWindow):
         getPrinterNumberDialog.exec_()
 
     def updatePosDisplay(self, pos=None):
+        if not self.getOption("poll_for_pos", True):
+            return
         if pos == None:
             if not self.printer.connected:
                 return

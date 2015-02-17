@@ -29,6 +29,10 @@ class PreferencesDialog(QtGui.QDialog):
         self.consoleStart.setChecked(False)
         mainLayout.addWidget(self.consoleStart)
 
+        self.pollForPos = QtGui.QCheckBox("Poll printer for position of print head")
+        self.pollForPos.setChecked(True)
+        mainLayout.addWidget(self.pollForPos)
+
         layout = QtGui.QHBoxLayout()
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(self.reject)
@@ -61,6 +65,7 @@ class PreferencesDialog(QtGui.QDialog):
         self.read_setting("use_rollers", self.useRollers)
         self.read_setting("also_pause", self.alsoPause)
         self.read_setting("console_start", self.consoleStart)
+        self.read_setting("poll_for_pos", self.pollForPos)
 
     def save(self):
         self.write_setting("autoconnect", self.autoConnect)
@@ -68,6 +73,7 @@ class PreferencesDialog(QtGui.QDialog):
         self.write_setting("use_rollers", self.useRollers)
         self.write_setting("also_pause", self.alsoPause)
         self.write_setting("console_start", self.consoleStart)
+        self.write_setting("poll_for_pos", self.pollForPos)
         self.argentum.updateOptions(self.options)
         self.accept()
 
