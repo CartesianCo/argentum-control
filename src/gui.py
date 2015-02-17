@@ -1012,7 +1012,14 @@ class Argentum(QtGui.QMainWindow):
 
     def startFlash(self, firmwareFileName):
         if not self.askForPower(wantNoPower=True):
-            return
+            reply = QtGui.QMessageBox.question(self, 'Is the power off?',
+            'The software is unable to determine that the power to the printer is off. It is important to ensure the printer is not powered before flashing the firmware. If you are absolutely sure the power to the printer is off, you may flash the firmware now. Would you like to continue?',
+            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+            QtGui.QMessageBox.Yes)
+
+            if reply != QtGui.QMessageBox.Yes:
+                return
+
         self.disableAllButtons()
         self.autoConnect = False
         self.printer.disconnect()
