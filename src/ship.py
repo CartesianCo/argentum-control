@@ -103,6 +103,7 @@ def guessFilesToShip():
     addDep("gui.py")
     files.append(firmware_file)
     files.append(CA_CERTS)
+    files.append("BothCartridgesNew.hex")
     print("Packaging {} files.".format(len(files)))
 
 def makeMacRelease():
