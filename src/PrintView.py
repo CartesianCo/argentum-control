@@ -9,6 +9,7 @@ author: Trent Waddington
 
 import sys
 import os
+import shutil
 import threading
 import time
 from PyQt4 import QtGui, QtCore, QtSvg
@@ -663,8 +664,43 @@ class PrintView(QtGui.QWidget):
             QtGui.QMessageBox.information(self, "Gerber file too big", "The design provided is too big for the print area. It will be resized to fit, but this is probably not what you want.")
         return pixmap
 
+    def pixmapFromHexFile(self, inputFileName):
+        f = open(inputFileName)
+        lines = f.read().split('\n')
+        f.close()
+        width = 0
+        height = 0
+        for line in lines:
+            if line.startswith('M Y -'):
+                h = int(line[5:])
+                if h > height:
+                    height = h
+            elif line.startswith('M X -'):
+                w = int(line[5:])
+                width += w
+        height -= (104 * 2) * 4 # blank lines
+        print("{}x{}".format(width, height))
+        image = QtGui.QImage(width / 4, height / 4, QtGui.QImage.Format_RGB32)
+        image.fill(0xffffff)
+        p = QtGui.QPainter()
+        p.begin(image)
+        p.setFont(QtGui.QFont('arial', 80))
+        lotshex = "hex "
+        for i in range(10):
+            lotshex = lotshex + lotshex
+        p.drawText(image.rect(), QtCore.Qt.TextWordWrap, lotshex)
+        p.end()
+        return QtGui.QPixmap.fromImage(image)
+
     def addImageFile(self, inputFileName):
-        pixmap = QtGui.QPixmap(inputFileName)
+        if inputFileName.endswith(".hex"):
+            pixmap = self.pixmapFromHexFile(inputFileName)
+            try:
+                shutil.copy(inputFileName, self.argentum.filesDir)
+            except:
+                pass
+        else:
+            pixmap = QtGui.QPixmap(inputFileName)
         if pixmap == None or pixmap.isNull():
             pixmap = self.gerberToPixmap(inputFileName)
             if pixmap == False:
@@ -718,6 +754,8 @@ class PrintView(QtGui.QWidget):
         return True
 
     def processImage(self, image):
+        if image.filename.endswith(".hex"):
+            return
         ip = self.argentum.getImageProcessor()
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
         try:
@@ -1155,7 +1193,7 @@ class PrintView(QtGui.QWidget):
                 else:
                     anyEdge = False
 
-                if image == self.printHeadImage:
+                if image == self.printHeadImage or image.filename.endswith(".hex"):
                     anyEdge = False
 
                 if anyEdge:
