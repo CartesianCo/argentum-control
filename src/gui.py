@@ -389,8 +389,11 @@ class Argentum(QtGui.QMainWindow):
         self.dryAction = QtGui.QAction('&Dry', self)
         self.dryAction.triggered.connect(self.printView.dryActionTriggered)
 
-        self.echoAction = QtGui.QAction('&Echo', self)
+        self.echoAction = QtGui.QAction('Echo', self)
         self.echoAction.triggered.connect(self.echoActionTriggered)
+
+        self.stepperTestAction = QtGui.QAction('Stepper Motor Test', self)
+        self.stepperTestAction.triggered.connect(self.stepperTestActionTriggered)
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
@@ -477,6 +480,7 @@ class Argentum(QtGui.QMainWindow):
         utilityMenu.addAction(self.ratePrintAction)
         utilityMenu.addAction(self.dryAction)
         utilityMenu.addAction(self.echoAction)
+        utilityMenu.addAction(self.stepperTestAction)
 
         helpMenu = menubar.addMenu('Help')
         helpMenu.addAction(self.updateAction)
@@ -516,6 +520,27 @@ class Argentum(QtGui.QMainWindow):
     def echoActionTriggered(self):
         echoDialog = EchoDialog(self)
         echoDialog.exec_()
+
+    def stepperTestActionTriggered(self):
+        progress = QtGui.QProgressDialog(self)
+        progress.setWindowTitle("Testing...")
+        progress.setLabelText("Stepper motor testing.\n\nPress cancel to stop.")
+        progress.show()
+        self.printer.home()
+        while not progress.wasCanceled():
+            self.printer.moveTo(2500, 2500, withOk=True)
+            while self.printer.waitForResponse(timeout=1, expect='Ok') == None:
+                QtGui.QApplication.processEvents()
+                if progress.wasCanceled():
+                    break
+            if progress.wasCanceled():
+                break
+            self.printer.moveTo(7500, 7500, withOk=True)
+            while self.printer.waitForResponse(timeout=1, expect='Ok') == None:
+                QtGui.QApplication.processEvents()
+                if progress.wasCanceled():
+                    break
+        self.printer.home()
 
     def startUpdateLoop(self):
         updateThread = threading.Thread(target=self.updateLoop)
