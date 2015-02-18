@@ -487,7 +487,7 @@ class PrintView(QtGui.QWidget):
             image.screenRect = self.printAreaToScreen(image)
         self.trashCanRect = QtCore.QRectF(
            (self.printPlateDesignRect.left() +
-            self.printPlateDesignRect.width() * 19 / 21),
+            self.printPlateDesignRect.width() * 17 / 21),
            (self.printPlateDesignRect.top() +
             self.printPlateDesignRect.height() * 5 / 7),
            self.printPlateDesignRect.width() / 8,
