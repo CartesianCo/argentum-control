@@ -668,8 +668,9 @@ class PrintView(QtGui.QWidget):
         f = open(inputFileName)
         lines = f.read().split('\n')
         f.close()
-        width = 0
+        width = 800
         height = 0
+        theight = 0
         for line in lines:
             if line.startswith('M Y -'):
                 h = int(line[5:])
@@ -678,7 +679,12 @@ class PrintView(QtGui.QWidget):
             elif line.startswith('M X -'):
                 w = int(line[5:])
                 width += w
-        height -= (104 * 2) * 4 # blank lines
+            elif line.startswith('M Y'):
+                theight += int(line[4:])
+        if height == 0:
+            height = theight
+        else:
+            height -= (104 * 2) * 4 # blank lines
         print("{}x{}".format(width, height))
         image = QtGui.QImage(width / 4, height / 4, QtGui.QImage.Format_RGB32)
         image.fill(0xffffff)
