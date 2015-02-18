@@ -395,6 +395,9 @@ class Argentum(QtGui.QMainWindow):
         self.stepperTestAction = QtGui.QAction('Stepper Motor Test', self)
         self.stepperTestAction.triggered.connect(self.stepperTestActionTriggered)
 
+        self.nozzleTestAction = QtGui.QAction('Nozzle Test', self)
+        self.nozzleTestAction.triggered.connect(self.printView.nozzleTestActionTriggered)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         self.openLayoutAction = QtGui.QAction('&Open Layout', self)
@@ -481,6 +484,7 @@ class Argentum(QtGui.QMainWindow):
         utilityMenu.addAction(self.dryAction)
         utilityMenu.addAction(self.echoAction)
         utilityMenu.addAction(self.stepperTestAction)
+        utilityMenu.addAction(self.nozzleTestAction)
 
         helpMenu = menubar.addMenu('Help')
         helpMenu.addAction(self.updateAction)

@@ -382,6 +382,22 @@ class PrintView(QtGui.QWidget):
         rateDialog = RateYourPrintDialog(self)
         rateDialog.exec_()
 
+    def nozzleTestActionTriggered(self):
+        pi = self.addImageFile("BothCartridgesNew.hex")
+        image = QtGui.QImage(pi.pixmap.width(), pi.pixmap.height(), QtGui.QImage.Format_RGB32)
+        image.fill(0xffffff)
+        p = QtGui.QPainter()
+        p.begin(image)
+        p.setPen(QtGui.QPen(QtGui.QBrush(QtGui.QColor(0, 0, 0)), 10, QtCore.Qt.SolidLine))
+        m = 20
+        h = image.height() / 9
+        for j in range(1, 10):
+            p.drawLine(m, j * h - h/2, image.width()-m, j * h - h/2)
+        p.drawLine(m, 1 * h - h/2, image.width()-m, 5 * h - h/2)
+        p.drawLine(m, 5 * h - h/2, image.width()-m, 9 * h - h/2)
+        p.end()
+        pi.pixmap = QtGui.QPixmap.fromImage(image)
+
     def dryActionTriggered(self):
         if self.printThread != None:
             print("Already printing!")
@@ -955,6 +971,8 @@ class PrintView(QtGui.QWidget):
                     while self.progress.paused:
                         time.sleep(0.5)
                     pos = self.printAreaToMove(image.left + image.width, image.bottom)
+                    if image.filename.endswith(".hex"):
+                        pos = (pos[0] - 15 * 80, pos[1] + 560 + 25 * 80)
                     self.argentum.printer.moveTo(pos[0], pos[1], withOk=True)
                     response = self.argentum.printer.waitForResponse(timeout=10, expect='Ok')
                     if response:
