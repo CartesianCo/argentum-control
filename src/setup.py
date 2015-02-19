@@ -11,7 +11,7 @@ import time
 APP = 'gui.py'
 NAME = 'Argentum Control'
 
-BASEVERSION = '0.16.7'
+BASEVERSION = '0.16.8'
 BUILDTIME = time.strftime('%Y%m%d')
 
 VERSION = BASEVERSION + '+' + BUILDTIME
