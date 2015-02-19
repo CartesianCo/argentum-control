@@ -1592,6 +1592,7 @@ class Argentum(QtGui.QMainWindow):
 
 def main():
     print("starting...")
+    print("working directory is {}".format(os.getcwd()))
     app = QtGui.QApplication(sys.argv)
     app.setOrganizationName("CartesianCo")
     app.setOrganizationDomain("cartesianco.com")
