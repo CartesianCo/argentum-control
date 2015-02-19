@@ -967,12 +967,12 @@ class PrintView(QtGui.QWidget):
             self.argentum.printer.command("l r", expect='rollers')
             time.sleep(1.5)
             self.argentum.printer.command("l e", expect='rollers')
+            self.argentum.printer.home(wait=True)
 
             # Now we can actually print!
             printingStart = time.time()
             for i in range(0, self.printThread.passes):
                 self.setProgress(percent=20, labelText="Starting pass {}".format(i+1))
-                self.argentum.printer.home(wait=True)
                 self.perImage = 79.0 / (len(self.images) - 1)
                 nImage = 0
                 for image in self.images:
@@ -980,6 +980,8 @@ class PrintView(QtGui.QWidget):
                         continue
                     while self.progress.paused:
                         time.sleep(0.5)
+                        if self.printCanceled:
+                            raise PrintCanceledException()
                     pos = self.printAreaToMove(image.left + image.width, image.bottom)
                     if image.filename.endswith(".hex"):
                         pos = (pos[0] - 15 * 80, pos[1] + 560 + 25 * 80)
@@ -994,6 +996,8 @@ class PrintView(QtGui.QWidget):
                     path = os.path.join(self.argentum.filesDir, image.hexFilename)
                     while self.progress.paused:
                         time.sleep(0.5)
+                        if self.printCanceled:
+                            raise PrintCanceledException()
                     if not self.argentum.printer.send(path, progressFunc=self.sendProgress, printOnline=True):
                         self.setProgress(labelText="Printer error.", canceled=True)
                         return
@@ -1008,8 +1012,15 @@ class PrintView(QtGui.QWidget):
                     self.dryingLoop()
 
                 if self.printThread.alsoPause:
+                    self.setProgress(labelText="Pausing before next pass.")
                     if not self.progress.paused:
                         self.progress.pause()
+                    self.argentum.printer.moveTo(100, 100, withOk=True)
+                    self.argentum.printer.waitForResponse(timeout=10, expect='Ok')
+                    while self.progress.paused:
+                        time.sleep(0.5)
+                        if self.printCanceled:
+                            raise PrintCanceledException()
 
                 printingEnd = time.time()
                 self.argentum.addTimeSpentPrinting(printingEnd - printingStart)
