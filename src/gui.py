@@ -246,7 +246,14 @@ class Argentum(QtGui.QMainWindow):
 
         self.posOptionsButton = QtGui.QPushButton("^")
         self.posOptionsButton.setMaximumWidth(20)
-        self.posLabel = QtGui.QLabel("0.0, 0.0 mm 0, 0 steps")
+        class ClickableQLabel(QtGui.QLabel):
+            def __init__(self, parent):
+                QtGui.QLabel.__init__(self, parent)
+                self.parent = parent
+            def mouseReleaseEvent(self, ev):
+                self.parent.updatePosDisplay(doit=True)
+        self.posLabel = ClickableQLabel(self)
+        self.posLabel.setText("0.0, 0.0 mm 0, 0 steps")
 
         self.posListWidget = QtGui.QListWidget()
         self.posListWidget.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
@@ -1282,13 +1289,13 @@ class Argentum(QtGui.QMainWindow):
         getPrinterNumberDialog = GetPrinterNumberDialog(self)
         getPrinterNumberDialog.exec_()
 
-    def updatePosDisplay(self, pos=None):
-        if not self.getOption("poll_for_pos", True):
+    def updatePosDisplay(self, pos=None, doit=False):
+        if not doit and not self.getOption("poll_for_pos", True):
             return
         if pos == None:
             if not self.printer.connected:
                 return
-            if self.printer.getTimeSinceLastCommand() < 1:
+            if not doit and self.printer.getTimeSinceLastCommand() < 1:
                 return
             if self.printing or self.printer.printing:
                 return
