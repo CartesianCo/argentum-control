@@ -33,6 +33,10 @@ class PreferencesDialog(QtGui.QDialog):
         self.pollForPos.setChecked(True)
         mainLayout.addWidget(self.pollForPos)
 
+        self.lightsAlwaysOn = QtGui.QCheckBox("Turn lights on when printer is connected")
+        self.lightsAlwaysOn.setChecked(False)
+        mainLayout.addWidget(self.lightsAlwaysOn)
+
         layout = QtGui.QHBoxLayout()
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(self.reject)
@@ -66,6 +70,7 @@ class PreferencesDialog(QtGui.QDialog):
         self.read_setting("also_pause", self.alsoPause)
         self.read_setting("console_start", self.consoleStart)
         self.read_setting("poll_for_pos", self.pollForPos)
+        self.read_setting("lights_always_on", self.lightsAlwaysOn)
 
     def save(self):
         self.write_setting("autoconnect", self.autoConnect)
@@ -74,6 +79,7 @@ class PreferencesDialog(QtGui.QDialog):
         self.write_setting("also_pause", self.alsoPause)
         self.write_setting("console_start", self.consoleStart)
         self.write_setting("poll_for_pos", self.pollForPos)
+        self.write_setting("lights_always_on", self.lightsAlwaysOn)
         self.argentum.updateOptions(self.options)
         self.accept()
 

@@ -1194,6 +1194,8 @@ class Argentum(QtGui.QMainWindow):
 
         if self.getOption("home_on_connect", True):
             self.printer.home()
+        if self.getOption("lights_always_on", False):
+            self.printer.turnLightsOn()
 
         options = self.printer.getOptions()
         if options != None:
@@ -1392,6 +1394,8 @@ class Argentum(QtGui.QMainWindow):
     def stopButtonPushed(self):
         self.appendOutput('Stop!')
         self.printer.emergencyStop()
+        if self.getOption("lights_always_on", False):
+            self.printer.turnLightsOn()
         if self.printing:
             self.printComplete()
 
