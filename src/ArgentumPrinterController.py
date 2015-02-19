@@ -457,7 +457,11 @@ class ArgentumPrinterController(PrinterController):
             print("no response to recv")
             self.sendingFile = False
             return
-        if response[0] != "Ready":
+        gotReady = False
+        for line in response:
+            if line == "Ready":
+                gotReady = True
+        if not gotReady:
             print("Didn't get Ready, got: ")
             print(response)
             self.sendingFile = False
