@@ -957,6 +957,10 @@ class PrintView(QtGui.QWidget):
                 return
 
             self.argentum.printer.turnLightsOn()
+            self.argentum.printer.command("l E", expect='rollers')
+            self.argentum.printer.command("l r", expect='rollers')
+            time.sleep(1.5)
+            self.argentum.printer.command("l e", expect='rollers')
 
             # Now we can actually print!
             printingStart = time.time()
