@@ -1541,11 +1541,12 @@ class Argentum(QtGui.QMainWindow):
 
     def getPrinterNumber(self):
         if self.printer.connected:
-            if self.printer.printerNumber != None:
-                return self.printer.printerNumber
-
-            pnum = self.printer.getPrinterNumber()
+            pnum = self.printer.printerNumber
+            if pnum == None:
+                pnum = self.printer.getPrinterNumber()
             if pnum != None:
+                self.options["printer_number"] = pnum
+                save_options(self.options)
                 return pnum
 
         return self.getOption("printer_number", None)
