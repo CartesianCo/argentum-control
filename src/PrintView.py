@@ -956,6 +956,12 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
                 return
 
+            volts = self.argentum.printer.volt()
+            if volts < 5:
+                self.setProgress(labelText="Please turn on your printer.")
+                while volts < 5:
+                    volts = self.argentum.printer.volt()
+
             self.argentum.printer.turnLightsOn()
             self.argentum.printer.command("l E", expect='rollers')
             self.argentum.printer.command("l r", expect='rollers')
@@ -1017,7 +1023,8 @@ class PrintView(QtGui.QWidget):
 
         except PrintCanceledException:
             pass
-        except:
+        except Exception as e:
+            print(e)
             self.setProgress(statusText="Print error.", canceled=True)
             #raise
         finally:
