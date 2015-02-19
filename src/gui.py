@@ -1392,7 +1392,8 @@ class Argentum(QtGui.QMainWindow):
     def stopButtonPushed(self):
         self.appendOutput('Stop!')
         self.printer.emergencyStop()
-        self.printComplete()
+        if self.printing:
+            self.printComplete()
 
     def printComplete(self):
         self.printing = False
