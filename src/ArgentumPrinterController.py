@@ -452,6 +452,8 @@ class ArgentumPrinterController(PrinterController):
                 cmd = "recv {} bo {}"
             else:
                 cmd = "recv {} b {}"
+        self.serialDevice.flushInput()
+        self.serialDevice.flush()
         response = self.command(cmd.format(size, filename), timeout=10, expect='\n')
         if response == None:
             print("no response to recv")
