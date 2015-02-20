@@ -34,7 +34,7 @@ class PreferencesDialog(QtGui.QDialog):
         mainLayout.addWidget(self.pollForPos)
 
         self.lightsAlwaysOn = QtGui.QCheckBox("Turn lights on when printer is connected")
-        self.lightsAlwaysOn.setChecked(False)
+        self.lightsAlwaysOn.setChecked(True)
         mainLayout.addWidget(self.lightsAlwaysOn)
 
         self.motorsStartOff = QtGui.QCheckBox("Start with motors off")

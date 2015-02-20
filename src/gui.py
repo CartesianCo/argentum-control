@@ -1212,6 +1212,7 @@ class Argentum(QtGui.QMainWindow):
             self.printer.home()
         if self.getOption("lights_always_on", False):
             self.printer.turnLightsOn()
+            self.printView.update()
 
         options = self.printer.getOptions()
         if options != None:
