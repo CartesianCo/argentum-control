@@ -55,7 +55,9 @@ def myrun(cmd):
 default_options = {
     'horizontal_offset': 726,
     'vertical_offset': 0,
-    'print_overlap': 41
+    'print_overlap': 41,
+    'x_speed': 1500,
+    'y_speed': 1500
 }
 
 def load_options():
@@ -1602,6 +1604,12 @@ class Argentum(QtGui.QMainWindow):
         return self.getTimeSpent("ts_printing")
     def addTimeSpentPrinting(self, val):
         self.addTimeSpent("ts_printing", val)
+
+    def setSpeed(self):
+        x_speed = int(self.getOption("x_speed", 1500))
+        y_speed = int(self.getOption("y_speed", 1500))
+        self.printer.command("s X {}".format(x_speed))
+        self.printer.command("s Y {}".format(y_speed))
 
     def closeEvent(self, evt):
         sys.exit(0)

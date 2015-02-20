@@ -8,7 +8,10 @@ class OptionsDialog(QtGui.QDialog):
     optionsToAdd = {'horizontal_offset': 'Distance between cartridges',
                     'vertical_offset': 'Misalignment of print heads on cartridges',
                     'print_overlap': 'Distance to move between lines',
-                    'dilate_count': 'Extra thickness of asorbic'}
+                    'dilate_count': 'Extra thickness of asorbic',
+                    'x_speed': 'Print speed (x axis)',
+                    'y_speed': 'Print speed (y axis)'
+                    }
     created = {}
 
     def __init__(self, parent=None, options=None):
@@ -53,6 +56,8 @@ class OptionsDialog(QtGui.QDialog):
         for optionName in self.optionsToAdd:
             if optionName in self.options:
                 defaultValue = self.options[optionName]
+            elif optionName == "x_speed" or optionName == "y_speed":
+                defaultValue = 1500
             else:
                 defaultValue = 0
 
