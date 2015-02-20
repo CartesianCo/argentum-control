@@ -37,6 +37,10 @@ class PreferencesDialog(QtGui.QDialog):
         self.lightsAlwaysOn.setChecked(False)
         mainLayout.addWidget(self.lightsAlwaysOn)
 
+        self.motorsStartOff = QtGui.QCheckBox("Start with motors off")
+        self.motorsStartOff.setChecked(False)
+        mainLayout.addWidget(self.motorsStartOff)
+
         layout = QtGui.QHBoxLayout()
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(self.reject)
@@ -71,6 +75,7 @@ class PreferencesDialog(QtGui.QDialog):
         self.read_setting("console_start", self.consoleStart)
         self.read_setting("poll_for_pos", self.pollForPos)
         self.read_setting("lights_always_on", self.lightsAlwaysOn)
+        self.read_setting("motors_start_off", self.motorsStartOff)
 
     def save(self):
         self.write_setting("autoconnect", self.autoConnect)
@@ -80,6 +85,7 @@ class PreferencesDialog(QtGui.QDialog):
         self.write_setting("console_start", self.consoleStart)
         self.write_setting("poll_for_pos", self.pollForPos)
         self.write_setting("lights_always_on", self.lightsAlwaysOn)
+        self.write_setting("motors_start_off", self.motorsStartOff)
         self.argentum.updateOptions(self.options)
         self.accept()
 

@@ -245,7 +245,7 @@ class Argentum(QtGui.QMainWindow):
         # Motors power
         self.motorsButton = QtGui.QPushButton("Motors")
         self.motorsButton.setCheckable(True)
-        self.motorsButton.setChecked(True)
+        self.motorsButton.setChecked(not self.getOption("motors_start_off", False))
         self.motorsButton.clicked.connect(self.motorsOnOff)
 
         # Position reporting
@@ -1206,6 +1206,8 @@ class Argentum(QtGui.QMainWindow):
         if self.printer.printerNumber == "NOT_SET":
             self.askForPrinterNumber()
 
+        if self.getOption("motors_start_off", False):
+            self.printer.turnMotorsOff()
         if self.getOption("home_on_connect", True):
             self.printer.home()
         if self.getOption("lights_always_on", False):
@@ -1374,9 +1376,9 @@ class Argentum(QtGui.QMainWindow):
 
     def motorsOnOff(self):
         if self.motorsButton.isChecked():
-            self.printer.command('+')
+            self.printer.turnMotorsOn()
         else:
-            self.printer.command('-')
+            self.printer.turnMotorsOff()
 
     def posListWidgetItemActivated(self, item):
         s = str(item.text())

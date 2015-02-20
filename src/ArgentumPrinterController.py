@@ -799,3 +799,8 @@ class ArgentumPrinterController(PrinterController):
         else:
             self.command("M {} {}".format(int(x), int(y)))
 
+    def turnMotorsOn(self):
+        self.command('+')
+
+    def turnMotorsOff(self):
+        self.command('-')
