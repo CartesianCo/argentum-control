@@ -1006,6 +1006,7 @@ class PrintView(QtGui.QWidget):
                     self.setProgress(percent=(20 + self.perImage * nImage))
 
                     printingEnd = time.time()
+                    print("printed in {} s".format(printingEnd - printingStart))
                     self.argentum.addTimeSpentPrinting(printingEnd - printingStart)
                     printingStart = time.time()
 

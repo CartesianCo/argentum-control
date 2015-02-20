@@ -523,8 +523,11 @@ class ArgentumPrinterController(PrinterController):
                 cmd = None
                 while not done and not canceled:
                     if cmd == None:
-                        self.serialDevice.timeout = 10
+                        self.serialDevice.timeout = 1
                         cmd = self.serialDevice.read(1)
+                        if cmd == "":
+                            cmd = None
+                            continue
 
                     if cmd == "B":
                         hash = oldhash
