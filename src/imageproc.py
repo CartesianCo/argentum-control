@@ -4,6 +4,7 @@ from PyQt4.QtGui import QImage, QTransform
 from PyQt4 import QtCore
 import os
 import sys
+import time
 ### Image Processing Functions
 
 """
@@ -72,7 +73,7 @@ class ImageProcessor:
         if overlap:
             self.mOffset = overlap
 
-        if dilateCount:
+        if dilateCount != None:
             self.dilateCount = dilateCount
 
     def sliceImage(self, inputFileName, outputFileName, progressFunc=None, size=None):
@@ -80,6 +81,8 @@ class ImageProcessor:
         # Global variables to hold the images we are working with
         global outputImages
         global pixelMatrices
+
+        start = time.time()
 
         outputImages = []
         pixelMatrices = []
@@ -108,7 +111,13 @@ class ImageProcessor:
         rot90.rotate(90)
         inputImage = inputImage.transformed(rot90)
 
+        print("after transformed {}".format(time.time() - start))
+        start = time.time()
+
         inputs = self.splitImageTwos(inputImage)
+
+        print("after splitImageTwos {}".format(time.time() - start))
+        start = time.time()
 
         # Get the size of the input images and adjust width to be that of the output
         width, height = inputs[0].size
@@ -151,11 +160,15 @@ class ImageProcessor:
         )
 
         inputs2 = inputs
+        tot = 50 / self.dilateCount
         for i in range(self.dilateCount):
             inputs2 = [ self.dilate(inputs2[0]), self.dilate(inputs2[1]) ]
             if progressFunc:
-                if not progressFunc(i + 1, int(height/self.mOffset)*2 + 11):
+                if not progressFunc((i + 1) * tot, 50 + tot):
                     return
+
+        print("after dilute {}".format(time.time() - start))
+        start = time.time()
 
         outputImages[0].paste(inputs[0], pasteLocations[0])
         outputImages[1].paste(inputs[1], pasteLocations[1])
@@ -167,9 +180,15 @@ class ImageProcessor:
             for i in range(4)
         ]
 
+        print("after paste {}".format(time.time() - start))
+        start = time.time()
+
         # We have our input images and their matrices. Now we need to generate
         # the correct output data.
         self.writeCommands(progressFunc)
+
+        print("after write commands {}".format(time.time() - start))
+        start = time.time()
 
     def dilate(self, img):
         width, height = img.size
@@ -270,17 +289,6 @@ class ImageProcessor:
         #self.writeMovementCommand('Y', 0)
 
         self.outputFile.close()
-
-        # Add the djb2 hash to the start of the file
-        file = open(self.outputFileName, 'r')
-        contents = file.read()
-        file.close()
-        djb2 = calcDJB2(contents)
-
-        file = open(self.outputFileName, 'w')
-        file.write("# {:08x}\n".format(djb2))
-        file.write(contents)
-        file.close()
 
     def calculateFiring(self, xPos, yPos, addr, side):
         # Lookup tables to convert address to position
