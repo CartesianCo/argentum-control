@@ -56,8 +56,8 @@ default_options = {
     'horizontal_offset': 726,
     'vertical_offset': 0,
     'print_overlap': 41,
-    'x_speed': 1500,
-    'y_speed': 1500
+    'x_speed': 8000,
+    'y_speed': 8000
 }
 
 def load_options():
@@ -1134,6 +1134,7 @@ class Argentum(QtGui.QMainWindow):
 
         optionsDialog = OptionsDialog(self, options=self.options)
         optionsDialog.exec_()
+        self.setSpeed()
 
     def fileOpenLayoutTriggered(self):
         self.printView.openLayout()
@@ -1215,6 +1216,7 @@ class Argentum(QtGui.QMainWindow):
         if self.getOption("lights_always_on", False):
             self.printer.turnLightsOn()
             self.printView.update()
+        self.setSpeed()
 
         options = self.printer.getOptions()
         if options != None:
@@ -1606,8 +1608,8 @@ class Argentum(QtGui.QMainWindow):
         self.addTimeSpent("ts_printing", val)
 
     def setSpeed(self):
-        x_speed = int(self.getOption("x_speed", 1500))
-        y_speed = int(self.getOption("y_speed", 1500))
+        x_speed = int(self.getOption("x_speed", 8000))
+        y_speed = int(self.getOption("y_speed", 8000))
         self.printer.command("s X {}".format(x_speed))
         self.printer.command("s Y {}".format(y_speed))
 
