@@ -1055,7 +1055,7 @@ class PrintView(QtGui.QWidget):
         except Exception as e:
             print(e)
             self.setProgress(statusText="Print error.", canceled=True)
-            #raise
+            raise
         finally:
             self.printThread = None
             self.argentum.printingCompleted = True

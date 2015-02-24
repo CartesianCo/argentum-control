@@ -183,7 +183,8 @@ class ImageProcessor:
         )
 
         inputs2 = inputs
-        tot = 50 / self.dilateCount
+        if self.dilateCount > 0:
+            tot = 50 / self.dilateCount
         for i in range(self.dilateCount):
             inputs2 = [ self.dilate(inputs2[0]), self.dilate(inputs2[1]) ]
             if progressFunc:
