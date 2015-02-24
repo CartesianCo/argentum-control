@@ -370,7 +370,6 @@ class Argentum(QtGui.QMainWindow):
 
         self.flashAction = QtGui.QAction('&Change Firmware', self)
         self.flashAction.triggered.connect(self.flashActionTriggered)
-        self.flashAction.setEnabled(False)
 
         self.optionsAction = QtGui.QAction('Processing &Options', self)
         self.optionsAction.triggered.connect(self.optionsActionTriggered)
@@ -1177,7 +1176,6 @@ class Argentum(QtGui.QMainWindow):
             self.close()
 
     def enableConnectionSpecificControls(self, enabled):
-        self.flashAction.setEnabled(enabled)
         self.printAction.setEnabled(enabled)
         self.optionsAction.setEnabled(enabled)
         self.uploadFileAction.setEnabled(enabled)
