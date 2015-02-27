@@ -444,7 +444,7 @@ class PrintView(QtGui.QWidget):
             for image in self.images:
                 if image == self.printHeadImage:
                     continue
-                print("Jacketing drying.")
+                print("Jacket drying.")
                 self.setProgress(labelText="Drying " + image.hexFilename)
                 pos = self.printAreaToMove(image.left + image.width - 60, image.bottom + 30)
                 x = pos[0]
@@ -712,6 +712,7 @@ class PrintView(QtGui.QWidget):
                 width += w
             elif line.startswith('M Y'):
                 theight += int(line[4:])
+        print("height={} theight={}".format(height, theight))
         if height == 0:
             height = theight
         else:
@@ -779,7 +780,10 @@ class PrintView(QtGui.QWidget):
     def imageProgress(self, y, max_y):
         if self.printCanceled:
             return False
-        self.setProgress(incPercent=(self.perImage / max_y))
+        percent = (y * 100.0 / max_y)
+        if percent > 99:
+            percent = 99
+        self.setProgress(percent=percent)
         return True
 
     def sendProgress(self, pos, size):

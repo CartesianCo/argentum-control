@@ -137,7 +137,14 @@ class ImageProcessor:
         print("after transformed {}".format(time.time() - start))
         start = time.time()
 
+        if progressFunc:
+            if not progressFunc(10, 100):
+                return
+
         inputs = self.splitImageTwos(inputImage)
+        if progressFunc:
+            if not progressFunc(25, 100):
+                return
 
         print("after splitImageTwos {}".format(time.time() - start))
         start = time.time()
@@ -184,11 +191,11 @@ class ImageProcessor:
 
         inputs2 = inputs
         if self.dilateCount > 0:
-            tot = 50 / self.dilateCount
+            tot = 50.0 / self.dilateCount
         for i in range(self.dilateCount):
             inputs2 = [ self.dilate(inputs2[0]), self.dilate(inputs2[1]) ]
             if progressFunc:
-                if not progressFunc((i + 1) * tot, 50 + tot):
+                if not progressFunc(25 + (i + 1) * tot, 100):
                     return
 
         print("after dilute {}".format(time.time() - start))
@@ -260,10 +267,11 @@ class ImageProcessor:
 
         xposition = 0
 
+        tot = 25.0 / (int(height/self.mOffset)*2 + 1)
         for y in xrange(int(height/self.mOffset)*2 + 1):
             # Print out progress
             if progressFunc:
-                if not progressFunc(y + 1, int(height/self.mOffset)*2 + 11):
+                if not progressFunc(75 + (y + 1) * tot, 100):
                     self.outputFile.close()
                     os.remove(self.outputFileName)
                     return
@@ -306,7 +314,6 @@ class ImageProcessor:
             movex = int(self.mOffset * (y + 1) * self.SPN) - xposition
             self.writeMovementCommand('X', -movex)
             xposition += movex
-
 
         # Reset X and Y positions
         #self.writeMovementCommand('X', 0)
