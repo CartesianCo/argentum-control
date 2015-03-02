@@ -761,7 +761,6 @@ class PrintView(QtGui.QWidget):
         return pi
 
     def isImageProcessed(self, image):
-        return False # Disabled
         hexFilename = os.path.join(self.argentum.filesDir, image.hexFilename)
         if not os.path.exists(hexFilename):
             return False
@@ -769,6 +768,9 @@ class PrintView(QtGui.QWidget):
             return False
         hexModified = os.path.getmtime(hexFilename)
         if time.time() - hexModified > 7*24*60*60:
+            return False
+        last_printer_options_changed = self.argentum.getOption("last_printer_options_changed", None)
+        if last_printer_options_changed != None and hexModified < last_printer_options_changed:
             return False
         imgModified = os.path.getmtime(image.filename)
         if imgModified < hexModified:
@@ -961,6 +963,7 @@ class PrintView(QtGui.QWidget):
                     self.setProgress(labelText="Processing image {}.".format(os.path.basename(image.filename)))
                     self.processImage(image)
                 else:
+                    print("Skipping processing of image {}.".format(image.filename))
                     self.setProgress(incPercent=self.perImage)
 
             processingEnd = time.time()
@@ -980,6 +983,8 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(labelText="Please turn on your printer.")
                 while volts < 5:
                     volts = self.argentum.printer.volt()
+
+            self.setProgress(percent=20, labelText="Starting print.")
 
             self.argentum.printer.turnLightsOn()
             self.argentum.printer.command("l E", expect='rollers')

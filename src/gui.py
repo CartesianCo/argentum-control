@@ -1559,6 +1559,7 @@ class Argentum(QtGui.QMainWindow):
         save_options(self.options)
 
     def updatePrinterOptions(self, val):
+        val["last_printer_options_changed"] = time.time()
         self.updateOptions(val)
         if self.printer.connected:
             self.printer.updateOptions(self.options)
