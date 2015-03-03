@@ -439,11 +439,13 @@ class ImageProcessor:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Usage: ImageProcessor <input image> <output hex file>")
+        sys.exit(1)
 
-    outputFileName = 'testCommands.HEX'
+    outputFileName = sys.argv[2]
     fileStream = open(outputFileName, 'w')
-    image = Image.open("textTest.png")
-    #image = Image.open("INPUT.JPG")
+    image = Image.open(sys.argv[1])
     imProc = ImageProcessor()
     imProc.processImageForPrinting(image, fileStream, threshold=50, ascorbicDilation=5,\
                                    coverageRatio=2)
