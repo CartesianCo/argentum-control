@@ -126,16 +126,16 @@ def determineSize(cmds, cartridge, cartridgeOffset, stepsPerPixel):
                         xMax = max(xPos+offset[0], xMax)
                         yMin = min(yPos+offset[1], yMin)
                         yMax = max(yPos+offset[1], yMax)
-    
+
     width = (xMax - xMin) + 3
     height = (yMax - yMin) + 6
-    
+
     xMin *= -1
     xMin += 2
-    
+
     yMin *= -1
     yMin += 2
-    
+
     if xMin == sys.maxint or yMin == sys.maxint:
         return ((0,0), (-1,-1))
     return ((xMin, yMin), (width, height))
@@ -195,17 +195,16 @@ def imageFromCmds(cmds, cartridge, cartridgeOffset, stepsPerPixel):
     if (cmds[0][0] == SIZE_CMD):
         actualImageWidth,actualImageHeight = cmds[0][1]
     else:
-    
         stepWidth = 0
         i = 0
         while cmds[i][0] != FIRE_CMD:
             i += 1
-        
+
         while (cmds[i][0] != MOVE_CMD) or (cmds[i][1][0] != Y_AXIS):
             i +=1
-        
+
         feedAdvance = int(round(cmds[i][1][1] / stepsPerPixel))
-        
+
         i += 1
         while (cmds[i][0] != MOVE_CMD) or (cmds[i][1][0] != Y_AXIS):
             i +=1
@@ -214,7 +213,7 @@ def imageFromCmds(cmds, cartridge, cartridgeOffset, stepsPerPixel):
                     stepWidth += cmds[i][1][1]
         pixelWidth = int(round(stepWidth / stepsPerPixel))
         actualImageWidth = pixelWidth - (cartridge.columnOffset + cartridgeOffset[0])
-        
+
         pixelHeight = abs(int(round(cmds[-1][1][1]) / stepsPerPixel))
         actualImageHeight = pixelHeight - cartridge.swathHeight + (2*feedAdvance)\
                                            - abs(cartridgeOffset[1])
@@ -224,12 +223,12 @@ def imageFromCmds(cmds, cartridge, cartridgeOffset, stepsPerPixel):
     print actualImageWidth, actualImageHeight
     outputImage = Image.new("RGBA", (actualImageWidth, actualImageHeight), (255,255,255,0))
     imageData = outputImage.load()
-    
+
     xPos = 0
     yPos = 0
     cmdCnt = -1
     swathImages = []
-    
+
     for cmd in cmds:
         cmdCnt += 1
         if cmd[0] == FIRE_CMD:
@@ -258,7 +257,7 @@ def imageFromCmds(cmds, cartridge, cartridgeOffset, stepsPerPixel):
                     except:
                         print "pos"
                         print pos
-                        
+
         elif cmd[0] == MOVE_CMD:
             displacement = int(round(cmd[1][1] / stepsPerPixel))
             if cmd[1][0] == X_AXIS:
@@ -275,7 +274,7 @@ def imageFromCmds(cmds, cartridge, cartridgeOffset, stepsPerPixel):
                     for x in range(actualImageWidth):
                         newSwathData[x, yPos+cartridge.swathHeight+2] = (0,0,0,255)
                         if x % 2 == 0:
-                            newSwathData[x, yPos+cartridge.swathHeight+1] = (0,0,0,255)                            
+                            newSwathData[x, yPos+cartridge.swathHeight+1] = (0,0,0,255)
                 swathImages.append(newSwath)
                 complete = cmdCnt
                 total = len(cmds)
@@ -288,7 +287,7 @@ def imageFromCmds(cmds, cartridge, cartridgeOffset, stepsPerPixel):
         for y in range(actualImageHeight):
             if imageData[x,y][3] > maxVal:
                 maxVal = imageData[x,y][3]
-    
+
     for x in range(actualImageWidth):
         for y in range(actualImageHeight):
             imageData[x,y] = (imageData[x,y][0],imageData[x,y][1],imageData[x,y][2],\
@@ -301,7 +300,7 @@ def imageFromCmds(cmds, cartridge, cartridgeOffset, stepsPerPixel):
                 data[x,y] = (data[x,y][0],data[x,y][1],data[x,y][2],\
                               int((float(data[x,y][3]) / maxVal) * 255))
     #outputImage.show()
-    
+
     #return swathImages
     return [outputImage]
 
@@ -339,10 +338,9 @@ def getCirclePixels(radius):
             if y <= circleVal(x,radius):
                 output.append((x,y))
     return mirrorMirror(tuple(output))
-        
 
 def dot(imageData, pos, size, isLeftSide, offsets, showAscorbic=True):
-    
+
     for offset in offsets:
         newPos = (pos[0]+offset[0], pos[1]+offset[1])
         if (newPos[0] < size[0]) and (newPos[0] >= 0) and (newPos[1] < size[1]) and \
@@ -355,7 +353,6 @@ def dot(imageData, pos, size, isLeftSide, offsets, showAscorbic=True):
                 imageData[newPos[0],newPos[1]] = (imageData[newPos[0],pos[1]][0],0,\
                                             imageData[newPos[0],newPos[1]][2],\
                                             imageData[newPos[0],newPos[1]][3] + 1)
-    
 
 def imageFromCmds2(cmds, cartridge, cartridgeOffset, stepsPerPixel, offsets, \
                    showAscorbic=True):
@@ -369,16 +366,16 @@ def imageFromCmds2(cmds, cartridge, cartridgeOffset, stepsPerPixel, offsets, \
     print width,height
     print "xPos, yPos"
     print xPos, yPos
-    
+
     #outputImage = Image.new("RGBA", (width, height), (255,255,255,0))
     outputImage = Image.new("RGBA", (width, height), (255,255,255,1))
     imageData = outputImage.load()
-    
+
     #xPos = 0
     #yPos = 0
     cmdCnt = -1
     swathImages = []
-    
+
     for cmd in cmds:
         cmdCnt += 1
         if cmd[0] == FIRE_CMD:
@@ -395,7 +392,7 @@ def imageFromCmds2(cmds, cartridge, cartridgeOffset, stepsPerPixel, offsets, \
                         pos = (xPos + offset[0] + cartridgeOffset[0], yPos + offset[1])
                         dot(imageData, pos, (width,height), cmd[1][1] & (1 << primitive),\
                             offsets, showAscorbic)
-                        
+
         elif cmd[0] == MOVE_CMD:
             displacement = cmd[1][1]
             if cmd[1][0] == X_AXIS:
@@ -413,7 +410,7 @@ def imageFromCmds2(cmds, cartridge, cartridgeOffset, stepsPerPixel, offsets, \
                     for x in range(width):
                         newSwathData[x, yPos+swathHeightSteps+2] = (0,0,0,255)
                         if x % 2 == 0:
-                            newSwathData[x, yPos+swathHeightSteps+1] = (0,0,0,255)                            
+                            newSwathData[x, yPos+swathHeightSteps+1] = (0,0,0,255)
                 swathImages.append(newSwath)
                 complete = cmdCnt
                 total = len(cmds)
@@ -421,24 +418,21 @@ def imageFromCmds2(cmds, cartridge, cartridgeOffset, stepsPerPixel, offsets, \
                 print "{:d}% Image Simulation Complete".format(percentage)
                 yPos += displacement
 
-    
     print "starting Equalization"
     maxVal = 0
     for x in range(width):
         for y in range(height):
             if imageData[x,y][3] > maxVal:
                 maxVal = imageData[x,y][3]
-    
+
     for x in range(width):
         for y in range(height):
             imageData[x,y] = (imageData[x,y][0],imageData[x,y][1],imageData[x,y][2],\
                               int((float(imageData[x,y][3]) / maxVal) * 255))
 
     print "Equalized main image"
-    
-    
+
     print "Equalizing each swath image"
-    
     for i in range(len(swathImages)):
         data = swathImages[i].load()
         for x in range(width):
@@ -447,9 +441,9 @@ def imageFromCmds2(cmds, cartridge, cartridgeOffset, stepsPerPixel, offsets, \
                               int((float(data[x,y][3]) / maxVal) * 255))
 
     print "Equalized all images"
-    
+
     outputImage.show()
-    
+
     return swathImages
     #return [outputImage]
 
@@ -462,6 +456,10 @@ def simulateGUI(inputFile, showAscorbic=True, offsets=None):
     inputFile = open(inputFile)
     lines = inputFile.readlines()
     inputFile.close()
+
+    # Skip comments at top of file
+    while len(lines) > 0 and lines[0][0] == '#':
+        lines = lines[1:]
 
     cmds = [decodeCmd(cmdStr) for cmdStr in lines]
 
@@ -518,17 +516,4 @@ images = []
 
 if __name__ == "__main__":
     #simulateGUI("testCommands.hex", showAscorbic=False, offsets = getCirclePixels(6))
-    simulateGUI("textTest.hex", showAscorbic=False, offsets = getCirclePixels(6))
-
-
-
-
-
-
-
-
-
-
-
-
-
+    simulateGUI(sys.argv[1], showAscorbic=False, offsets = getCirclePixels(6))
