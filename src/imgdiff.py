@@ -7,6 +7,7 @@
     Copyright (C) 2013 Isabella Stevens
     Copyright (C) 2014 Michael Shiel
     Copyright (C) 2015 Trent Waddington
+    Copyright (C) 2015 Michael Reed
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
