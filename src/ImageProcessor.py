@@ -84,8 +84,6 @@ def writeFireCmd(address, firings, useTextualFiring, outputStream):
 
     cmdStr = getFireCmd(address, firings, useTextualFiring)
     outputStream.write(cmdStr)
-    
-
 
 def getSteps(error, displacement, stepsPerPixel):
     '''
@@ -128,7 +126,7 @@ def getSteps(error, displacement, stepsPerPixel):
     # In case there's some math error somewhere - this should never be invoked.
     if (displacement != int(round(oldSteps/stepsPerPixel))):
         print "Math Error"
-    
+
     return (oldError, int(oldSteps))
 
 
@@ -143,7 +141,7 @@ def calcAddressFiringByte(bitmap, coverageData, bitmapSize, maxCoverage, x, y, c
     # If the bitmap is empty, return error code -1
     if (bitmap == None):
         return -1
-    
+
     # Creates the output byte, ready for filling
     outputByte = 0
 
@@ -165,7 +163,7 @@ def calcAddressFiringByte(bitmap, coverageData, bitmapSize, maxCoverage, x, y, c
         if (nozzleX < 0) or (nozzleY < 0) or (nozzleX >= bitmapSize[0]) \
                                               or (nozzleY >= bitmapSize[1]):
             continue
-        
+
         # If the pixel is black in the image AND the current number of droplets already fired
         # at it is less than the coverage ratio - add a command to the output byte to fire the
         # given primitive.
@@ -229,13 +227,13 @@ class ImageProcessor:
 
         if stdCoverageRatio:
             self.stdCoverageRatio = stdCoverageRatio
-        
+
         if cartridgeOffset:
             self.cartridgeOffset = cartridgeOffset
 
         if stdThreshold:
             self.stdThreshold = stdThreshold
-        
+
         if stdImageRes:
             self.stdImageRes = stdImageRes
 
@@ -244,11 +242,10 @@ class ImageProcessor:
 
         if printer:
             self.printer = printer
-            
+
         if minStep:
             self.minStep = minStep
 
-        
     def processImageForPrinting(self, inputImage, outputStream, progressFunc=None, size=None,\
                                 ascorbicDilation=None, coverageRatio=None, imageRes=None,\
                                 threshold=None):
@@ -286,10 +283,10 @@ class ImageProcessor:
 
         # The side dimension of a single pixel in the image, given it's resolution
         self.imagePixelSize = 25.4 / self.imageRes
-        
+
         # The number of steps per pixel in the image, given the step size.
         self.stepsPerPixel = self.imagePixelSize / self.minStep
-        
+
         # This is the distance (in image pixels) the carriage advances after printing
         # each swath.  It is calculated using the swath height of the cartridge over the
         # coverage ratio times the image pixels per native cartridge pixels.  Hence if the
@@ -299,7 +296,7 @@ class ImageProcessor:
         # in every second swath and are therefore only printed once.
         self.feedAdvance = (self.cartridge.swathHeight / (self.coverageRatio \
                             * self.cartridge.imagePxPerNativePx))
-        
+
         # This ensures that the feed advance is an odd number.  This technically is only
         # needed when the image resolution is double the native cartridge resolution and
         # does NOT account for different ratios.
@@ -318,7 +315,7 @@ class ImageProcessor:
         # Uncomment these line to view the silverImage and ascorbicImage respectively
         # silverImage.show()
         # ascorbicImage.show()
-        
+
         # This is a grayscale image bitmap generated to track the amount of droplets that have
         # been fired at a given pixel.  This is used to prevent swathAdvance banding.
         silverCoverage = Image.new("L", silverImage.size, 0)
@@ -364,7 +361,7 @@ class ImageProcessor:
         while cnt <= endingXPos:
             xVals.append(cnt)
             cnt += 1
-        
+
         # Fills an array with all of the vertical positions that will be traversed by the
         # carriage.  Note that this is much less than the image height as each movement has a
         # value of self.feedAdvance.
@@ -417,17 +414,16 @@ class ImageProcessor:
                     if (silverFiring != 0) and (ascorbicFiring != 0):
                         emptyPosition = False
                         emptySwath = False
-                    
+
                     writeFireCmd(address, [silverFiring, ascorbicFiring], True, outputStream)
-                
+
                 self.moveCommand(X_AXIS, 1, outputStream)
-                
+
             # After the swath has finished, move the carriage back to the starting position.
             self.moveCommand(X_AXIS, (startingXPos - self.xPos), outputStream)
             # Advance the carriage to the next swath position vertically.
             self.moveCommand(Y_AXIS,self.feedAdvance, outputStream)
         self.moveCommand(Y_AXIS, (startingYPos - self.yPos), outputStream)
-            
 
     def moveCommand(self, axis, displacement, outputStream):
         if axis == X_AXIS:
@@ -454,10 +450,3 @@ if __name__ == "__main__":
     fileStream.close()
 
     simulateGUI(outputFileName)
-
-
-
-
-
-
-

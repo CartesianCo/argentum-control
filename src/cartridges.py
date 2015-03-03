@@ -258,7 +258,6 @@ class HP40Cartridge():
 
         # This is the horizontal offset of one column relative to another in image pixels.
         self.columnOffset = self.columnOffsetNativePx * self.imagePxPerNativePx
-        
 
     def findNozzleInPrimitive(self, address, isEvenPrimitive):
         '''
@@ -278,7 +277,7 @@ class HP40Cartridge():
         NOTE: before multiplying by self.imagePxPerNativePx, if the primitive is an even
         primitive, the displacement will be even and vice versa.  This is important as it
         delegates different information to each column.
-        '''        
+        '''
         return (self.findNozzleInPrimitive(address, primitive%2) - 1) \
                * self.imagePxPerNativePx
 

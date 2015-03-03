@@ -46,7 +46,7 @@ def dilate(inputImage, dilateCount):
     # dilateCount = 0.
     if (dilateCount <= 0):
         return inputImage
-    
+
     # Simply assigning the width and height their own variables.
     width, height = inputImage.size
     # Generating a copy for the output image from the original.
@@ -129,14 +129,14 @@ def resizeImage(inputImage, size):
 def countPixels(inputImage):
     '''
     Counts the number of 'on' pixels ina given image and returns that value.
-    '''    
+    '''
     # Generates pixel access for image.
     data = inputImage.load()
     # Assigns width and height for easier access.
     width, height = inputImage.size
     # Initialize number of pixels in the image as 0.
     numPixels = 0
-    
+
     # For each column in the image.
     for x in range(width):
         # For each row in the image.
@@ -147,7 +147,7 @@ def countPixels(inputImage):
                 numPixels += 1
 
     return numPixels
-    
+
 def cropImage(inputImage):
     '''
     Takes an input image, determines the bounding box of the actual data, crops the image
@@ -217,7 +217,7 @@ def getImages(inputImage, threshold, dilation, size=None):
     # If a size is provided for scaling
     if size:
         # Scale the image
-        inputImage = resizeImage(inputImage, size)       
+        inputImage = resizeImage(inputImage, size)
     # Convert the input image to a 1-bit bitmap using the given threshold.
     inputImage = toOneBitBmp(inputImage, threshold)
     # We now generate a new image that is expanded by 'dilation' pixels on all edges and
@@ -229,7 +229,6 @@ def getImages(inputImage, threshold, dilation, size=None):
     # Retrieve the cropped image as well as a dilated version of the cropped image and
     # as the bounding box used from the original image.
     return getCroppedImages(newImage, dilation)
-    
 
 if __name__ == "__main__":
     #image = Image.open("textTest.png")
