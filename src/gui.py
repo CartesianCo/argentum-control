@@ -163,9 +163,6 @@ class Argentum(QtGui.QMainWindow):
 
         print("Argentum init")
 
-        #v = Process(target=updater, args=('http://files.cartesianco.com',))
-        #v.start()
-
         self.printer = ArgentumPrinterController()
         self.programmer = None
 
@@ -1632,6 +1629,14 @@ class Argentum(QtGui.QMainWindow):
 def main():
     print("starting...")
     print("working directory is {}".format(os.getcwd()))
+    if sys.platform == "darwin" and os.getppid() == 1:
+        # We want terminal output
+        terminal = "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal"
+        program_path = sys.argv[0]
+        if program_path.endswith(".py"):
+            program_path = program_path[:program_path.rfind('/')]
+            program_path = program_path + "/../MacOS/gui"
+        os.execv(terminal, [terminal, program_path])
     app = QtGui.QApplication(sys.argv)
     app.setOrganizationName("CartesianCo")
     app.setOrganizationDomain("cartesianco.com")
