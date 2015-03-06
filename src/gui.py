@@ -1426,7 +1426,7 @@ class Argentum(QtGui.QMainWindow):
             self.printing = True
             self.paused = False
             self.printButton.setText('Pause')
-            self.turnLightsOn()
+            self.printer.turnLightsOn()
             self.sendPrintCommand()
 
     def stopButtonPushed(self):
