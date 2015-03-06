@@ -256,9 +256,9 @@ class Argentum(QtGui.QMainWindow):
                          QtGui.QSizePolicy.Expanding)
 
         # Motors power
-        self.motorsButton = QtGui.QPushButton("Motors")
-        self.motorsButton.setCheckable(True)
-        self.motorsButton.setChecked(not self.getOption("motors_start_off", False))
+        self.motorsButton = QtGui.QPushButton("Disable Motors")
+        if self.getOption("motors_start_off", False):
+            self.motorsButton.setText("Enable Motors")
         self.motorsButton.clicked.connect(self.motorsOnOff)
 
         # Position reporting
@@ -1389,10 +1389,12 @@ class Argentum(QtGui.QMainWindow):
             self.savePosList()
 
     def motorsOnOff(self):
-        if self.motorsButton.isChecked():
+        if self.motorsButton.text() == "Enable Motors":
             self.printer.turnMotorsOn()
+            self.motorsButton.setText("Disable Motors")
         else:
             self.printer.turnMotorsOff()
+            self.motorsButton.setText("Enable Motors")
 
     def posListWidgetItemActivated(self, item):
         s = str(item.text())
