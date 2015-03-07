@@ -609,7 +609,7 @@ class Argentum(QtGui.QMainWindow):
                     tagIU = tagIU.strip()
                     if tagIU.startswith("https://") or tagIU.startswith("http://"):
                         self.inlineUpdateUrl = tagIU
-                        print("Inline update url is " + self.inlineUpdateUrl)
+                        #print("Inline update url is " + self.inlineUpdateUrl)
             return True
         except Exception as e:
             print("updateLoop exception: {}".format(e))
