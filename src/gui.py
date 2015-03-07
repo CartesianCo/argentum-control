@@ -31,7 +31,7 @@ import zipfile
 import tempfile
 import random
 import shutil
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtGui, QtCore, QtSvg
 
 from serial.tools.list_ports import comports
 from ArgentumPrinterController import ArgentumPrinterController
@@ -157,6 +157,84 @@ class EchoDialog(QtGui.QDialog):
         self.parent.printer.serialWrite(txt)
         self.accept()
 
+class PrinterConnectionDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.parent = parent
+
+        self.setWindowTitle("Printer Connection")
+        mainLayout = QtGui.QVBoxLayout()
+        layout = QtGui.QHBoxLayout()
+        label = QtGui.QLabel("")
+        label.setPixmap(QtGui.QPixmap("printer.png"))
+        layout.addWidget(label)
+        self.usb = QtGui.QLabel("")
+        self.usbRenderer = QtSvg.QSvgRenderer("usb.svg")
+        img = QtGui.QImage(160, 80, QtGui.QImage.Format_ARGB32)
+        img.fill(0)
+        p = QtGui.QPainter()
+        p.begin(img)
+        self.usbRenderer.render(p, QtCore.QRectF(img.rect()))
+        p.end()
+        self.usb.setPixmap(QtGui.QPixmap.fromImage(img))
+        layout.addWidget(self.usb)
+        self.badPixmap = QtGui.QPixmap("bad.svg")
+        self.goodPixmap = QtGui.QPixmap("good.svg")
+        self.status = QtGui.QLabel("")
+        self.status.setPixmap(self.badPixmap)
+        layout.addWidget(self.status)
+        label = QtGui.QLabel("")
+        label.setPixmap(QtGui.QPixmap("computer.png"))
+        layout.addWidget(label)
+        mainLayout.addLayout(layout)
+        self.log = QtGui.QTextEdit()
+        self.log.setReadOnly(True)
+        self.log.setSizePolicy(QtGui.QSizePolicy.Minimum,
+                         QtGui.QSizePolicy.Expanding)
+        mainLayout.addWidget(self.log)
+
+        layout = QtGui.QHBoxLayout()
+        layout.addStretch()
+        self.button = QtGui.QPushButton("")
+        self.button.clicked.connect(self.buttonPressed)
+        layout.addWidget(self.button)
+        mainLayout.addLayout(layout)
+
+        self.setLayout(mainLayout)
+
+        self.lastMessage = None
+        self.button.hide()
+
+    def showMessage(self, val):
+        if val == self.lastMessage:
+            return
+        self.lastMessage = val
+        self.log.append(val)
+        self.show()
+
+    def buttonPressed(self):
+        if self.button.text() == "Connect":
+            self.parent.autoConnect = True
+            self.button.hide()
+        elif self.button.text() == "Disconnect":
+            self.parent.autoConnect = False
+            self.parent.disconnectFromPrinter()
+            self.showMessage('Disconnected from printer.')
+            self.status.setPixmap(self.badPixmap)
+            self.button.setText("Connect")
+
+    def connected(self):
+        self.status.setPixmap(self.goodPixmap)
+        self.button.setText("Disconnect")
+        self.button.show()
+        QtCore.QTimer.singleShot(1000, self.hide)
+
+    def disconnected(self):
+        self.status.setPixmap(self.badPixmap)
+        self.button.hide()
+        self.show()
+
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
@@ -199,10 +277,13 @@ class Argentum(QtGui.QMainWindow):
 
         self.printStartTime = None
 
+        self.connectionDialog.show()
+
     def initUI(self):
         # Create the console
         self.console = QtGui.QWidget(self)
         self.printView = PrintView(self)
+        self.connectionDialog = PrinterConnectionDialog(self)
 
         # First Row
         connectionRow = QtGui.QHBoxLayout()
@@ -393,6 +474,8 @@ class Argentum(QtGui.QMainWindow):
         self.changePrinterNumAction = QtGui.QAction("&Change Printer Number", self)
         self.changePrinterNumAction.triggered.connect(self.askForPrinterNumber)
 
+        self.showConnectionLog = QtGui.QAction("&Show Connection Log", self)
+        self.showConnectionLog.triggered.connect(self.connectionDialog.show)
 
         self.showPrintHeadAction = QtGui.QAction('Print &Head', self)
         self.showPrintHeadAction.setCheckable(True)
@@ -498,6 +581,7 @@ class Argentum(QtGui.QMainWindow):
         printerMenu.addAction(self.optionsAction)
         printerMenu.addAction(self.rollerCalibrationAction)
         printerMenu.addAction(self.changePrinterNumAction)
+        printerMenu.addAction(self.showConnectionLog)
         printerMenu.addSeparator()
 
         utilityMenu = printerMenu.addMenu('Utilities')
@@ -519,7 +603,8 @@ class Argentum(QtGui.QMainWindow):
         aboutAction.triggered.connect(self.aboutActionTriggered)
         helpMenu.addAction(aboutAction)
 
-        self.statusBar().showMessage('Looking for printer...')
+        self.statusBar().showMessage("No printer connected.")
+        self.setConnectionStatus('Looking for printer...')
 
         self.disableAllButtonsExceptConnect()
 
@@ -546,6 +631,14 @@ class Argentum(QtGui.QMainWindow):
         self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum Control')
         self.show()
+
+    def setConnectionStatus(self, val):
+        self.connectionDialog.showMessage(val)
+        if val == "Connected.":
+            self.statusBar().showMessage("Ready.")
+            self.connectionDialog.connected()
+        else:
+            self.connectionDialog.disconnected()
 
     def echoActionTriggered(self):
         echoDialog = EchoDialog(self)
@@ -1181,16 +1274,17 @@ class Argentum(QtGui.QMainWindow):
 
         self.portListCombo.setEnabled(not enabled)
 
+    def disconnectFromPrinter(self):
+        self.printer.disconnect()
+        self.connectButton.setText('Connect')
+        self.enableConnectionSpecificControls(False)
+        self.disableAllButtonsExceptConnect()
+
     def connectButtonPushed(self):
         if self.printer.connected:
-            self.printer.disconnect()
             self.autoConnect = False
-
-            self.connectButton.setText('Connect')
-
-            self.enableConnectionSpecificControls(False)
-            self.disableAllButtonsExceptConnect()
-            self.statusBar().showMessage('Disconnected from printer.')
+            self.disconnectFromPrinter()
+            self.setConnectionStatus('Disconnected from printer.')
         else:
             port = str(self.portListCombo.currentText())
 
@@ -1199,7 +1293,7 @@ class Argentum(QtGui.QMainWindow):
                     self.printerConnected()
                 else:
                     QtGui.QMessageBox.information(self, "Cannot connect to printer", self.printer.lastError)
-                    self.statusBar().showMessage('Connection error.')
+                    self.setConnectionStatus('Connection error.')
         self.updatePortList()
 
     def printerConnected(self):
@@ -1207,13 +1301,13 @@ class Argentum(QtGui.QMainWindow):
 
         self.enableAllButtons()
         self.enableConnectionSpecificControls(True)
-        self.statusBar().showMessage('Connected.')
         self.sentVolt = False
 
         if self.printer.version != None:
             for line in self.printer.junkBeforeVersion:
                 self.appendOutput(line)
-            self.appendOutput("Printer is running: " + self.printer.version)
+            self.setConnectionStatus("Printer is running: " + self.printer.version)
+        self.setConnectionStatus('Connected.')
 
         if self.printer.printerNumber == "NOT_SET":
             self.askForPrinterNumber()
@@ -1252,26 +1346,28 @@ class Argentum(QtGui.QMainWindow):
             self.portListCombo.addItem(port[0])
 
         if self.portListCombo.count() == 0:
-            self.statusBar().showMessage('No printer connected. Connect your printer.')
+            self.setConnectionStatus('No printer connected.')
             self.portListCombo.addItem(NO_PRINTER)
         else:
             if curPort == "" or self.portListCombo.findText(curPort) == -1:
                 if self.portListCombo.count() == 1:
                     curPort = self.portListCombo.itemText(0)
                 else:
-                    self.statusBar().showMessage('Multiple printers connected. Please select one.')
+                    self.setConnectionStatus('Multiple printers connected.')
                     self.tabWidget.setCurrentWidget(self.console)
 
         if curPort != "":
             idx = self.portListCombo.findText(curPort)
             if idx == -1:
                 if self.printer.connected:
-                    self.connectButtonPushed()
+                    self.disconnectFromPrinter()
             else:
                 self.portListCombo.setCurrentIndex(idx)
                 if self.autoConnect and not self.printer.connected and curPort != NO_PRINTER:
                     self.autoConnect = False
+                    self.autoConnectFailed = False
                     self.autoConnected = False
+                    self.setConnectionStatus("Connecting...")
                     QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
                     self.autoConnectThread = threading.Thread(target=self.autoConnectLoop)
                     self.autoConnectThread.port = str(curPort)
@@ -1283,6 +1379,10 @@ class Argentum(QtGui.QMainWindow):
                 self.printerConnected()
                 self.autoConnect = self.getOption("autoconnect", True)
             return
+        if self.autoConnectFailed:
+            self.setConnectionStatus(self.printer.lastError)
+            self.autoConnect = self.getOption("autoconnect", True)
+            return
         QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
 
     def autoConnectLoop(self):
@@ -1292,7 +1392,7 @@ class Argentum(QtGui.QMainWindow):
             if self.printer.connect(port=port):
                 self.autoConnected = True
             else:
-                print("Failed to connect to printer: " + self.printer.lastError)
+                self.autoConnectFailed = True
 
     def viewSwitchActionTriggered(self):
         if self.viewSwitchAction.text() == "Console":
