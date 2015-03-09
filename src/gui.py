@@ -55,6 +55,8 @@ import threading
 
 NO_PRINTER = "No printer connected."
 
+# These are the default values for printer settings.
+# See the image processing code for explanations of the first three.
 default_options = {
     'horizontal_offset': 726,
     'vertical_offset': 0,
@@ -62,25 +64,6 @@ default_options = {
     'x_speed': 8000,
     'y_speed': 8000
 }
-
-def load_options():
-    try:
-        options_file = open('argentum.pickle', 'rb')
-
-    except:
-        print('No existing options file, using defaults.')
-
-        return default_options
-
-    return pickle.load(options_file)
-
-def save_options(options):
-    try:
-        options_file = open('argentum.pickle', 'wb')
-    except:
-        print('Unable to open options file for writing.')
-
-    pickle.dump(options, options_file)
 
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
@@ -103,7 +86,7 @@ class Argentum(QtGui.QMainWindow):
         self.latestVersion = None
         self.inlineUpdateUrl = None
 
-        self.options = load_options()
+        self.loadOptions()
 
         #print('Loaded options: {}'.format(self.options))
 
@@ -478,6 +461,23 @@ class Argentum(QtGui.QMainWindow):
         self.setGeometry(300, 300, 1000, 800)
         self.setWindowTitle('Argentum Control')
         self.show()
+
+    def loadOptions(self):
+        try:
+            options_file = open('argentum.pickle', 'rb')
+        except:
+            print('No existing options file, using defaults.')
+            self.options = default_options
+            return
+        self.options = pickle.load(options_file)
+
+    def saveOptions(self):
+        try:
+            options_file = open('argentum.pickle', 'wb')
+        except:
+            print('Unable to open options file for writing.')
+            return
+        pickle.dump(self.options, options_file)
 
     def setConnectionStatus(self, val):
         self.connectionDialog.showMessage(val)
@@ -1172,7 +1172,7 @@ class Argentum(QtGui.QMainWindow):
         if options != None:
             for key, value in options.items():
                 self.options[key] = value
-            save_options(self.options)
+            self.saveOptions()
 
         if (self.printer.version != None and
                 is_older_firmware(self.printer.version)):
@@ -1313,7 +1313,7 @@ class Argentum(QtGui.QMainWindow):
             item = self.posListWidget.item(n)
             savedPositions.append(str(item.text()))
         self.options["saved_positions"] = savedPositions
-        save_options(self.options)
+        self.saveOptions()
 
     def posSaveButtonPushed(self):
         self.updatePosDisplay()
@@ -1503,7 +1503,7 @@ class Argentum(QtGui.QMainWindow):
 
     def updateOptions(self, val):
         self.options = val
-        save_options(self.options)
+        self.saveOptions()
 
     def updatePrinterOptions(self, val):
         val["last_printer_options_changed"] = time.time()
@@ -1516,7 +1516,7 @@ class Argentum(QtGui.QMainWindow):
         if install_num == None:
             install_num = random.randint(1, 1000000)
             self.options["install_number"] = install_num
-            save_options(self.options)
+            self.saveOptions()
         return install_num
 
     def getPrinterNumber(self):
@@ -1526,7 +1526,7 @@ class Argentum(QtGui.QMainWindow):
                 pnum = self.printer.getPrinterNumber()
             if pnum != None:
                 self.options["printer_number"] = pnum
-                save_options(self.options)
+                self.saveOptions()
                 return pnum
 
         return self.getOption("printer_number", None)
@@ -1538,19 +1538,19 @@ class Argentum(QtGui.QMainWindow):
         if self.printer.connected:
             self.printer.setPrinterNumber(val)
         self.options["printer_number"] = val
-        save_options(self.options)
+        self.saveOptions()
         self.startUpdateLoop()
 
     def setEmail(self, val):
         self.options["email"] = val
-        save_options(self.options)
+        self.saveOptions()
 
     def getTimeSpent(self, name):
         return self.getOption(name, 0)
 
     def addTimeSpent(self, name, val):
         self.options[name] = self.getTimeSpent(name) + val
-        save_options(self.options)
+        self.saveOptions()
 
     def getTimeSpentProcessingImages(self):
         return self.getTimeSpent("ts_processing_images")
