@@ -1194,6 +1194,7 @@ class Argentum(QtGui.QMainWindow):
 
         if self.portListCombo.count() == 0:
             self.setConnectionStatus('No printer connected.')
+            self.statusBar().showMessage("No printer connected.")
             self.portListCombo.addItem(NO_PRINTER)
         else:
             if curPort == "" or self.portListCombo.findText(curPort) == -1:
