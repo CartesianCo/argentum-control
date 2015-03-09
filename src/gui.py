@@ -519,6 +519,10 @@ class Argentum(QtGui.QMainWindow):
     def updateLoop(self):
         try:
             time.sleep(3)
+            git = ""
+            progdir = os.path.dirname(sys.argv[0])
+            if os.path.exists(progdir + "/.git") or os.path.exists(progdir + "/../.git"):
+                git = "/git"
             data = {
                 "installnum": self.getInstallNumber(),
                 "printernum": self.getPrinterNumber(),
@@ -527,7 +531,7 @@ class Argentum(QtGui.QMainWindow):
                 "ts_sending_files": self.getTimeSpentSendingFiles(),
                 "ts_printing": self.getTimeSpentPrinting(),
                 "version": BASEVERSION,
-                "platform": sys.platform
+                "platform": sys.platform + git
                }
             r = requests.post("https://www.cartesianco.com/feedback/run.php", data=data, verify=CA_CERTS)
             result = r.text
