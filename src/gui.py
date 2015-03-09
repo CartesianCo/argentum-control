@@ -204,6 +204,7 @@ class PrinterConnectionDialog(QtGui.QDialog):
         self.setLayout(mainLayout)
 
         self.lastMessage = None
+        self.connected = False
         self.button.hide()
 
     def showMessage(self, val):
@@ -224,16 +225,19 @@ class PrinterConnectionDialog(QtGui.QDialog):
             self.status.setPixmap(self.badPixmap)
             self.button.setText("Connect")
 
-    def connected(self):
+    def onConnected(self):
         self.status.setPixmap(self.goodPixmap)
         self.button.setText("Disconnect")
         self.button.show()
         QtCore.QTimer.singleShot(1000, self.hide)
+        self.connected = True
 
-    def disconnected(self):
+    def onDisconnected(self):
         self.status.setPixmap(self.badPixmap)
         self.button.hide()
-        self.show()
+        if self.connected:
+            self.connected = False
+            self.show()
 
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
@@ -636,9 +640,9 @@ class Argentum(QtGui.QMainWindow):
         self.connectionDialog.showMessage(val)
         if val == "Connected.":
             self.statusBar().showMessage("Ready.")
-            self.connectionDialog.connected()
+            self.connectionDialog.onConnected()
         else:
-            self.connectionDialog.disconnected()
+            self.connectionDialog.onDisconnected()
 
     def echoActionTriggered(self):
         echoDialog = EchoDialog(self)
