@@ -451,4 +451,4 @@ if __name__ == "__main__":
                                    coverageRatio=2)
     fileStream.close()
 
-    simulateGUI(outputFileName)
+    #simulateGUI(outputFileName)
