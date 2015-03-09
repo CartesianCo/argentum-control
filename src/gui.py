@@ -82,152 +82,6 @@ def save_options(options):
 
     pickle.dump(options, options_file)
 
-class GetPrinterNumberDialog(QtGui.QDialog):
-    def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
-
-        self.parent = parent
-
-        self.setWindowTitle("Unknown Printer")
-        mainLayout = QtGui.QVBoxLayout()
-        label = QtGui.QLabel("You have connected to a new printer!\n\nPlease enter the number located on the back of your printer.\n\nIt should look something like this:")
-        mainLayout.addWidget(label)
-        example = QtGui.QLabel("")
-        example.setStyleSheet('QLabel { background-color: black }')
-        example.setPixmap(QtGui.QPixmap("BackPlate.svg"))
-        mainLayout.addWidget(example)
-        self.printerNum = QtGui.QLineEdit(self)
-        self.printerNum.setText("#")
-        mainLayout.addWidget(self.printerNum)
-
-        layout = QtGui.QHBoxLayout()
-        layout.addStretch()
-        cancelButton = QtGui.QPushButton("Later")
-        cancelButton.clicked.connect(self.reject)
-        layout.addWidget(cancelButton)
-        self.registerButton = QtGui.QPushButton("Register Printer")
-        self.registerButton.clicked.connect(self.register)
-        layout.addWidget(self.registerButton)
-        mainLayout.addLayout(layout)
-
-        self.registerButton.setDefault(True)
-
-        self.setLayout(mainLayout)
-
-    def register(self):
-        self.printerNumText = str(self.printerNum.text())
-        if len(self.printerNumText) <= 1:
-            return
-        if self.printerNumText[0] != '#':
-            self.printerNumText = '#' + self.printerNumText
-
-        self.parent.setPrinterNumber(self.printerNumText)
-        self.accept()
-
-class EchoDialog(QtGui.QDialog):
-    def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
-
-        self.parent = parent
-
-        self.setWindowTitle("Echo test")
-        mainLayout = QtGui.QVBoxLayout()
-        self.text = QtGui.QPlainTextEdit()
-        mainLayout.addWidget(self.text)
-        self.sendButton = QtGui.QPushButton("Send")
-        self.sendButton.clicked.connect(self.send)
-        mainLayout.addWidget(self.sendButton)
-
-        self.setLayout(mainLayout)
-
-    def send(self):
-        txt = str(self.text.toPlainText())
-        self.parent.printer.command("echo {}".format(len(txt)))
-        self.parent.printer.serialWrite(txt)
-        self.accept()
-
-class PrinterConnectionDialog(QtGui.QDialog):
-    def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
-
-        self.parent = parent
-
-        self.setWindowTitle("Printer Connection")
-        mainLayout = QtGui.QVBoxLayout()
-        layout = QtGui.QHBoxLayout()
-        label = QtGui.QLabel("")
-        label.setPixmap(QtGui.QPixmap("printer.png"))
-        layout.addWidget(label)
-        self.usb = QtGui.QLabel("")
-        self.usbRenderer = QtSvg.QSvgRenderer("usb.svg")
-        img = QtGui.QImage(160, 80, QtGui.QImage.Format_ARGB32)
-        img.fill(0)
-        p = QtGui.QPainter()
-        p.begin(img)
-        self.usbRenderer.render(p, QtCore.QRectF(img.rect()))
-        p.end()
-        self.usb.setPixmap(QtGui.QPixmap.fromImage(img))
-        layout.addWidget(self.usb)
-        self.badPixmap = QtGui.QPixmap("bad.svg")
-        self.goodPixmap = QtGui.QPixmap("good.svg")
-        self.status = QtGui.QLabel("")
-        self.status.setPixmap(self.badPixmap)
-        layout.addWidget(self.status)
-        label = QtGui.QLabel("")
-        label.setPixmap(QtGui.QPixmap("computer.png"))
-        layout.addWidget(label)
-        mainLayout.addLayout(layout)
-        self.log = QtGui.QTextEdit()
-        self.log.setReadOnly(True)
-        self.log.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                         QtGui.QSizePolicy.Expanding)
-        mainLayout.addWidget(self.log)
-
-        layout = QtGui.QHBoxLayout()
-        layout.addStretch()
-        self.button = QtGui.QPushButton("")
-        self.button.clicked.connect(self.buttonPressed)
-        layout.addWidget(self.button)
-        mainLayout.addLayout(layout)
-
-        self.setLayout(mainLayout)
-
-        self.lastMessage = None
-        self.connected = False
-        self.button.hide()
-
-    def showMessage(self, val):
-        if val == self.lastMessage:
-            return
-        self.lastMessage = val
-        self.log.append(val)
-        self.show()
-
-    def buttonPressed(self):
-        if self.button.text() == "Connect":
-            self.parent.autoConnect = True
-            self.button.hide()
-        elif self.button.text() == "Disconnect":
-            self.parent.autoConnect = False
-            self.parent.disconnectFromPrinter()
-            self.showMessage('Disconnected from printer.')
-            self.status.setPixmap(self.badPixmap)
-            self.button.setText("Connect")
-
-    def onConnected(self):
-        self.status.setPixmap(self.goodPixmap)
-        self.button.setText("Disconnect")
-        self.button.show()
-        QtCore.QTimer.singleShot(1000, self.hide)
-        self.connected = True
-
-    def onDisconnected(self):
-        self.status.setPixmap(self.badPixmap)
-        self.button.hide()
-        if self.connected:
-            self.connected = False
-            self.show()
-
 class Argentum(QtGui.QMainWindow):
     def __init__(self):
         super(Argentum, self).__init__()
@@ -1720,6 +1574,154 @@ class Argentum(QtGui.QMainWindow):
 
     def closeEvent(self, evt):
         sys.exit(0)
+
+class GetPrinterNumberDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.parent = parent
+
+        self.setWindowTitle("Unknown Printer")
+        mainLayout = QtGui.QVBoxLayout()
+        label = QtGui.QLabel("You have connected to a new printer!\n\nPlease enter the number located on the back of your printer.\n\nIt should look something like this:")
+        mainLayout.addWidget(label)
+        example = QtGui.QLabel("")
+        example.setStyleSheet('QLabel { background-color: black }')
+        example.setPixmap(QtGui.QPixmap("BackPlate.svg"))
+        mainLayout.addWidget(example)
+        self.printerNum = QtGui.QLineEdit(self)
+        self.printerNum.setText("#")
+        mainLayout.addWidget(self.printerNum)
+
+        layout = QtGui.QHBoxLayout()
+        layout.addStretch()
+        cancelButton = QtGui.QPushButton("Later")
+        cancelButton.clicked.connect(self.reject)
+        layout.addWidget(cancelButton)
+        self.registerButton = QtGui.QPushButton("Register Printer")
+        self.registerButton.clicked.connect(self.register)
+        layout.addWidget(self.registerButton)
+        mainLayout.addLayout(layout)
+
+        self.registerButton.setDefault(True)
+
+        self.setLayout(mainLayout)
+
+    def register(self):
+        self.printerNumText = str(self.printerNum.text())
+        if len(self.printerNumText) <= 1:
+            return
+        if self.printerNumText[0] != '#':
+            self.printerNumText = '#' + self.printerNumText
+
+        self.parent.setPrinterNumber(self.printerNumText)
+        self.accept()
+
+class EchoDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.parent = parent
+
+        self.setWindowTitle("Echo test")
+        mainLayout = QtGui.QVBoxLayout()
+        self.text = QtGui.QPlainTextEdit()
+        mainLayout.addWidget(self.text)
+        self.sendButton = QtGui.QPushButton("Send")
+        self.sendButton.clicked.connect(self.send)
+        mainLayout.addWidget(self.sendButton)
+
+        self.setLayout(mainLayout)
+
+    def send(self):
+        txt = str(self.text.toPlainText())
+        self.parent.printer.command("echo {}".format(len(txt)))
+        self.parent.printer.serialWrite(txt)
+        self.accept()
+
+class PrinterConnectionDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.parent = parent
+
+        self.setWindowTitle("Printer Connection")
+        mainLayout = QtGui.QVBoxLayout()
+        layout = QtGui.QHBoxLayout()
+        label = QtGui.QLabel("")
+        label.setPixmap(QtGui.QPixmap("printer.png"))
+        layout.addWidget(label)
+        self.usb = QtGui.QLabel("")
+        self.usbRenderer = QtSvg.QSvgRenderer("usb.svg")
+        img = QtGui.QImage(160, 80, QtGui.QImage.Format_ARGB32)
+        img.fill(0)
+        p = QtGui.QPainter()
+        p.begin(img)
+        self.usbRenderer.render(p, QtCore.QRectF(img.rect()))
+        p.end()
+        self.usb.setPixmap(QtGui.QPixmap.fromImage(img))
+        layout.addWidget(self.usb)
+        self.badPixmap = QtGui.QPixmap("bad.svg")
+        self.goodPixmap = QtGui.QPixmap("good.svg")
+        self.status = QtGui.QLabel("")
+        self.status.setPixmap(self.badPixmap)
+        layout.addWidget(self.status)
+        label = QtGui.QLabel("")
+        label.setPixmap(QtGui.QPixmap("computer.png"))
+        layout.addWidget(label)
+        mainLayout.addLayout(layout)
+        self.log = QtGui.QTextEdit()
+        self.log.setReadOnly(True)
+        self.log.setSizePolicy(QtGui.QSizePolicy.Minimum,
+                         QtGui.QSizePolicy.Expanding)
+        mainLayout.addWidget(self.log)
+
+        layout = QtGui.QHBoxLayout()
+        layout.addStretch()
+        self.button = QtGui.QPushButton("")
+        self.button.clicked.connect(self.buttonPressed)
+        layout.addWidget(self.button)
+        mainLayout.addLayout(layout)
+
+        self.setLayout(mainLayout)
+
+        self.lastMessage = None
+        self.connected = False
+        self.button.hide()
+
+    def showMessage(self, val):
+        if val == self.lastMessage:
+            return
+        self.lastMessage = val
+        self.log.append(val)
+        self.show()
+
+    def buttonPressed(self):
+        if self.button.text() == "Connect":
+            self.parent.autoConnect = True
+            self.button.hide()
+        elif self.button.text() == "Disconnect":
+            self.parent.autoConnect = False
+            self.parent.disconnectFromPrinter()
+            self.showMessage('Disconnected from printer.')
+            self.status.setPixmap(self.badPixmap)
+            self.button.setText("Connect")
+
+    def onConnected(self):
+        self.status.setPixmap(self.goodPixmap)
+        self.button.setText("Disconnect")
+        self.button.show()
+        QtCore.QTimer.singleShot(1000, self.hide)
+        self.connected = True
+
+    def onDisconnected(self):
+        self.status.setPixmap(self.badPixmap)
+        self.button.hide()
+        if self.connected:
+            self.connected = False
+            self.show()
+
+
 
 def main():
     print("starting...")
