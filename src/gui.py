@@ -55,17 +55,6 @@ import threading
 
 NO_PRINTER = "No printer connected."
 
-def myrun(cmd):
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    stdout = []
-    while True:
-        line = p.stdout.readline()
-        stdout.append(line)
-        print(line)
-        if line == '' and p.poll() != None:
-            break
-    return ''.join(stdout)
-
 default_options = {
     'horizontal_offset': 726,
     'vertical_offset': 0,
