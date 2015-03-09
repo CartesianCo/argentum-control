@@ -1165,12 +1165,12 @@ class Argentum(QtGui.QMainWindow):
 
         if self.getOption("motors_start_off", False):
             self.printer.turnMotorsOff()
+        self.setSpeed()
         if self.getOption("home_on_connect", True):
             self.printer.home()
         if self.getOption("lights_always_on", False):
             self.printer.turnLightsOn()
             self.printView.update()
-        self.setSpeed()
 
         options = self.printer.getOptions()
         if options != None:
