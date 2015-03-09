@@ -665,7 +665,7 @@ class Argentum(QtGui.QMainWindow):
     def aboutActionTriggered(self):
         QtGui.QMessageBox.information(self,
                         "CartesianCo Argentum Control",
-                        "This software is used to control the Argentum circuit board printer.\n\nYou are running version {}.\n\nYour install number is {}.".format(BASEVERSION, self.getInstallNumber()))
+                        "This software is used to control the Argentum desktop electronics printer.\n\nYou are running version {}.\n\nYour install number is {}.".format(BASEVERSION, self.getInstallNumber()))
 
     def uploadProgressFunc(self, pos, size):
         if self.uploadProgressCancel:
