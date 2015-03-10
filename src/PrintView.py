@@ -371,6 +371,13 @@ class PrintView(QtGui.QWidget):
         for image in self.images:
             if image == self.printHeadImage:
                 continue
+            if image == self.selection:
+                r = QtCore.QRectF(image.screenRect)
+                r.setLeft(r.left()-1)
+                r.setTop(r.top()-1)
+                r.setWidth(r.width()+2)
+                r.setHeight(r.height()+2)
+                qp.fillRect(r, QtGui.QColor(0, 54, 128))
             qp.drawPixmap(image.screenRect, image.pixmap, image.pixmapRect())
         if self.showingPrintHead:
             image = self.printHeadImage
@@ -822,6 +829,22 @@ class PrintView(QtGui.QWidget):
         if image.screenRect == None:
             image.screenRect = self.printAreaToScreen(image)
         return self.trashCanRect.intersect(image.screenRect)
+
+    def mousePressEvent(self, event):
+        self.selection = None
+        p = self.screenToPrintArea(event.pos().x(), event.pos().y())
+        if p == None:
+            return
+
+        px = p[0]
+        py = p[1]
+
+        for image in self.images:
+            if image == self.printHeadImage:
+                continue
+            if py >= image.bottom and py < image.bottom + image.height:
+                if px >= image.left and px < image.left + image.width:
+                    self.selection = image
 
     def mouseReleaseEvent(self, event):
         if self.dragging:
