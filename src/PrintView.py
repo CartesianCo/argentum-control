@@ -1336,6 +1336,30 @@ class PrintView(QtGui.QWidget):
         self.selection.pixmap = QtGui.QPixmap.fromImage(newImage)
         self.update()
 
+    def invert(self):
+        if self.selection == None:
+            print("nothing to invert")
+            return
+
+        image = self.selection.pixmap.toImage()
+        newImage = image.copy()
+
+        progress = QtGui.QProgressDialog(self)
+        progress.setWindowTitle("Inverting...")
+        progress.show()
+
+        for j in range(image.height()):
+            for i in range(image.width()):
+                if QtGui.qBlue(image.pixel(i, j)) <= 200:
+                    newImage.setPixel(i, j, 0xffffff)
+                else:
+                    newImage.setPixel(i, j, 0)
+            progress.setValue((j+1) * 100.0 / image.height())
+            QtGui.QApplication.processEvents()
+
+        self.selection.pixmap = QtGui.QPixmap.fromImage(newImage)
+        self.update()
+
     def openLayout(self, filename=None):
         if self.closeLayout() == False:
             return
