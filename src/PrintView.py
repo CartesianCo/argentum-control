@@ -36,264 +36,6 @@ import tempfile
 printPlateDesignScale = [1.0757, 1.2256] # * printArea
 imageScale            = [ 23.70,  23.70] # * print = pixels
 
-# A kind of annoying Rect
-# Note: (0,0) is the bottom left corner of the printer
-# All measurements are in millimeters
-class PrintRect:
-    def __init__(self, left, bottom, width, height):
-        self.left   = float(left)
-        self.bottom = float(bottom)
-        self.width  = float(width)
-        self.height = float(height)
-
-class PrintImage(PrintRect):
-    def __init__(self, pixmap, filename):
-        self.pixmap = pixmap
-        self.filename = filename
-        self.left = 0.0
-        self.bottom = 0.0
-        self.width = pixmap.width() / imageScale[0]
-        self.height = pixmap.height() / imageScale[1]
-        self.lastResized = None
-        self.screenRect = None
-
-        filename = os.path.basename(filename)
-        if filename.find('.') != -1:
-            filename = filename[:filename.find('.')]
-        self.hexFilename = filename + ".hex"
-
-    def pixmapRect(self):
-        return QtCore.QRectF(self.pixmap.rect())
-
-class PrintCanceledException(Exception):
-    pass
-
-class PrintOptionsDialog(QtGui.QDialog):
-    def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
-        self.setWindowTitle("Print Options")
-        mainLayout = QtGui.QVBoxLayout()
-        self.printView = parent
-        self.argentum = parent.argentum
-
-        layout = QtGui.QHBoxLayout()
-        layout.addWidget(QtGui.QLabel("Print each image"))
-        self.passes = QtGui.QSpinBox(self)
-        self.passes.setMinimum(1)
-        layout.addWidget(self.passes)
-        layout.addWidget(QtGui.QLabel("times"))
-        mainLayout.addLayout(layout)
-
-        self.useRollers = QtGui.QCheckBox("Dry the print after each pass")
-        self.useRollers.setChecked(self.argentum.getOption("use_rollers", True))
-        mainLayout.addWidget(self.useRollers)
-
-        self.alsoPause = QtGui.QCheckBox("Pause after each pass")
-        self.alsoPause.setChecked(self.argentum.getOption("also_pause", False))
-        mainLayout.addWidget(self.alsoPause)
-
-        layout = QtGui.QHBoxLayout()
-        cancelButton = QtGui.QPushButton("Cancel")
-        cancelButton.clicked.connect(self.reject)
-        layout.addWidget(cancelButton)
-        printButton = QtGui.QPushButton("Print")
-        printButton.clicked.connect(self.accept)
-        layout.addWidget(printButton)
-        mainLayout.addLayout(layout)
-
-        printButton.setDefault(True)
-
-        self.setLayout(mainLayout)
-
-    def getPasses(self):
-        return self.passes.value()
-
-    def getUseRollers(self):
-        return self.useRollers.isChecked()
-
-    def getAlsoPause(self):
-        return self.alsoPause.isChecked()
-
-class PrintProgressDialog(QtGui.QDialog):
-    def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
-        self.printView = parent
-        mainLayout = QtGui.QVBoxLayout()
-        self.label = QtGui.QLabel("")
-        self.label.setAlignment(QtCore.Qt.AlignHCenter)
-        mainLayout.addWidget(self.label)
-
-        self.progressBar = QtGui.QProgressBar(self)
-        self.progressBar.setOrientation(QtCore.Qt.Horizontal)
-        mainLayout.addWidget(self.progressBar)
-
-        layout = QtGui.QHBoxLayout()
-        self.pauseButton = QtGui.QPushButton("Pause")
-        self.pauseButton.clicked.connect(self.pause)
-        layout.addWidget(self.pauseButton)
-        self.cancelButton = QtGui.QPushButton("Cancel")
-        self.cancelButton.clicked.connect(self.cancel)
-        layout.addWidget(self.cancelButton)
-        mainLayout.addLayout(layout)
-
-        self.cancelButton.setDefault(True)
-
-        self.setLayout(mainLayout)
-
-        self.paused = False
-        self.canceled = False
-
-    def wasCanceled(self):
-        return self.canceled
-
-    def setLabelText(self, text):
-        if text.startswith("Pass "):
-            self.setWindowTitle("Printing ({})".format(text[:text.find(':')]))
-        self.label.setText(text)
-
-    def setValue(self, value):
-        self.progressBar.setValue(value)
-        if value == 100:
-            self.hide()
-
-    def cancel(self):
-        self.canceled = True
-
-    def pause(self):
-        if self.paused:
-            self.paused = False
-            self.pauseButton.setText("Pause")
-        else:
-            self.paused = True
-            self.pauseButton.setText("Resume")
-
-    def closeEvent(self, e):
-        self.cancel()
-
-class RateYourPrintDialog(QtGui.QDialog):
-    def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
-        self.setWindowTitle("Rate Your Print")
-        mainLayout = QtGui.QVBoxLayout()
-        self.argentum = parent.argentum
-
-        info = QtGui.QLabel("How was your print?")
-        mainLayout.addWidget(info)
-        mainLayout.addWidget(QtGui.QLabel(" "))
-        layout = QtGui.QHBoxLayout()
-        for n in range(1, 6):
-            label = QtGui.QLabel(str(n))
-            if n == 1:
-                label.setAlignment(QtCore.Qt.AlignLeft)
-            if n == 2:
-                label.setAlignment(QtCore.Qt.AlignLeft)
-                layout.addSpacing(45)
-            if n == 3:
-                label.setAlignment(QtCore.Qt.AlignHCenter)
-            if n == 4:
-                label.setAlignment(QtCore.Qt.AlignRight)
-            if n == 5:
-                layout.addSpacing(45)
-                label.setAlignment(QtCore.Qt.AlignRight)
-            layout.addWidget(label)
-        mainLayout.addLayout(layout)
-        self.slider = QtGui.QSlider(QtCore.Qt.Horizontal, self)
-        self.slider.setRange(1, 5)
-        self.slider.setValue(3)
-        self.slider.setTickInterval(1)
-        self.slider.setTickPosition(self.slider.TicksAbove)
-        mainLayout.addWidget(self.slider)
-        mainLayout.addWidget(QtGui.QLabel(" "))
-        info = QtGui.QLabel("Your feedback is important. Please let us know how we can make your print better.")
-        mainLayout.addWidget(info)
-        self.comments = QtGui.QTextEdit(self)
-        mainLayout.addWidget(self.comments)
-
-        layout = QtGui.QHBoxLayout()
-        info = QtGui.QLabel("Your printer number:")
-        layout.addWidget(info)
-        self.printerNum = QtGui.QLineEdit(self)
-        if self.argentum.getPrinterNumber():
-            self.printerNum.setText(self.argentum.getPrinterNumber())
-        layout.addWidget(self.printerNum)
-        self.printerNum.setToolTip("Look on the back of your printer.")
-        mainLayout.addLayout(layout)
-
-        self.wantContact = QtGui.QCheckBox("Contact me about this print")
-        self.wantContact.stateChanged.connect(self.contactMe)
-        mainLayout.addWidget(self.wantContact)
-        self.emailLayout = None
-        self.email = None
-
-        layout = QtGui.QHBoxLayout()
-        cancelButton = QtGui.QPushButton("Cancel")
-        cancelButton.clicked.connect(self.reject)
-        layout.addWidget(cancelButton)
-        self.sendButton = QtGui.QPushButton("Send Report")
-        self.sendButton.clicked.connect(self.sendReport)
-        layout.addWidget(self.sendButton)
-        mainLayout.addLayout(layout)
-
-        self.sendButton.setDefault(True)
-
-        self.setLayout(mainLayout)
-
-    def contactMe(self, state):
-        mainLayout = self.layout()
-        if state == QtCore.Qt.Unchecked:
-            if self.emailLayout:
-                mainLayout.removeItem(self.emailLayout)
-                self.yourEmailInfo.deleteLater()
-                self.email.deleteLater()
-                self.emailLayout.deleteLater()
-                self.yourEmailInfo = None
-                self.email = None
-                self.emailLayout = None
-        else:
-            self.emailLayout = QtGui.QHBoxLayout()
-            self.yourEmailInfo = QtGui.QLabel("Your email:")
-            self.emailLayout.addWidget(self.yourEmailInfo)
-            self.email = QtGui.QLineEdit(self)
-            if self.argentum.getEmail():
-                self.email.setText(self.argentum.getEmail())
-            self.emailLayout.addWidget(self.email)
-            mainLayout.insertLayout(mainLayout.count() - 1, self.emailLayout)
-        self.update()
-
-    def sendLoop(self):
-        firmware = ""
-        if self.argentum.printer != None:
-            firmware = self.argentum.printer.version
-        data = {"rate": self.rate,
-                "comments": self.commentText,
-                "installnum": self.argentum.getInstallNumber(),
-                "printernum": self.printerNumText,
-                "email": self.emailText,
-                "ts_processing_images": self.argentum.getTimeSpentProcessingImages(),
-                "ts_sending_files": self.argentum.getTimeSpentSendingFiles(),
-                "ts_printing": self.argentum.getTimeSpentPrinting(),
-                "version": BASEVERSION,
-                "firmware": firmware
-               }
-        r = requests.post("https://www.cartesianco.com/feedback/print.php", data=data, verify=CA_CERTS)
-        print(r.text)
-
-    def sendReport(self):
-        self.sendButton.setText("Sending...")
-        self.printerNumText = str(self.printerNum.text())
-        self.emailText = ""
-        if self.email:
-            self.emailText = str(self.email.text())
-        if self.printerNumText != "":
-            self.argentum.setPrinterNumber(self.printerNumText)
-        if self.emailText != "" and self.emailText != self.argentum.getEmail():
-            self.argentum.setEmail(self.emailText)
-        self.rate = self.slider.sliderPosition()
-        self.commentText = str(self.comments.toPlainText())
-        updateThread = threading.Thread(target=self.sendLoop)
-        updateThread.start()
-        self.accept()
-
 class PrintView(QtGui.QWidget):
     layout = None
     layoutChanged = False
@@ -1693,3 +1435,263 @@ class PrintView(QtGui.QWidget):
         self.update()
 
         return True
+
+# A kind of annoying Rect
+# Note: (0,0) is the bottom left corner of the printer
+# All measurements are in millimeters
+class PrintRect:
+    def __init__(self, left, bottom, width, height):
+        self.left   = float(left)
+        self.bottom = float(bottom)
+        self.width  = float(width)
+        self.height = float(height)
+
+class PrintImage(PrintRect):
+    def __init__(self, pixmap, filename):
+        self.pixmap = pixmap
+        self.filename = filename
+        self.left = 0.0
+        self.bottom = 0.0
+        self.width = pixmap.width() / imageScale[0]
+        self.height = pixmap.height() / imageScale[1]
+        self.lastResized = None
+        self.screenRect = None
+
+        filename = os.path.basename(filename)
+        if filename.find('.') != -1:
+            filename = filename[:filename.find('.')]
+        self.hexFilename = filename + ".hex"
+
+    def pixmapRect(self):
+        return QtCore.QRectF(self.pixmap.rect())
+
+class PrintCanceledException(Exception):
+    pass
+
+class PrintOptionsDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowTitle("Print Options")
+        mainLayout = QtGui.QVBoxLayout()
+        self.printView = parent
+        self.argentum = parent.argentum
+
+        layout = QtGui.QHBoxLayout()
+        layout.addWidget(QtGui.QLabel("Print each image"))
+        self.passes = QtGui.QSpinBox(self)
+        self.passes.setMinimum(1)
+        layout.addWidget(self.passes)
+        layout.addWidget(QtGui.QLabel("times"))
+        mainLayout.addLayout(layout)
+
+        self.useRollers = QtGui.QCheckBox("Dry the print after each pass")
+        self.useRollers.setChecked(self.argentum.getOption("use_rollers", True))
+        mainLayout.addWidget(self.useRollers)
+
+        self.alsoPause = QtGui.QCheckBox("Pause after each pass")
+        self.alsoPause.setChecked(self.argentum.getOption("also_pause", False))
+        mainLayout.addWidget(self.alsoPause)
+
+        layout = QtGui.QHBoxLayout()
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(self.reject)
+        layout.addWidget(cancelButton)
+        printButton = QtGui.QPushButton("Print")
+        printButton.clicked.connect(self.accept)
+        layout.addWidget(printButton)
+        mainLayout.addLayout(layout)
+
+        printButton.setDefault(True)
+
+        self.setLayout(mainLayout)
+
+    def getPasses(self):
+        return self.passes.value()
+
+    def getUseRollers(self):
+        return self.useRollers.isChecked()
+
+    def getAlsoPause(self):
+        return self.alsoPause.isChecked()
+
+class PrintProgressDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.printView = parent
+        mainLayout = QtGui.QVBoxLayout()
+        self.label = QtGui.QLabel("")
+        self.label.setAlignment(QtCore.Qt.AlignHCenter)
+        mainLayout.addWidget(self.label)
+
+        self.progressBar = QtGui.QProgressBar(self)
+        self.progressBar.setOrientation(QtCore.Qt.Horizontal)
+        mainLayout.addWidget(self.progressBar)
+
+        layout = QtGui.QHBoxLayout()
+        self.pauseButton = QtGui.QPushButton("Pause")
+        self.pauseButton.clicked.connect(self.pause)
+        layout.addWidget(self.pauseButton)
+        self.cancelButton = QtGui.QPushButton("Cancel")
+        self.cancelButton.clicked.connect(self.cancel)
+        layout.addWidget(self.cancelButton)
+        mainLayout.addLayout(layout)
+
+        self.cancelButton.setDefault(True)
+
+        self.setLayout(mainLayout)
+
+        self.paused = False
+        self.canceled = False
+
+    def wasCanceled(self):
+        return self.canceled
+
+    def setLabelText(self, text):
+        if text.startswith("Pass "):
+            self.setWindowTitle("Printing ({})".format(text[:text.find(':')]))
+        self.label.setText(text)
+
+    def setValue(self, value):
+        self.progressBar.setValue(value)
+        if value == 100:
+            self.hide()
+
+    def cancel(self):
+        self.canceled = True
+
+    def pause(self):
+        if self.paused:
+            self.paused = False
+            self.pauseButton.setText("Pause")
+        else:
+            self.paused = True
+            self.pauseButton.setText("Resume")
+
+    def closeEvent(self, e):
+        self.cancel()
+
+class RateYourPrintDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.setWindowTitle("Rate Your Print")
+        mainLayout = QtGui.QVBoxLayout()
+        self.argentum = parent.argentum
+
+        info = QtGui.QLabel("How was your print?")
+        mainLayout.addWidget(info)
+        mainLayout.addWidget(QtGui.QLabel(" "))
+        layout = QtGui.QHBoxLayout()
+        for n in range(1, 6):
+            label = QtGui.QLabel(str(n))
+            if n == 1:
+                label.setAlignment(QtCore.Qt.AlignLeft)
+            if n == 2:
+                label.setAlignment(QtCore.Qt.AlignLeft)
+                layout.addSpacing(45)
+            if n == 3:
+                label.setAlignment(QtCore.Qt.AlignHCenter)
+            if n == 4:
+                label.setAlignment(QtCore.Qt.AlignRight)
+            if n == 5:
+                layout.addSpacing(45)
+                label.setAlignment(QtCore.Qt.AlignRight)
+            layout.addWidget(label)
+        mainLayout.addLayout(layout)
+        self.slider = QtGui.QSlider(QtCore.Qt.Horizontal, self)
+        self.slider.setRange(1, 5)
+        self.slider.setValue(3)
+        self.slider.setTickInterval(1)
+        self.slider.setTickPosition(self.slider.TicksAbove)
+        mainLayout.addWidget(self.slider)
+        mainLayout.addWidget(QtGui.QLabel(" "))
+        info = QtGui.QLabel("Your feedback is important. Please let us know how we can make your print better.")
+        mainLayout.addWidget(info)
+        self.comments = QtGui.QTextEdit(self)
+        mainLayout.addWidget(self.comments)
+
+        layout = QtGui.QHBoxLayout()
+        info = QtGui.QLabel("Your printer number:")
+        layout.addWidget(info)
+        self.printerNum = QtGui.QLineEdit(self)
+        if self.argentum.getPrinterNumber():
+            self.printerNum.setText(self.argentum.getPrinterNumber())
+        layout.addWidget(self.printerNum)
+        self.printerNum.setToolTip("Look on the back of your printer.")
+        mainLayout.addLayout(layout)
+
+        self.wantContact = QtGui.QCheckBox("Contact me about this print")
+        self.wantContact.stateChanged.connect(self.contactMe)
+        mainLayout.addWidget(self.wantContact)
+        self.emailLayout = None
+        self.email = None
+
+        layout = QtGui.QHBoxLayout()
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(self.reject)
+        layout.addWidget(cancelButton)
+        self.sendButton = QtGui.QPushButton("Send Report")
+        self.sendButton.clicked.connect(self.sendReport)
+        layout.addWidget(self.sendButton)
+        mainLayout.addLayout(layout)
+
+        self.sendButton.setDefault(True)
+
+        self.setLayout(mainLayout)
+
+    def contactMe(self, state):
+        mainLayout = self.layout()
+        if state == QtCore.Qt.Unchecked:
+            if self.emailLayout:
+                mainLayout.removeItem(self.emailLayout)
+                self.yourEmailInfo.deleteLater()
+                self.email.deleteLater()
+                self.emailLayout.deleteLater()
+                self.yourEmailInfo = None
+                self.email = None
+                self.emailLayout = None
+        else:
+            self.emailLayout = QtGui.QHBoxLayout()
+            self.yourEmailInfo = QtGui.QLabel("Your email:")
+            self.emailLayout.addWidget(self.yourEmailInfo)
+            self.email = QtGui.QLineEdit(self)
+            if self.argentum.getEmail():
+                self.email.setText(self.argentum.getEmail())
+            self.emailLayout.addWidget(self.email)
+            mainLayout.insertLayout(mainLayout.count() - 1, self.emailLayout)
+        self.update()
+
+    def sendLoop(self):
+        firmware = ""
+        if self.argentum.printer != None:
+            firmware = self.argentum.printer.version
+        data = {"rate": self.rate,
+                "comments": self.commentText,
+                "installnum": self.argentum.getInstallNumber(),
+                "printernum": self.printerNumText,
+                "email": self.emailText,
+                "ts_processing_images": self.argentum.getTimeSpentProcessingImages(),
+                "ts_sending_files": self.argentum.getTimeSpentSendingFiles(),
+                "ts_printing": self.argentum.getTimeSpentPrinting(),
+                "version": BASEVERSION,
+                "firmware": firmware
+               }
+        r = requests.post("https://www.cartesianco.com/feedback/print.php", data=data, verify=CA_CERTS)
+        print(r.text)
+
+    def sendReport(self):
+        self.sendButton.setText("Sending...")
+        self.printerNumText = str(self.printerNum.text())
+        self.emailText = ""
+        if self.email:
+            self.emailText = str(self.email.text())
+        if self.printerNumText != "":
+            self.argentum.setPrinterNumber(self.printerNumText)
+        if self.emailText != "" and self.emailText != self.argentum.getEmail():
+            self.argentum.setEmail(self.emailText)
+        self.rate = self.slider.sliderPosition()
+        self.commentText = str(self.comments.toPlainText())
+        updateThread = threading.Thread(target=self.sendLoop)
+        updateThread.start()
+        self.accept()
+
+
