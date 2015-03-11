@@ -65,6 +65,10 @@ class PreferencesDialog(QtGui.QDialog):
         self.motorsStartOff.setChecked(False)
         mainLayout.addWidget(self.motorsStartOff)
 
+        self.logSerial = QtGui.QCheckBox("Write a log file for serial debugging")
+        self.logSerial.setChecked(False)
+        mainLayout.addWidget(self.logSerial)
+
         layout = QtGui.QHBoxLayout()
         cancelButton = QtGui.QPushButton("Cancel")
         cancelButton.clicked.connect(self.reject)
@@ -100,6 +104,7 @@ class PreferencesDialog(QtGui.QDialog):
         self.read_setting("poll_for_pos", self.pollForPos)
         self.read_setting("lights_always_on", self.lightsAlwaysOn)
         self.read_setting("motors_start_off", self.motorsStartOff)
+        self.read_setting("log_serial", self.logSerial)
 
     def save(self):
         self.write_setting("autoconnect", self.autoConnect)
@@ -110,6 +115,7 @@ class PreferencesDialog(QtGui.QDialog):
         self.write_setting("poll_for_pos", self.pollForPos)
         self.write_setting("lights_always_on", self.lightsAlwaysOn)
         self.write_setting("motors_start_off", self.motorsStartOff)
+        self.write_setting("log_serial", self.logSerial)
         self.argentum.updateOptions(self.options)
         self.accept()
 

@@ -71,7 +71,10 @@ class Argentum(QtGui.QMainWindow):
 
         print("Argentum init")
 
+        self.loadOptions()
+
         self.printer = ArgentumPrinterController()
+        self.printer.logSerial = self.getOption("log_serial", False)
         self.programmer = None
 
         self.printing = False
@@ -85,8 +88,6 @@ class Argentum(QtGui.QMainWindow):
         self.lastPos = None
         self.latestVersion = None
         self.inlineUpdateUrl = None
-
-        self.loadOptions()
 
         #print('Loaded options: {}'.format(self.options))
 

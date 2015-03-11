@@ -29,9 +29,6 @@ import os
 import time
 from imageproc import calcDJB2
 
-LogSerialTo = None
-#LogSerialTo = open("serial.log", "wb")
-
 order = ['8', '4', 'C', '2', 'A', '6', 'E', '1', '9', '5', 'D', '3', 'B'];
 MAX_FIRING_LINE_LEN = 13*4+12
 NO_RESPONSE = "Printer didn't respond. Please ensure no other programs have the port open and try again."
@@ -49,6 +46,8 @@ class ArgentumPrinterController(PrinterController):
     rightFanOn = False
     printing = False
     sendingFile = False
+    logSerial = False
+    serialLog = None
 
     def __init__(self, port=None):
         self.port = port
@@ -76,11 +75,16 @@ class ArgentumPrinterController(PrinterController):
     def debug(self, msg):
         msg = str(msg)
         print(msg)
-        if LogSerialTo:
-            LogSerialTo.write(msg + "\n")
+        if self.logSerial:
+            if self.serialLog == None:
+                self.serialLog = open("serial.log", "wb")
+            self.serialLog.write(msg + "\n")
+            self.serialLog.flush()
 
     def logData(self, msg, data):
-        if LogSerialTo:
+        if self.logSerial:
+            if self.serialLog == None:
+                self.serialLog = open("serial.log", "wb")
             str = msg
             for d in data:
                 if (d >= 'a' and d <= 'z' or
@@ -94,7 +98,8 @@ class ArgentumPrinterController(PrinterController):
                     str = str + "[" + hex(ord(d)) + "]"
                 else:
                     str = str + d + "[" + hex(ord(d)) + "]"
-            LogSerialTo.write(str + "\n")
+            self.serialLog.write(str + "\n")
+            self.serialLog.flush()
 
     def serialRead(self, n, serialDevice=None):
         data = None
