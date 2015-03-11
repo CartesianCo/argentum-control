@@ -41,7 +41,7 @@ class ArgentumPrinterController(PrinterController):
     lastError = None
     version = None
     printerNumber = None
-    lightsOn = False
+    lightsOn = True
     leftFanOn = False
     rightFanOn = False
     printing = False
@@ -129,7 +129,7 @@ class ArgentumPrinterController(PrinterController):
             serialDevice.close()
             serialDevice = serial.Serial(self.port, 115200, timeout=0)
             self.connected = False
-            self.lightsOn = False
+            self.lightsOn = True
             self.leftFanOn = False
             self.rightFanOn = False
 
