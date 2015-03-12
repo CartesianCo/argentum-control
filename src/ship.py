@@ -126,6 +126,7 @@ def guessFilesToShip():
     files.append(firmware_file)
     files.append(CA_CERTS)
     files.append("BothCartridgesNew.hex")
+    files.append("../LICENSE")
     print("Packaging {} files.".format(len(files)))
 
 def makeMacRelease():
