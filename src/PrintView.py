@@ -48,6 +48,7 @@ class PrintView(QtGui.QWidget):
         super(PrintView, self).__init__()
         self.argentum = argentum
         self.lastRect = QtCore.QRect()
+        self.lastCheckForChanges = time.time()
         self.progress = PrintProgressDialog(self)
         self.progress.setWindowTitle("Printing")
         self.progress.hide()
@@ -479,7 +480,7 @@ class PrintView(QtGui.QWidget):
         p.end()
         return QtGui.QPixmap.fromImage(image)
 
-    def addImageFile(self, inputFileName):
+    def pixmapFromFilename(self, inputFileName):
         if inputFileName.endswith(".hex"):
             pixmap = self.pixmapFromHexFile(inputFileName)
             try:
@@ -502,6 +503,10 @@ class PrintView(QtGui.QWidget):
             r = QtSvg.QSvgRenderer(inputFileName)
             p = QtGui.QPainter(pixmap)
             r.render(p, QtCore.QRectF(pixmap.rect()))
+        return pixmap
+
+    def addImageFile(self, inputFileName):
+        pixmap = self.pixmapFromFilename(inputFileName)
         pi = PrintImage(pixmap, inputFileName)
         self.images.append(pi)
         self.ensureImageInPrintLims(pi)
@@ -1483,6 +1488,37 @@ class PrintView(QtGui.QWidget):
 
         return True
 
+    def checkImageChanges(self):
+        if self.printThread != None:
+            return
+
+        changed = []
+        for image in self.images:
+            if image == self.printHeadImage:
+                continue
+            modified = os.path.getmtime(image.filename)
+            if modified > image.lastLoaded and modified > self.lastCheckForChanges:
+                changed.append(image)
+
+        self.lastCheckForChanges = time.time()
+        if len(changed) == 0:
+            return
+
+        mb = QtGui.QMessageBox(QtGui.QMessageBox.Question,
+                "Outside Changes",
+                "One or more image files have been changed by an outside editor. Would you like to reload these images?\n\nWARNING: any modification you have made to the changed image(s) will be lost.",
+                (QtGui.QMessageBox.Yes |
+                 QtGui.QMessageBox.No), self)
+        mb.setDetailedText("Changed files:\n{}".format('\n'.join(image.filename for image in changed)))
+        answer = mb.exec_()
+        if answer == QtGui.QMessageBox.No:
+            return
+
+        for image in changed:
+            image.pixmap = self.pixmapFromFilename(image.filename)
+
+        self.update()
+
 # A kind of annoying Rect
 # Note: (0,0) is the bottom left corner of the printer
 # All measurements are in millimeters
@@ -1501,6 +1537,7 @@ class PrintImage(PrintRect):
         self.bottom = 0.0
         self.width = pixmap.width() / imageScale[0]
         self.height = pixmap.height() / imageScale[1]
+        self.lastLoaded = time.time()
         self.lastResized = None
         self.screenRect = None
 

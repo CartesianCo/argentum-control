@@ -653,6 +653,7 @@ class Argentum(QtGui.QMainWindow):
         if self.printingCompleted:
             self.printingCompleted = False
             self.printView.ratePrintActionTriggered()
+        self.printView.checkImageChanges()
 
     def monitor(self):
         data = self.printer.monitor()
