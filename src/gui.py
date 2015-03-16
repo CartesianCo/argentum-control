@@ -1583,6 +1583,11 @@ class Argentum(QtGui.QMainWindow):
         self.printer.command("s Y {}".format(y_speed))
 
     def closeEvent(self, evt):
+        print("closeEvent")
+        if sys.platform == "darwin" and 'rft' in os.environ:
+            print("killing terminal {}.".format(int(os.environ['rft'])))
+            import signal
+            os.kill(int(os.environ['rft']), signal.SIGTERM)
         sys.exit(0)
 
 class GetPrinterNumberDialog(QtGui.QDialog):
@@ -1736,13 +1741,14 @@ class PrinterConnectionDialog(QtGui.QDialog):
 def main():
     print("starting...")
     print("working directory is {}".format(os.getcwd()))
-    if sys.platform == "darwin" and os.getppid() == 1:
+    if sys.platform == "darwin" and not 'rft' in os.environ:
         # We want terminal output
         terminal = "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal"
         program_path = sys.argv[0]
         if program_path.endswith(".py"):
             program_path = program_path[:program_path.rfind('/')]
             program_path = program_path + "/../MacOS/gui"
+        os.putenv('rft', str(os.getpid()))
         os.execv(terminal, [terminal, program_path])
     app = QtGui.QApplication(sys.argv)
     app.setOrganizationName("CartesianCo")
