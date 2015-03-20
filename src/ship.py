@@ -117,6 +117,16 @@ def addDep(filename):
                 img = img[img.find("'")+1:]
                 img = img[:img.find("'")]
                 files.append(img)
+        elif line.find('QIcon(') != -1:
+            img = line[line.find('QIcon('):]
+            if img.find('"') != -1:
+                img = img[img.find('"')+1:]
+                img = img[:img.find('"')]
+                files.append(img)
+            elif img.find("'") != -1:
+                img = img[img.find("'")+1:]
+                img = img[:img.find("'")]
+                files.append(img)
 
         if dep and os.path.exists(dep + ".py"):
             addDep(dep + ".py")
