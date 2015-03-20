@@ -112,6 +112,7 @@ class PrintView(QtGui.QWidget):
         mainLayout.addLayout(layout)
         self.setLayout(mainLayout)
 
+        self.imageList = ImageList(self)
 
     def updatePrintHeadPos(self, pos):
         if self.dragging == self.printHeadImage:
@@ -186,6 +187,8 @@ class PrintView(QtGui.QWidget):
 
             for image in self.images:
                 if image == self.printHeadImage:
+                    continue
+                if not image.visible:
                     continue
                 print("Jacket drying.")
                 self.setProgress(labelText="Drying " + image.hexFilename)
@@ -372,6 +375,8 @@ class PrintView(QtGui.QWidget):
         for image in self.images:
             if image == self.printHeadImage:
                 continue
+            if not image.visible:
+                continue
             if image == self.selection:
                 r = QtCore.QRectF(image.screenRect)
                 r.setLeft(r.left()-1)
@@ -511,6 +516,7 @@ class PrintView(QtGui.QWidget):
         self.images.append(pi)
         self.ensureImageInPrintLims(pi)
         self.update()
+        self.imageList.update()
         self.layoutChanged = True
         return pi
 
@@ -713,6 +719,8 @@ class PrintView(QtGui.QWidget):
             for image in self.images:
                 if image == self.printHeadImage:
                     continue
+                if not image.visible:
+                    continue
                 if not self.isImageProcessed(image):
                     self.setProgress(labelText="Processing image {}.".format(os.path.basename(image.filename)))
                     self.processImage(image)
@@ -757,6 +765,8 @@ class PrintView(QtGui.QWidget):
                 nImage = 0
                 for image in self.images:
                     if image == self.printHeadImage:
+                        continue
+                    if not image.visible:
                         continue
                     while self.progress.paused:
                         time.sleep(0.5)
@@ -846,6 +856,8 @@ class PrintView(QtGui.QWidget):
 
         for image in self.images:
             if image == self.printHeadImage:
+                continue
+            if not image.visible:
                 continue
             if py >= image.bottom and py < image.bottom + image.height:
                 if px >= image.left and px < image.left + image.width:
@@ -999,6 +1011,8 @@ class PrintView(QtGui.QWidget):
             hit = False
             for image in self.images:
                 if image == self.printHeadImage and not self.showingPrintHead:
+                    continue
+                if not image.visible:
                     continue
                 leftEdge = False
                 rightEdge = False
@@ -1519,6 +1533,13 @@ class PrintView(QtGui.QWidget):
 
         self.update()
 
+    def showImageListTriggered(self):
+        if self.argentum.showImageListAction.isChecked():
+            self.imageList.update()
+            self.imageList.show()
+        else:
+            self.imageList.hide()
+
 # A kind of annoying Rect
 # Note: (0,0) is the bottom left corner of the printer
 # All measurements are in millimeters
@@ -1540,6 +1561,7 @@ class PrintImage(PrintRect):
         self.lastLoaded = time.time()
         self.lastResized = None
         self.screenRect = None
+        self.visible = True
 
         filename = os.path.basename(filename)
         if filename.find('.') != -1:
@@ -1778,4 +1800,38 @@ class RateYourPrintDialog(QtGui.QDialog):
         updateThread.start()
         self.accept()
 
+class ImageList(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.parent = parent
+        self.setWindowTitle("Image List")
+        mainLayout = QtGui.QVBoxLayout()
+        self.imageList = QtGui.QListWidget(self)
+        self.imageList.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
+        self.imageList.itemClicked.connect(self.itemClicked)
+        mainLayout.addWidget(self.imageList)
+        self.setLayout(mainLayout)
+        self.visibleIcon = QtGui.QIcon("visible.png")
+        self.notVisibleIcon = QtGui.QIcon("notvisible.png")
 
+    def update(self):
+        self.imageList.clear()
+        for image in self.parent.images:
+            if image == self.parent.printHeadImage:
+                continue
+            item = QtGui.QListWidgetItem(self.visibleIcon, os.path.basename(image.filename))
+            item.setData(QtCore.Qt.UserRole, image)
+            self.imageList.addItem(item)
+        QtGui.QDialog.update(self)
+
+    def itemClicked(self, item):
+        if item.icon().serialNumber() == self.visibleIcon.serialNumber():
+            item.setIcon(self.notVisibleIcon)
+            item.data(QtCore.Qt.UserRole).toPyObject().visible = False
+        else:
+            item.setIcon(self.visibleIcon)
+            item.data(QtCore.Qt.UserRole).toPyObject().visible = True
+        self.parent.update()
+
+    def closeEvent(self, e):
+        self.parent.argentum.showImageListAction.setChecked(False)

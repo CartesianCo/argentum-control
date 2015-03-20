@@ -312,6 +312,10 @@ class Argentum(QtGui.QMainWindow):
         self.showPrintHeadAction.setCheckable(True)
         self.showPrintHeadAction.triggered.connect(self.printView.showPrintHeadActionTriggered)
 
+        self.showImageListAction = QtGui.QAction('&Image List', self)
+        self.showImageListAction.setCheckable(True)
+        self.showImageListAction.triggered.connect(self.printView.showImageListTriggered)
+
         self.showPrintLimsAction = QtGui.QAction('Print &Limits', self)
         self.showPrintLimsAction.setCheckable(True)
         self.showPrintLimsAction.setChecked(True)
@@ -403,6 +407,7 @@ class Argentum(QtGui.QMainWindow):
 
         viewMenu = menubar.addMenu('&View')
         viewMenu.addAction(self.showPrintHeadAction)
+        viewMenu.addAction(self.showImageListAction)
         viewMenu.addAction(self.showPrintLimsAction)
         viewMenu.addAction(self.showRollLimsAction)
         viewMenu.addSeparator()
@@ -1064,7 +1069,6 @@ class Argentum(QtGui.QMainWindow):
             self.pollFlashingTimer = None
             self.programmer = None
 
-            self.autoConnect = self.getOption("autoconnect", True)
             self.printer.connect()
             if self.checkFlashVersion:
                 if self.printer.version == None:
@@ -1082,6 +1086,7 @@ class Argentum(QtGui.QMainWindow):
             self.askForPower()
             self.printer.calibrate()
             flashing = False
+            self.autoConnect = self.getOption("autoconnect", True)
 
     def optionsActionTriggered(self):
         """options = {
