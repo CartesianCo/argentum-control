@@ -43,6 +43,7 @@ class PrintView(QtGui.QWidget):
     dragging = None
     resizing = None
     selection = None
+    selection2 = None
 
     def __init__(self, argentum):
         super(PrintView, self).__init__()
@@ -377,7 +378,7 @@ class PrintView(QtGui.QWidget):
                 continue
             if not image.visible:
                 continue
-            if image == self.selection:
+            if image == self.selection or image == self.selection2:
                 r = QtCore.QRectF(image.screenRect)
                 r.setLeft(r.left()-1)
                 r.setTop(r.top()-1)
@@ -846,7 +847,11 @@ class PrintView(QtGui.QWidget):
         return self.trashCanRect.intersect(image.screenRect)
 
     def mousePressEvent(self, event):
-        self.selection = None
+        if event.modifiers() == QtCore.Qt.NoModifier:
+            self.selection = None
+            self.selection2 = None
+        else:
+            self.selection2 = None
         p = self.screenToPrintArea(event.pos().x(), event.pos().y())
         if p == None:
             return
@@ -854,14 +859,21 @@ class PrintView(QtGui.QWidget):
         px = p[0]
         py = p[1]
 
-        for image in self.images:
+        for image in reversed(self.images):
             if image == self.printHeadImage:
                 continue
             if not image.visible:
                 continue
             if py >= image.bottom and py < image.bottom + image.height:
                 if px >= image.left and px < image.left + image.width:
-                    self.selection = image
+                    if event.modifiers() == QtCore.Qt.NoModifier:
+                        self.selection = image
+                    else:
+                        if self.selection == None:
+                            self.selection = image
+                        else:
+                            self.selection2 = image
+                    break
 
     def mouseReleaseEvent(self, event):
         if self.dragging:
@@ -1009,7 +1021,7 @@ class PrintView(QtGui.QWidget):
             self.update()
         elif self.dragging == None and self.resizing == None:
             hit = False
-            for image in self.images:
+            for image in reversed(self.images):
                 if image == self.printHeadImage and not self.showingPrintHead:
                     continue
                 if not image.visible:
@@ -1377,6 +1389,54 @@ class PrintView(QtGui.QWidget):
             QtGui.QApplication.processEvents()
 
         self.selection.pixmap = QtGui.QPixmap.fromImage(newImage)
+        self.update()
+
+    def alignLefts(self):
+        if self.selection == None:
+            print("nothing to align.")
+            return
+        if self.selection2 == None:
+            print("select two images to align.")
+            return
+        self.selection2.left = self.selection.left
+        self.selection2.screenRect = self.printAreaToScreen(self.selection2)
+        self.ensureImageInPrintLims(self.selection2)
+        self.update()
+
+    def alignRights(self):
+        if self.selection == None:
+            print("nothing to align.")
+            return
+        if self.selection2 == None:
+            print("select two images to align.")
+            return
+        self.selection2.left = self.selection.left + self.selection.width - self.selection2.width
+        self.selection2.screenRect = self.printAreaToScreen(self.selection2)
+        self.ensureImageInPrintLims(self.selection2)
+        self.update()
+
+    def alignTops(self):
+        if self.selection == None:
+            print("nothing to align.")
+            return
+        if self.selection2 == None:
+            print("select two images to align.")
+            return
+        self.selection2.bottom = self.selection.bottom + self.selection.height - self.selection2.height
+        self.selection2.screenRect = self.printAreaToScreen(self.selection2)
+        self.ensureImageInPrintLims(self.selection2)
+        self.update()
+
+    def alignBottoms(self):
+        if self.selection == None:
+            print("nothing to align.")
+            return
+        if self.selection2 == None:
+            print("select two images to align.")
+            return
+        self.selection2.bottom = self.selection.bottom
+        self.selection2.screenRect = self.printAreaToScreen(self.selection2)
+        self.ensureImageInPrintLims(self.selection2)
         self.update()
 
     def openLayout(self, filename=None):
@@ -1809,6 +1869,7 @@ class ImageList(QtGui.QDialog):
         self.imageList = QtGui.QListWidget(self)
         self.imageList.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
         self.imageList.itemClicked.connect(self.itemClicked)
+        self.imageList.itemEntered.connect(self.itemEntered)
         mainLayout.addWidget(self.imageList)
         self.setLayout(mainLayout)
         self.visibleIcon = QtGui.QIcon("visible.png")
@@ -1832,6 +1893,32 @@ class ImageList(QtGui.QDialog):
             item.setIcon(self.visibleIcon)
             item.data(QtCore.Qt.UserRole).toPyObject().visible = True
         self.parent.update()
+
+    def itemEntered(self, item):
+        if self.imageList.currentItem() and self.imageList.currentItem() != item:
+            curImage = self.imageList.currentItem().data(QtCore.Qt.UserRole).toPyObject()
+            enterImage = item.data(QtCore.Qt.UserRole).toPyObject()
+            curImageIdx = self.parent.images.index(curImage)
+            enterImageIdx = self.parent.images.index(enterImage)
+
+            if enterImageIdx == curImageIdx + 1:
+                images = self.parent.images[:curImageIdx]
+                images.append(enterImage)
+                images.append(curImage)
+                if enterImageIdx + 1 != len(self.parent.images):
+                    images.extend(self.parent.images[enterImageIdx+1:])
+                self.parent.images = images
+                self.parent.update()
+                self.update()
+            elif enterImageIdx == curImageIdx - 1:
+                images = self.parent.images[:enterImageIdx]
+                images.append(curImage)
+                images.append(enterImage)
+                if curImageIdx + 1 != len(self.parent.images):
+                    images.extend(self.parent.images[curImageIdx+1:])
+                self.parent.images = images
+                self.parent.update()
+                self.update()
 
     def closeEvent(self, e):
         self.parent.argentum.showImageListAction.setChecked(False)
