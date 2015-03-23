@@ -1048,17 +1048,18 @@ class Argentum(QtGui.QMainWindow):
             if reply != QtGui.QMessageBox.Yes:
                 return
 
-        self.disableAllButtons()
+        self.flashing = True
         self.autoConnect = False
+        self.disableAllButtons()
         self.printer.disconnect()
 
         self.appendOutput('Flashing {} with {}...'.format(self.printer.port, firmwareFileName))
 
-        flashing = True
         self.programmer = avrdude(port=self.printer.port)
         if self.programmer.flashFile(firmwareFileName):
             self.flashingProgress = QtGui.QProgressDialog(self)
             self.flashingProgress.setWindowTitle("Flashing")
+            self.flashingProgress.setLabelText("The firmware on the printer is being updated.")
             self.flashingProgress.show()
             self.pollFlashingTimer = QtCore.QTimer()
             QtCore.QObject.connect(self.pollFlashingTimer, QtCore.SIGNAL("timeout()"), self.pollFlashing)
@@ -1069,7 +1070,7 @@ class Argentum(QtGui.QMainWindow):
             self.autoConnect = self.getOption("autoconnect", True)
             self.printer.connect()
             self.enableAllButtons()
-            flashing = False
+            self.flashing = False
 
     def pollFlashing(self):
         self.flashingProgress.setValue(self.flashingProgress.value() + 100 / 30)
@@ -1098,7 +1099,7 @@ class Argentum(QtGui.QMainWindow):
             self.enableAllButtons()
             self.askForPower()
             self.printer.calibrate()
-            flashing = False
+            self.flashing = False
             self.autoConnect = self.getOption("autoconnect", True)
 
     def optionsActionTriggered(self):
@@ -1238,7 +1239,7 @@ class Argentum(QtGui.QMainWindow):
                     self.disconnectFromPrinter()
             else:
                 self.portListCombo.setCurrentIndex(idx)
-                if self.autoConnect and not self.printer.connected and curPort != NO_PRINTER:
+                if self.autoConnect and not self.printer.connected and curPort != NO_PRINTER and not self.flashing:
                     self.autoConnect = False
                     self.autoConnectFailed = False
                     self.autoConnected = False
@@ -1256,7 +1257,8 @@ class Argentum(QtGui.QMainWindow):
             return
         if self.autoConnectFailed:
             self.setConnectionStatus(self.printer.lastError)
-            self.autoConnect = self.getOption("autoconnect", True)
+            if not self.flashing:
+                self.autoConnect = self.getOption("autoconnect", True)
             return
         QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
 
