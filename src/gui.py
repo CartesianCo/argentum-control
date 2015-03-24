@@ -80,6 +80,7 @@ class Argentum(QtGui.QMainWindow):
         self.printing = False
         self.paused = False
         self.autoConnect = self.getOption("autoconnect", True)
+        self.autoConnecting = False
         self.sentVolt = False
 
         self.XStepSize = 150
@@ -456,7 +457,6 @@ class Argentum(QtGui.QMainWindow):
         helpMenu.addAction(aboutAction)
 
         self.statusBar().showMessage("No printer connected.")
-        self.setConnectionStatus('Looking for printer...')
 
         self.disableAllButtonsExceptConnect()
 
@@ -1243,6 +1243,7 @@ class Argentum(QtGui.QMainWindow):
                     self.autoConnect = False
                     self.autoConnectFailed = False
                     self.autoConnected = False
+                    self.autoConnecting = True
                     self.setConnectionStatus("Connecting...")
                     QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
                     self.autoConnectThread = threading.Thread(target=self.autoConnectLoop)
@@ -1252,13 +1253,15 @@ class Argentum(QtGui.QMainWindow):
     def autoConnectUpdater(self):
         if self.autoConnected:
             if self.printer.connected:
-                self.printerConnected()
                 self.autoConnect = self.getOption("autoconnect", True)
+                self.autoConnecting = False
+                self.printerConnected()
             return
         if self.autoConnectFailed:
-            self.setConnectionStatus(self.printer.lastError)
             if not self.flashing:
                 self.autoConnect = self.getOption("autoconnect", True)
+            self.autoConnecting = False
+            self.setConnectionStatus(self.printer.lastError)
             return
         QtCore.QTimer.singleShot(100, self.autoConnectUpdater)
 
@@ -1530,6 +1533,10 @@ class Argentum(QtGui.QMainWindow):
         except:
             return default
 
+    def setOption(self, name, value):
+        self.options[name] = value
+        self.saveOptions()
+
     def updateOptions(self, val):
         self.options = val
         self.saveOptions()
@@ -1705,6 +1712,12 @@ class PrinterConnectionDialog(QtGui.QDialog):
         label.setPixmap(QtGui.QPixmap("computer.png"))
         layout.addWidget(label)
         mainLayout.addLayout(layout)
+
+        self.cbAutoConnect = QtGui.QCheckBox("Automatically connect to the printer.")
+        self.cbAutoConnectSetter()
+        self.cbAutoConnect.stateChanged.connect(self.cbAutoConnectChanged)
+        mainLayout.addWidget(self.cbAutoConnect)
+
         self.log = QtGui.QTextEdit()
         self.log.setReadOnly(True)
         self.log.setSizePolicy(QtGui.QSizePolicy.Minimum,
@@ -1724,7 +1737,16 @@ class PrinterConnectionDialog(QtGui.QDialog):
         self.connected = False
         self.button.hide()
 
+    def cbAutoConnectSetter(self):
+        ac = self.parent.autoConnect or self.parent.autoConnecting
+        self.cbAutoConnect.setCheckState(QtCore.Qt.Checked if ac else QtCore.Qt.Unchecked)
+
+    def cbAutoConnectChanged(self, to):
+        self.parent.autoConnect = (to == QtCore.Qt.Checked)
+        self.parent.setOption("autoconnect", self.parent.autoConnect)
+
     def showMessage(self, val):
+        self.cbAutoConnectSetter()
         if val == self.lastMessage:
             return
         self.lastMessage = val
@@ -1743,6 +1765,7 @@ class PrinterConnectionDialog(QtGui.QDialog):
             self.button.setText("Connect")
 
     def onConnected(self):
+        self.cbAutoConnectSetter()
         self.status.setPixmap(self.goodPixmap)
         self.button.setText("Disconnect")
         self.button.show()
@@ -1750,13 +1773,12 @@ class PrinterConnectionDialog(QtGui.QDialog):
         self.connected = True
 
     def onDisconnected(self):
+        self.cbAutoConnectSetter()
         self.status.setPixmap(self.badPixmap)
         self.button.hide()
         if self.connected:
             self.connected = False
             self.show()
-
-
 
 def main():
     print("starting...")
