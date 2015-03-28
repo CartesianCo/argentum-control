@@ -94,8 +94,10 @@ class ArgentumPrinterController(PrinterController):
                     d == '[' or d == ']' or d == '.' or d == ',' or
                     d == '?' or d == '!' or d == ':' or d == '_'):
                     str = str + d
-                elif d == '\r' or d == '\n':
-                    str = str + "[" + hex(ord(d)) + "]"
+                elif d == '\r':
+                    str = str + "\\r"
+                elif d == '\n':
+                    str = str + "\\n"
                 else:
                     str = str + d + "[" + hex(ord(d)) + "]"
             self.serialLog.write(str + "\n")
