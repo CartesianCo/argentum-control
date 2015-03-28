@@ -103,6 +103,11 @@ class ArgentumPrinterController(PrinterController):
             self.serialLog.write(str + "\n")
             self.serialLog.flush()
 
+    def serialSetTimeout(self, timeout, serialDevice=None):
+        if serialDevice == None:
+            serialDevice = self.serialDevice
+        serialDevice.timeout = timeout
+
     def serialRead(self, n, serialDevice=None):
         data = None
         if serialDevice:
@@ -186,11 +191,11 @@ class ArgentumPrinterController(PrinterController):
 
             self.debug("Waiting for printer response.")
             allResponse = ''
-            serialDevice.timeout = 1
+            self.serialSetTimeout(1, serialDevice)
             firstChar = self.serialRead(1, serialDevice)
             if firstChar == None:
                 self.debug("No first char.")
-                serialDevice.timeout = 10
+                self.serialSetTimeout(10, serialDevice)
                 firstChar = self.serialRead(1, serialDevice)
             if firstChar == None or len(firstChar) == 0:
                 self.debug("No response.")
@@ -260,7 +265,7 @@ class ArgentumPrinterController(PrinterController):
             self.debug("Response looks okay.")
             self.connected = True
             self.serialDevice = serialDevice
-            serialDevice.timeout = 0
+            self.serialSetTimeout(0, serialDevice)
             self.serialWriteString("notacmd\n")
             self.debug("Printer looks okay.")
             return True
@@ -358,7 +363,7 @@ class ArgentumPrinterController(PrinterController):
             self.debug("{} has {} lines.".format(filename, lines))
 
         try:
-            self.serialDevice.timeout = 2*60
+            self.serialSetTimeout(2*60)
             self.command('p ' + filename)
 
             pos = 0
@@ -380,7 +385,7 @@ class ArgentumPrinterController(PrinterController):
                         Done = True
                         break
         finally:
-            self.serialDevice.timeout = 0
+            self.serialSetTimeout(0)
             self.printing = False
 
 
@@ -430,7 +435,7 @@ class ArgentumPrinterController(PrinterController):
         if not self.connected:
             return None
 
-        self.serialDevice.timeout = timeout
+        self.serialSetTimeout(timeout)
         response = ""
         try:
             while True:
@@ -449,7 +454,7 @@ class ArgentumPrinterController(PrinterController):
         except:
             pass
         finally:
-            self.serialDevice.timeout = 0
+            self.serialSetTimeout(timeout)
 
         if response == "":
             return None
@@ -570,11 +575,11 @@ class ArgentumPrinterController(PrinterController):
                         break
                     if pres == "Pause":
                         self.serialWriteRaw('P')
-                        self.serialDevice.timeout = 10
+                        self.serialSetTimeout(10)
                         cmd = self.serialRead(1)
                         if cmd != 'p':
                             self.debug("printer didn't ping pause.")
-                            self.serialDevice.timeout = 1
+                            self.serialSetTimeout(1)
                             rest = cmd + self.serialRead(79)
                             rest = rest.strip()
                             if len(rest) > 0:
@@ -605,7 +610,7 @@ class ArgentumPrinterController(PrinterController):
                 cmd = None
                 while not done and not canceled:
                     if cmd == None:
-                        self.serialDevice.timeout = 1
+                        self.serialSetTimeout(1)
                         cmd = self.serialRead(1)
                         if cmd == "":
                             cmd = None
@@ -616,7 +621,7 @@ class ArgentumPrinterController(PrinterController):
                         fails = fails + 1
                         if fails > 12:
                             self.debug("Too many failures.")
-                            self.serialDevice.timeout = 0
+                            self.serialSetTimeout(0)
                             self.sendingFile = False
                             return
                         self.debug("block is bad at {}/{}".format(pos, size))
@@ -638,7 +643,7 @@ class ArgentumPrinterController(PrinterController):
                         done = True
                         cmd = None
                     else:
-                        self.serialDevice.timeout = 1
+                        self.serialSetTimeout(1)
                         rest = cmd + self.serialRead(79)
                         rest = rest.strip()
                         if len(rest) > 0:
@@ -656,7 +661,7 @@ class ArgentumPrinterController(PrinterController):
             if canceled:
                 return False
 
-            self.serialDevice.timeout = 0
+            self.serialSetTimeout(0)
             if progressFunc:
                 progressFunc(size, size)
             else:
