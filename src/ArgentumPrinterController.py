@@ -27,6 +27,7 @@ import serial
 import hashlib
 import os
 import time
+import sys
 from imageproc import calcDJB2
 
 order = ['8', '4', 'C', '2', 'A', '6', 'E', '1', '9', '5', 'D', '3', 'B'];
@@ -92,21 +93,33 @@ class ArgentumPrinterController(PrinterController):
                     d >= '0' and d <= '9' or
                     d == '+' or d == '-' or d == ' ' or d == '#' or
                     d == '[' or d == ']' or d == '.' or d == ',' or
-                    d == '?' or d == '!' or d == ':' or d == '_'):
+                    d == '?' or d == '!' or d == ':' or d == '_' or
+                    d == "'"):
                     str = str + d
                 elif d == '\r':
                     str = str + "\\r"
                 elif d == '\n':
                     str = str + "\\n"
                 else:
-                    str = str + d + "[" + hex(ord(d)) + "]"
+                    str = str + "\\x{:02}".format(ord(d))
             self.serialLog.write(str + "\n")
             self.serialLog.flush()
 
     def serialSetTimeout(self, timeout, serialDevice=None):
         if serialDevice == None:
             serialDevice = self.serialDevice
-        serialDevice.timeout = timeout
+        if sys.platform == "win32":
+            from serial import win32, ctypes
+            if timeout == None:
+                timeouts = (0, 0, 0, 0, 0)
+            elif timeout == 0:
+                timeouts = (win32.MAXDWORD, 0, 0, 0, 0)
+            else:
+                timeouts = (0, 0, int(timeout*1000), 0, 0)
+            win32.SetCommTimeouts(serialDevice.hComPort, ctypes.byref(win32.COMMTIMEOUTS(*timeouts)))
+            serialDevice._timeout = timeout
+        else:
+            serialDevice.timeout = timeout
 
     def serialRead(self, n, serialDevice=None):
         data = None
@@ -179,7 +192,7 @@ class ArgentumPrinterController(PrinterController):
             serialDevice.flushInput()
             serialDevice.flush()
             serialDevice.close()
-            serialDevice = serial.Serial(self.port, 115200, timeout=0)
+            serialDevice = serial.Serial(self.port, 115200, timeout=1)
             self.connected = False
             self.lightsOn = True
             self.leftFanOn = False
@@ -191,7 +204,6 @@ class ArgentumPrinterController(PrinterController):
 
             self.debug("Waiting for printer response.")
             allResponse = ''
-            self.serialSetTimeout(1, serialDevice)
             firstChar = self.serialRead(1, serialDevice)
             if firstChar == None:
                 self.debug("No first char.")
@@ -266,7 +278,6 @@ class ArgentumPrinterController(PrinterController):
             self.connected = True
             self.serialDevice = serialDevice
             self.serialSetTimeout(0, serialDevice)
-            self.serialWriteString("notacmd\n")
             self.debug("Printer looks okay.")
             return True
 
@@ -312,7 +323,6 @@ class ArgentumPrinterController(PrinterController):
     def command(self, command, timeout=None, expect=None, wait=False):
         self.lastCommandTime = time.time()
         if self.serialDevice and self.connected:
-            self.serialWriteString(self.delimiter)
             self.serialWriteString(command + self.delimiter)
             if wait != False:
                 if timeout == None:
