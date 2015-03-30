@@ -1841,7 +1841,7 @@ class RateYourPrintDialog(QtGui.QDialog):
                 "version": BASEVERSION,
                 "firmware": firmware
                }
-        r = requests.post("https://www.cartesianco.com/feedback/print.php", data=data, verify=CA_CERTS)
+        r = requests.post("https://connect.cartesianco.com/feedback/print.php", data=data, verify=CA_CERTS)
         print(r.text)
 
     def sendReport(self):

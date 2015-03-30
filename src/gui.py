@@ -555,7 +555,7 @@ class Argentum(QtGui.QMainWindow):
                 "version": BASEVERSION,
                 "platform": sys.platform + git
                }
-            r = requests.post("https://www.cartesianco.com/feedback/run.php", data=data, verify=CA_CERTS)
+            r = requests.post("https://connect.cartesianco.com/feedback/run.php", data=data, verify=CA_CERTS)
             result = r.text
             tagVS = '#VersionStart#'
             tagVE = '#VersionEnd#'
@@ -835,8 +835,6 @@ class Argentum(QtGui.QMainWindow):
 
         if reply == QtGui.QMessageBox.Yes:
             self.startInlineUpdate()
-            #else:
-            #    webbrowser.open("http://www.cartesianco.com/software/", 2)
 
         return True
 
