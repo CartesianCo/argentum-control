@@ -62,7 +62,9 @@ default_options = {
     'vertical_offset': 0,
     'print_overlap': 41,
     'x_speed': 8000,
-    'y_speed': 8000
+    'y_speed': 8000,
+    'x_acc': True,
+    'y_acc': True
 }
 
 class Argentum(QtGui.QMainWindow):
@@ -1604,8 +1606,12 @@ class Argentum(QtGui.QMainWindow):
     def setSpeed(self):
         x_speed = int(self.getOption("x_speed", 8000))
         y_speed = int(self.getOption("y_speed", 8000))
+        x_acc = self.getOption("x_acc", True)
+        y_acc = self.getOption("y_acc", True)
         self.printer.command("s X {}".format(x_speed))
         self.printer.command("s Y {}".format(y_speed))
+        self.printer.command("a X {}".format("on" if x_acc else "off"))
+        self.printer.command("a Y {}".format("on" if y_acc else "off"))
 
     def closeEvent(self, evt):
         print("closeEvent")

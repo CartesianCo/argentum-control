@@ -29,13 +29,15 @@ class OptionsDialog(QtGui.QDialog):
     Argentum Options Dialog
     '''
 
-    optionsToAdd = {'horizontal_offset': 'Distance between cartridges',
-                    'vertical_offset': 'Misalignment of print heads on cartridges',
-                    'print_overlap': 'Distance to move between lines',
-                    'dilate_count': 'Extra thickness of asorbic',
-                    'x_speed': 'Print speed (x axis)',
-                    'y_speed': 'Print speed (y axis)'
-                    }
+    optionsToAdd = [('horizontal_offset', 'Distance between cartridges'),
+                    ('vertical_offset', 'Misalignment of print heads on cartridges'),
+                    ('print_overlap', 'Distance to move between lines'),
+                    ('dilate_count', 'Extra thickness of asorbic'),
+                    ('x_speed', 'Print speed (x axis)'),
+                    ('y_speed', 'Print speed (y axis)'),
+                    ('x_acc', 'Acceleration enabled (x axis)'),
+                    ('y_acc', 'Acceleration enabled (y axis)')
+                   ]
     created = {}
 
     def __init__(self, parent=None, options=None):
@@ -64,30 +66,37 @@ class OptionsDialog(QtGui.QDialog):
         self.resize(400, 60)
         self.setWindowTitle('Printer Options')
 
-    def createOptionWidget(self, parentLayout, optionName, defaultValue):
-        # Create a Sub-Layout for this option
-        #layout = QtGui.QHBoxLayout()
+    def createOptionWidget(self, parentLayout, optionName, labelText, defaultValue):
+        self.addLabel(parentLayout, labelText)
 
-        self.addLabel(parentLayout, self.optionsToAdd[optionName])
+        if type(defaultValue) == type(True):
+            checkbox = QtGui.QCheckBox()
+            if defaultValue:
+                checkbox.setCheckState(QtCore.Qt.Checked)
+            else:
+                checkbox.setCheckState(QtCore.Qt.Unchecked)
+            parentLayout.addWidget(checkbox)
+            return checkbox
 
-        # Make sure it's a string with str(...)
         optionLineEdit = QtGui.QLineEdit(str(defaultValue))
         parentLayout.addWidget(optionLineEdit)
-
         return optionLineEdit
 
     def addOptions(self, parentLayout, options):
-        for optionName in self.optionsToAdd:
-            if optionName in self.options:
+        for option in self.optionsToAdd:
+            optionName, labelText = option
+            if optionName in self.options and self.options[optionName] != "":
                 defaultValue = self.options[optionName]
             elif optionName == "x_speed" or optionName == "y_speed":
                 defaultValue = 1500
+            elif optionName == "x_acc" or optionName == "y_acc":
+                defaultValue = True
             else:
                 defaultValue = 0
 
             layout = QtGui.QHBoxLayout()
 
-            widget = self.createOptionWidget(layout, optionName, defaultValue)
+            widget = self.createOptionWidget(layout, optionName, labelText, defaultValue)
 
             self.created[optionName] = widget
 
@@ -102,7 +111,10 @@ class OptionsDialog(QtGui.QDialog):
         options = self.options
 
         for name, widget in self.created.items():
-            options[name] = str(widget.text())
+            if type(widget) == QtGui.QCheckBox:
+                options[name] = (widget.checkState() == QtCore.Qt.Checked)
+            else:
+                options[name] = str(widget.text())
 
         self.parent.updatePrinterOptions(options)
 
@@ -297,13 +309,8 @@ class RollerCalibrationDialog(QtGui.QDialog):
         return button
 
     def createOptionWidget(self, parentLayout, optionName, defaultValue):
-        # Create a Sub-Layout for this option
-        #layout = QtGui.QHBoxLayout()
-
-        # Make sure it's a string with str(...)
         optionLineEdit = QtGui.QLineEdit(str(defaultValue))
         parentLayout.addWidget(optionLineEdit)
-
         return optionLineEdit
 
     def addOptions(self, parentLayout, options):
