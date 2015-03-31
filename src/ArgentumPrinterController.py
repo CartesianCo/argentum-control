@@ -277,7 +277,7 @@ class ArgentumPrinterController(PrinterController):
             self.debug("Response looks okay.")
             self.connected = True
             self.serialDevice = serialDevice
-            self.serialSetTimeout(0, serialDevice)
+            self.serialSetTimeout(0)
             self.debug("Printer looks okay.")
             return True
 
@@ -464,7 +464,7 @@ class ArgentumPrinterController(PrinterController):
         except:
             pass
         finally:
-            self.serialSetTimeout(timeout)
+            self.serialSetTimeout(0)
 
         if response == "":
             return None
