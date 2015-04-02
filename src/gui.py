@@ -379,7 +379,7 @@ class Argentum(QtGui.QMainWindow):
         cutAction.triggered.connect(self.printView.cut)
         copyAction = QtGui.QAction('&Copy', self)
         copyAction.setShortcut(QtGui.QKeySequence("Ctrl+C"))
-        copyAction.triggered.connect(self.printView.copy)
+        copyAction.triggered.connect(self.copy)
         pasteAction = QtGui.QAction('&Paste', self)
         pasteAction.setShortcut(QtGui.QKeySequence("Ctrl+V"))
         pasteAction.triggered.connect(self.printView.paste)
@@ -1273,6 +1273,12 @@ class Argentum(QtGui.QMainWindow):
                 self.autoConnected = True
             else:
                 self.autoConnectFailed = True
+
+    def copy(self):
+        if self.tabWidget.currentWidget() == self.console:
+            self.outputView.copy()
+        else:
+            self.printView.copy()
 
     def viewSwitchActionTriggered(self):
         if self.viewSwitchAction.text() == "Console":
