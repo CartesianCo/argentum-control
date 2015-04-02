@@ -741,6 +741,8 @@ class PrintView(QtGui.QWidget):
                 self.setProgress(labelText="Printer firmware too old.", statusText="Print aborted. Printer firmware needs upgrade.", canceled=True)
                 return
 
+            self.argentum.printer.monitorEnabled = False
+
             volts = self.argentum.printer.volt()
             if volts < 5:
                 self.setProgress(labelText="Please turn on your printer.")
@@ -833,6 +835,7 @@ class PrintView(QtGui.QWidget):
         finally:
             self.printThread = None
             self.argentum.printingCompleted = True
+            self.argentum.printer.monitorEnabled = True
 
     def movePrintHead(self):
         xmm = self.printHeadImage.left - self.printHeadImage.minLeft

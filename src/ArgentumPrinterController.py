@@ -427,7 +427,11 @@ class ArgentumPrinterController(PrinterController):
         self.disconnect()
         self.connect(self.port)
 
+    monitorEnabled = True
     def monitor(self):
+        if not self.monitorEnabled:
+            return None
+
         try:
             if self.connected and self.serialDevice.timeout == 0:
                 data = None
@@ -803,6 +807,8 @@ class ArgentumPrinterController(PrinterController):
 
     def getPosition(self):
         if not self.connected:
+            return None
+        if not self.monitorEnabled:
             return None
         if self.serialDevice.timeout != 0:
             return None
