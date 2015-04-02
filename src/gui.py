@@ -22,6 +22,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from requests.packages.urllib3.contrib import pyopenssl
+pyopenssl.inject_into_urllib3()
+
 import sys
 import os
 import stat
