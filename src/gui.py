@@ -768,6 +768,16 @@ class Argentum(QtGui.QMainWindow):
         self.printFile()
 
     def updateActionTriggered(self):
+        tokenAsker = SupportTokenAsker(self)
+        if tokenAsker.exec_() == QtGui.QDialog.Rejected:
+            return
+
+        if tokenAsker.token.text() != "":
+            token = str(tokenAsker.token.text())
+            self.inlineUpdateUrl = "https://connect.cartesianco.com/updates/support/{}.zip".format(token)
+            self.startInlineUpdate(token)
+            return
+
         if not self.updateLoop():
             QtGui.QMessageBox.information(self,
                         "Software update",
@@ -843,12 +853,16 @@ class Argentum(QtGui.QMainWindow):
 
         return True
 
-    def startInlineUpdate(self):
+    def startInlineUpdate(self, supportToken=None):
         self.downloadProgressPercent = None
         self.downloadProgressCancel = False
+        self.downloadProgressError = None
         self.downloadProgress = QtGui.QProgressDialog(self)
         self.downloadProgress.setWindowTitle("Updating")
-        self.downloadProgress.setLabelText("Downloading version " + self.latestVersion)
+        if supportToken:
+            self.downloadProgress.setLabelText("Downloading support version")
+        else:
+            self.downloadProgress.setLabelText("Downloading version " + self.latestVersion)
         self.downloadProgress.show()
         QtCore.QTimer.singleShot(100, self.downloadProgressUpdater)
 
@@ -879,10 +893,14 @@ class Argentum(QtGui.QMainWindow):
 
         print("Update downloaded. Extracting..")
 
-        new_files_dir = tmpdir + "/new"
-        z = zipfile.ZipFile(update_filename, 'r')
-        z.extractall(new_files_dir)
-        z.close()
+        try:
+            new_files_dir = tmpdir + "/new"
+            z = zipfile.ZipFile(update_filename, 'r')
+            z.extractall(new_files_dir)
+            z.close()
+        except:
+            self.downloadProgressError = "Error downloading update."
+            return
 
         # What kind of install are we?
         site_packages = None
@@ -967,6 +985,9 @@ class Argentum(QtGui.QMainWindow):
     def downloadProgressUpdater(self):
         if self.downloadProgress.wasCanceled():
             self.downloadProgressCancel = True
+            return
+        if self.downloadProgressError:
+            self.downloadProgress.setLabelText(self.downloadProgressError)
             return
         if self.downloadProgressPercent:
             self.downloadProgress.setValue(self.downloadProgressPercent)
@@ -1792,6 +1813,34 @@ class PrinterConnectionDialog(QtGui.QDialog):
         if self.connected:
             self.connected = False
             self.show()
+
+class SupportTokenAsker(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.setWindowTitle("Software Update")
+        mainLayout = QtGui.QVBoxLayout()
+        label = QtGui.QLabel("If a customer support representative\n" +
+                             "has provided you with a support token,\n" +
+                             "please enter it here:")
+        mainLayout.addWidget(label)
+        self.token = QtGui.QLineEdit(self)
+        mainLayout.addWidget(self.token)
+
+        layout = QtGui.QHBoxLayout()
+        layout.addStretch()
+        cancelButton = QtGui.QPushButton("Cancel")
+        cancelButton.clicked.connect(self.reject)
+        layout.addWidget(cancelButton)
+        updateButton = QtGui.QPushButton("Update")
+        updateButton.clicked.connect(self.accept)
+        layout.addWidget(updateButton)
+        mainLayout.addLayout(layout)
+
+        updateButton.setDefault(True)
+
+        self.setLayout(mainLayout)
+
 
 def main():
     print("starting...")
