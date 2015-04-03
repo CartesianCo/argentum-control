@@ -329,7 +329,7 @@ class Argentum(QtGui.QMainWindow):
 
         self.showRollLimsAction = QtGui.QAction('Roll &Limits', self)
         self.showRollLimsAction.setCheckable(True)
-        self.showRollLimsAction.setChecked(self.getOption("use_rollers", True))
+        self.showRollLimsAction.setChecked(self.getOption("use_rollers", False))
         self.showRollLimsAction.triggered.connect(self.printView.showRollLimsActionTriggered)
 
 

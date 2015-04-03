@@ -1654,11 +1654,11 @@ class PrintOptionsDialog(QtGui.QDialog):
         mainLayout.addLayout(layout)
 
         self.useRollers = QtGui.QCheckBox("Dry the print after each pass")
-        self.useRollers.setChecked(self.argentum.getOption("use_rollers", True))
+        self.useRollers.setChecked(self.argentum.getOption("use_rollers", False))
         mainLayout.addWidget(self.useRollers)
 
         self.alsoPause = QtGui.QCheckBox("Pause after each pass")
-        self.alsoPause.setChecked(self.argentum.getOption("also_pause", False))
+        self.alsoPause.setChecked(self.argentum.getOption("also_pause", True))
         mainLayout.addWidget(self.alsoPause)
 
         layout = QtGui.QHBoxLayout()
