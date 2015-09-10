@@ -25,6 +25,8 @@ add it to your path and then run:
     pip install pyserial --upgrade
     pip install requests --upgrade
     pip install Pillow --upgrade
+    pip install pyopenssl --upgrade
+    pip install ndg-httpsclient --upgrade
 
 Running any of these commands may nag you to install developer tools. Do that and rerun the command. The last one is probably the most difficult to get working.
 
