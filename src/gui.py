@@ -1008,7 +1008,16 @@ class Argentum(QtGui.QMainWindow):
         if self.naggedFirmwareUpgrade:
             return
         _version = BASEVERSION.replace('.', '_')
-        filename = "argentum_" + _version + ".hex"
+        # check if v0.82 motherboard and upload different firmware
+        _portinfo = None
+        for port in comports():
+            if port[0].find(self.printer.port) != -1:
+                _portinfo = port[2]
+        if _portinfo.find("SNR=CCAB004") != -1:
+            _mobo = "0_82"
+        else:
+            _mobo = "0_78"
+        filename = "argentum_" + _version + "_m_" + _mobo + ".hex"
         if not os.path.exists(filename):
             return
         self.naggedFirmwareUpgrade = True
@@ -1019,10 +1028,18 @@ class Argentum(QtGui.QMainWindow):
             QtGui.QMessageBox.Yes)
 
         if reply == QtGui.QMessageBox.Yes:
-            self.checkFlashVersion = BASEVERSION
-            self.startFlash(filename)
-        else:
-            self.appendOutput('Continuing with older firmware.')
+            # check that the motherboard detection was correct with manual confirm
+            moboCheck = QtGui.QMessageBox.question(self,
+            'Motherboard version', 'We have detected your motherboard version as ' + _mobo +
+            '.\n\nIf you Argentum version is 1.2, your motherboard version should be 0_82. All other Argentums will have motherboard version 0_78.\n\nUploading the incorrect firmware will damage your Argentum.\n\nIs this version correct?',
+            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+            QtGui.QMessageBox.Yes)
+
+            if moboCheck == QtGui.QMessageBox.Yes:
+                self.checkFlashVersion = BASEVERSION
+                self.startFlash(filename)
+            else:
+                self.appendOutput('Continuing with older firmware.')
         self.naggingFirmwareUpgrade = False
 
     def flashActionTriggered(self):
@@ -1033,6 +1050,26 @@ class Argentum(QtGui.QMainWindow):
         firmwareFileName = str(firmwareFileName)
 
         if firmwareFileName:
+            _version = BASEVERSION.replace('.', '_')
+            # check current motherboard version
+            _portinfo = None
+            for port in comports():
+                if port[0].find(self.printer.port) != -1:
+                    _portinfo = port[2]
+            if _portinfo.find("SNR=CCAB004") != -1:
+                _mobo = "0_82"
+            else:
+                _mobo = "0_78"
+            filename = "argentum_" + _version + "_m_" + _mobo + ".hex"
+            if not os.path.exists(filename):
+                return
+            # check if motherboard version is in firmware filename
+            if _mobo not in firmwareFileName:
+                QtGui.QMessageBox.warning(self,
+                'Motherboard version', 'The firmware you have selected is not compatible with your motherboard version (' + _mobo +
+                ').\n\nYou cannot upload this file as it will damage your motherboard.')
+                return
+
             self.lastFirmwareDir = os.path.dirname(firmwareFileName)
             self.startFlash(firmwareFileName)
 
@@ -1854,6 +1891,7 @@ def main():
             program_path = program_path + "/../MacOS/gui"
         os.putenv('rft', str(os.getpid()))
         os.execv(terminal, [terminal, program_path])
+
     app = QtGui.QApplication(sys.argv)
     app.setOrganizationName("CartesianCo")
     app.setOrganizationDomain("cartesianco.com")
